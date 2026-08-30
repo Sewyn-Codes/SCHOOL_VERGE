@@ -24,8 +24,8 @@ ScholarVerge.com is a premier, hyper-realistic, modern academic tutoring and sup
 
 ### 4. **Interactive Utilities & Modals**
 - **Dynamic Price Calculator**: Instant calculation with deadline urgency, page counts, academic levels, and promo discount codes (`SCHOLAR20`).
-- **Free 10-Minute Consultation Scheduler**: Real-time calendar slot picker, tutor selection, and simulated Google Meet link generation with downloadable `.ics` calendar invites.
-- **Write My Paper Escrow Wizard**: Multi-step assignment submission with rubric attachments.
+- **Direct WhatsApp & Email Tutor Channels**: Instant 1-click WhatsApp (`https://wa.me/16677757597`) and official Email (`scholarverge@gmail.com`) reach on every tutor profile.
+- **Write My Paper Escrow Wizard**: Multi-step assignment submission with rubric attachments and escrow protection.
 - **Live Order Tracker & 1-on-1 Tutor Messenger**: Simulated real-time tracking for active orders (`#SV-84920`, `#SV-77219`, `#SV-99104`) with interactive messaging.
 - **Verified Reviews & Review Submission**: Dynamic star rating selector with instant live publication.
 - **24/7 Live Support Widget**: Interactive academic advisor drawer for immediate answers.

@@ -50,7 +50,7 @@ const tutorsData = [
         subject: 'History',
         rating: 5,
         date: '1 week ago',
-        comment: 'Claire helped me structure my entire final year dissertation outline and source primary archival evidence. She explained everything clearly during our consultation.'
+        comment: 'Claire helped me structure my entire final year dissertation outline and source primary archival evidence. She explained everything clearly via our direct messaging chat.'
       }
     ]
   },
@@ -109,7 +109,7 @@ const tutorsData = [
     id: 'sophia-mitchell',
     name: 'Sophia Mitchell',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80',
-    title: 'Senior Clinical Nursing & Health Sciences Consultant',
+    title: 'Senior Clinical Nursing & Health Sciences Academic Specialist',
     degree: 'M.S.N. in Clinical Nursing & M.S. in Health Psychology',
     experience: '6+ Years Experience',
     rating: 4.99,
@@ -123,7 +123,7 @@ I particularly enjoy working with students on research projects, literature revi
       papersCompleted: 1650,
       activeStudents: 41,
       turnitinClearScore: '100%',
-      avgResponseTime: '10 mins'
+      avgResponseTime: 'Instant / <15m'
     },
     specialties: [
       'Evidence-Based Practice (EBP) & PICOT Question Synthesis',
@@ -274,8 +274,8 @@ const allReviewsData = [
     rating: 5,
     date: '1 week ago',
     badge: 'Verified Order #SV-44012',
-    title: 'Empathetic and Insightful Consultation',
-    text: 'We had a 10-minute consultation where Sophia outlined the experimental design for my cognitive psychology review. Booking was seamless and the finished draft was pristine.'
+    title: 'Empathetic and Insightful Academic Guidance',
+    text: 'Sophia quickly outlined the experimental design for my cognitive psychology review via direct chat. Sourcing was thorough and the finished draft was pristine.'
   }
 ];
 
