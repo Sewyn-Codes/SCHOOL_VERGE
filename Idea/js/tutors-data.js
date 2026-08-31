@@ -295,7 +295,7 @@ const mockOrders = {
     steps: [
       { name: 'Assignment Details Submitted', done: true, time: 'Aug 26, 10:14 AM' },
       { name: 'Tutor Sophia Mitchell Assigned', done: true, time: 'Aug 26, 10:25 AM' },
-      { name: 'Escrow Deposit Held Securely', done: true, time: 'Aug 26, 10:26 AM' },
+      { name: 'Payment Coordinated via WhatsApp Admin', done: true, time: 'Aug 26, 10:26 AM' },
       { name: 'Literature Review & Outline Approved', done: true, time: 'Aug 27, 02:40 PM' },
       { name: 'Drafting & APA 7th Citations Complete', done: true, time: 'Aug 28, 08:15 AM' },
       { name: 'Turnitin Similarity (0.4%) & AI (0%) Cleared', done: true, time: 'Aug 28, 09:30 AM' },
@@ -327,7 +327,7 @@ const mockOrders = {
     steps: [
       { name: 'Assignment Details Submitted', done: true, time: 'Aug 27, 01:10 PM' },
       { name: 'Tutor Oliver Harrison Assigned', done: true, time: 'Aug 27, 01:20 PM' },
-      { name: 'Escrow Deposit Held Securely', done: true, time: 'Aug 27, 01:21 PM' },
+      { name: 'Payment Coordinated via WhatsApp Admin', done: true, time: 'Aug 27, 01:21 PM' },
       { name: 'Data Cleaning & Model Selection (R Script)', done: true, time: 'Aug 27, 06:00 PM' },
       { name: 'Drafting Empirical Findings & P-Value Synthesis', done: true, time: 'Aug 28, 07:45 AM' },
       { name: 'Turnitin Similarity & Code Commenting', done: false, time: 'In Progress (ETA 2 hrs)' },
@@ -358,7 +358,7 @@ const mockOrders = {
     steps: [
       { name: 'Assignment Details Submitted', done: true, time: 'Aug 25, 09:00 AM' },
       { name: 'Tutor Claire Bennett Assigned', done: true, time: 'Aug 25, 09:15 AM' },
-      { name: 'Escrow Deposit Held Securely', done: true, time: 'Aug 25, 09:16 AM' },
+      { name: 'Payment Coordinated via WhatsApp Admin', done: true, time: 'Aug 25, 09:16 AM' },
       { name: 'Jurisprudential Research & Outline', done: true, time: 'Aug 26, 11:30 AM' },
       { name: 'Full Draft Written (IRAC Methodology)', done: true, time: 'Aug 27, 04:00 PM' },
       { name: 'Turnitin & AI-Free Verification (0% AI)', done: true, time: 'Aug 28, 06:20 AM' },

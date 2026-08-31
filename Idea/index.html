@@ -10,7 +10,7 @@
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Custom Enhanced Stylesheet -->
-  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/main.css?v=7" />
 </head>
 <body>
 
@@ -214,25 +214,103 @@
         </li>
       </ul>
 
-      <!-- Navigation Right Actions -->
+      <!-- Navigation Right Actions (Dynamic Multi-Tenant State) -->
       <div class="nav-actions">
-        <!-- Role Switcher Button: Student <-> Super Admin Mode -->
-        <button class="role-toggle-btn" id="role-toggle-btn" title="Toggle between Student Portal and Super Admin Mode">
-          <i class="fa-solid fa-user-graduate" style="color: var(--accent-blue);"></i>
-          <span>Student Portal</span>
-        </button>
+        <!-- Logged-Out / Guest Container -->
+        <div id="nav-guest-actions" style="display: flex; align-items: center; gap: 8px;">
+          <button class="role-toggle-btn" onclick="openAuthModal('login')" title="Sign in to your student account">
+            <i class="fa-solid fa-right-to-bracket" style="color: var(--accent-blue);"></i>
+            <span>Sign In</span>
+          </button>
 
-        <!-- Quick Search / Command Palette Button -->
-        <button class="nav-search-btn" title="Quick Search (Ctrl + K)">
+          <button class="role-toggle-btn" onclick="openAuthModal('register')" title="Create new student account" style="background: #e0f2fe; border-color: #bae6fd; color: #0369a1;">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Register</span>
+          </button>
+
+          <button class="role-toggle-btn admin-mode" onclick="openAuthModal('admin')" title="Super Admin Gate">
+            <i class="fa-solid fa-crown" style="color: #fbbf24;"></i>
+            <span>Admin Gate</span>
+          </button>
+        </div>
+
+        <!-- Logged-In Student Container -->
+        <div id="nav-student-actions" style="display: none;">
+          <div class="nav-user-wrap">
+            <div class="nav-user-chip" id="nav-user-toggle-btn" onclick="toggleUserNavDropdown()">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Student" class="nav-user-avatar" id="nav-student-avatar" />
+              <div class="nav-user-details">
+                <span class="nav-user-name" id="nav-student-name">Jordan Miller</span>
+                <span class="nav-user-uni" id="nav-student-uni">Columbia Univ</span>
+              </div>
+              <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: #94a3b8;"></i>
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div class="user-dropdown-menu" id="user-dropdown-menu">
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentDashboard();">
+                <i class="fa-solid fa-gauge-high" style="color: var(--accent-blue);"></i> My Academic Hub
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentActivitiesModal('booking');">
+                <i class="fa-solid fa-calendar-check" style="color: #10b981;"></i> Book 1-on-1 Session
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentActivitiesModal('upload');">
+                <i class="fa-solid fa-cloud-arrow-up" style="color: #2563eb;"></i> Dispatch Documents to Email
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentActivitiesModal('review');">
+                <i class="fa-solid fa-star" style="color: #f59e0b;"></i> Write Verified Review
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentActivitiesModal('tools');">
+                <i class="fa-solid fa-screwdriver-wrench" style="color: #8b5cf6;"></i> Academic Tools & Citations
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeUserNavDropdown(); openStudentProfileModal();">
+                <i class="fa-solid fa-id-card" style="color: #b45309;"></i> Edit Profile Preferences
+              </a>
+              <a href="#" class="user-dropdown-item danger" onclick="event.preventDefault(); closeUserNavDropdown(); handleUserLogout();">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logged-In Super Admin Container -->
+        <div id="nav-admin-actions" style="display: none;">
+          <div class="nav-user-wrap">
+            <button class="role-toggle-btn admin-mode" onclick="toggleAdminNavDropdown()">
+              <i class="fa-solid fa-crown" style="color: #fbbf24;"></i>
+              <span>Super Admin Active</span>
+              <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
+            </button>
+
+            <!-- Admin Dropdown Menu -->
+            <div class="user-dropdown-menu" id="admin-dropdown-menu">
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeAdminNavDropdown(); openSuperAdminPortal();">
+                <i class="fa-solid fa-shield-halved" style="color: #4338ca;"></i> Command Center
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeAdminNavDropdown(); openSuperAdminPortal(); switchAdminTab('students');">
+                <i class="fa-solid fa-users" style="color: #b45309;"></i> Student Roster (24)
+              </a>
+              <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); closeAdminNavDropdown(); openSuperAdminPortal(); switchAdminTab('database');">
+                <i class="fa-solid fa-database" style="color: #059669;"></i> PostgreSQL Live Console
+              </a>
+              <a href="#" class="user-dropdown-item danger" onclick="event.preventDefault(); closeAdminNavDropdown(); handleUserLogout();">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Admin Session
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Search Button -->
+        <button class="nav-search-btn" title="Quick Search (Ctrl + K)" onclick="openCommandPalette()">
           <i class="fa-solid fa-magnifying-glass"></i>
           <span>Search</span>
           <span class="search-kbd">Ctrl K</span>
         </button>
 
         <!-- Collapsible Sidebar Portal Button -->
-        <button class="portal-toggle-btn" id="portal-toggle-btn" title="Open Academic Portal & Tools (Alt + S)">
+        <button class="portal-toggle-btn" id="portal-toggle-btn" onclick="openSidebar()" title="Academic Toolkit & Direct Messages (Alt + S)">
           <i class="fa-solid fa-bars-staggered"></i>
-          <span>Academic Portal</span>
+          <span>Toolkit</span>
           <span class="portal-badge">3 Active</span>
         </button>
 
@@ -322,7 +400,7 @@
       <!-- Section 3: Live Active Orders Quick Switcher -->
       <div>
         <div class="sidebar-section-title">
-          <span>Active Escrow Orders</span>
+          <span>Active Academic Orders</span>
           <span class="badge badge-trust" style="font-size: 0.65rem; padding: 2px 6px;">3 Running</span>
         </div>
         <div class="sidebar-card">
@@ -562,10 +640,10 @@
               </div>
             </div>
             <div class="trust-item">
-              <div class="trust-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              <div class="trust-icon"><i class="fa-brands fa-whatsapp"></i></div>
               <div class="trust-text">
-                <strong>Escrow Protected</strong>
-                Pay only when satisfied
+                <strong>WhatsApp Payment</strong>
+                Coordinated with Admin
               </div>
             </div>
           </div>
@@ -629,7 +707,7 @@
 
           <div class="calc-price-box">
             <div class="price-details">
-              <span class="price-label">Estimated Escrow Hold</span>
+              <span class="price-label">Estimated Total Price</span>
               <div>
                 <span class="price-total" id="calc-price-total">$37.80</span>
                 <span class="price-old" id="calc-price-old">$47.25</span>
@@ -673,7 +751,7 @@
         <span class="section-badge"><i class="fa-solid fa-route"></i> Seamless Process</span>
         <h2 class="section-title" data-i18n="howItWorksTitle">A Step-by-Step Guide on How It Works</h2>
         <p class="section-desc">
-          From your initial assignment brief to final grade-ready submission, our escrow protection ensures zero risk and complete peace of mind.
+          From your initial assignment brief to tutor collaboration and WhatsApp payment coordination, we ensure complete academic excellence and zero stress.
         </p>
       </div>
 
@@ -709,13 +787,15 @@
         <!-- Step 3 -->
         <div class="step-card">
           <span class="step-number">03</span>
-          <div class="step-icon-wrap"><i class="fa-solid fa-vault"></i></div>
-          <h3 class="step-title" data-i18n="step3Title">Make a deposit</h3>
+          <div class="step-icon-wrap" style="color: #16a34a;"><i class="fa-brands fa-whatsapp"></i></div>
+          <h3 class="step-title" data-i18n="step3Title">Confirm & Coordinate Payment via WhatsApp</h3>
           <p class="step-desc" data-i18n="step3Desc">
-            Reserve your order safely with our 100% secure escrow hold. Your money is held protected until you approve.
+            Message our admin on WhatsApp (+1 667 775 7597) to confirm your assignment pricing and choose your preferred offline payment method.
           </p>
           <div class="step-badge">
-            <span class="badge badge-trust">Zero Risk Escrow</span>
+            <a href="https://wa.me/16677757597" target="_blank" class="badge badge-trust" style="text-decoration: none;">
+              <i class="fa-brands fa-whatsapp"></i> WhatsApp Facilitated
+            </a>
           </div>
         </div>
 
@@ -751,14 +831,14 @@
         <div class="step-card" style="border: 2px solid var(--accent-teal); background: #ffffff;">
           <span class="step-number" style="color: rgba(6, 214, 160, 0.4);">06</span>
           <div class="step-icon-wrap" style="background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-teal-dark) 100%); color: #0b132b;">
-            <i class="fa-solid fa-handshake-angle"></i>
+            <i class="fa-solid fa-award"></i>
           </div>
-          <h3 class="step-title" data-i18n="step6Title" style="color: #047857;">Pay only when your requirements are met</h3>
+          <h3 class="step-title" data-i18n="step6Title" style="color: #047857;">Review & approve your completed work</h3>
           <p class="step-desc" data-i18n="step6Desc">
-            Inspect the document, request free unlimited adjustments within 14 days, and release funds when 100% satisfied.
+            Inspect the document, request free unlimited adjustments within 14 days, and achieve your target grade with complete confidence.
           </p>
           <div class="step-badge">
-            <span class="badge badge-trust">100% Money-Back Guarantee</span>
+            <span class="badge badge-trust">Grade & Quality Guarantee</span>
           </div>
         </div>
       </div>
@@ -1007,7 +1087,7 @@
           </div>
           <div style="display: flex; gap: 12px; margin-top: 20px;">
             <span class="badge badge-trust"><i class="fa-solid fa-lock"></i> 256-Bit SSL Encrypted</span>
-            <span class="badge badge-verified"><i class="fa-solid fa-shield"></i> Escrow Guarantee</span>
+            <span class="badge badge-verified"><i class="fa-brands fa-whatsapp"></i> WhatsApp Facilitated</span>
           </div>
         </div>
 
@@ -1039,7 +1119,7 @@
             <li><a href="#" onclick="event.preventDefault(); openStudentDashboard();">My Academic Dashboard</a></li>
             <li><a href="#" onclick="event.preventDefault(); openSuperAdminPortal();">Super Admin Control Center</a></li>
             <li><a href="#anti-ai">0% AI & Originality Guarantee</a></li>
-            <li><a href="#how-it-works">Escrow Payment Protection</a></li>
+            <li><a href="#how-it-works">WhatsApp Payment Coordination</a></li>
           </ul>
         </div>
       </div>
@@ -1049,11 +1129,8 @@
           © 2026 ScholarVerge.com. All rights reserved. Academic Tutoring & Guidance Services.
         </div>
         <div class="payment-badges">
-          <i class="fa-brands fa-cc-visa" title="Visa"></i>
-          <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-          <i class="fa-brands fa-cc-amex" title="American Express"></i>
-          <i class="fa-brands fa-cc-paypal" title="PayPal"></i>
-          <i class="fa-brands fa-cc-apple-pay" title="Apple Pay"></i>
+          <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem; color: #22c55e;" title="WhatsApp Payment Facilitation"></i>
+          <span style="font-size: 0.8rem; color: #94a3b8; margin-left: 6px;">WhatsApp Admin Facilitated Payments</span>
         </div>
       </div>
     </div>
@@ -1100,8 +1177,8 @@
         <button class="chat-quick-btn" onclick="openStudentProfileModal()">
           🎓 Set Up My Student Profile
         </button>
-        <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('How does the escrow payment hold work?')">
-          🛡️ How does escrow payment work?
+        <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('How do I coordinate payment on WhatsApp with the admin?')">
+          💳 How do I coordinate payment on WhatsApp?
         </button>
         <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('What is your Turnitin & Anti-AI guarantee?')">
           📄 Tell me about your 0% AI guarantee
@@ -1118,8 +1195,306 @@
   </div>
 
   <!-- =========================================================================
-       MODALS SECTION (STUDENT PROFILE, DASHBOARD, SUPER ADMIN, ORDER WIZARD)
+       MODALS SECTION (AUTHENTICATION, STUDENT PROFILE, DASHBOARD, SUPER ADMIN)
        ========================================================================= -->
+
+  <!-- Modal 0: Multi-Tenant Authentication & Real-World Gate Modal -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-card auth-modal-card">
+      <div class="auth-header-hero">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <i class="fa-solid fa-graduation-cap" style="font-size: 1.4rem; color: var(--accent-teal);"></i>
+              <h3 style="font-size: 1.3rem; color: #ffffff; margin: 0;">ScholarVerge Identity</h3>
+            </div>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;" id="auth-header-subtitle">Sign in to your personalized multi-tenant student account</p>
+          </div>
+          <button class="modal-close" aria-label="Close modal" style="color: #ffffff; background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">&times;</button>
+        </div>
+
+        <!-- Auth Navigation Tabs -->
+        <div class="auth-tabs-bar">
+          <button class="auth-tab-pill active" id="tab-btn-login" onclick="switchAuthTab('login')">
+            <i class="fa-solid fa-right-to-bracket"></i> Student Login
+          </button>
+          <button class="auth-tab-pill" id="tab-btn-register" onclick="switchAuthTab('register')">
+            <i class="fa-solid fa-user-plus"></i> Create Account
+          </button>
+          <button class="auth-tab-pill admin-tab" id="tab-btn-admin" onclick="switchAuthTab('admin')">
+            <i class="fa-solid fa-shield-halved"></i> Super Admin
+          </button>
+          <button class="auth-tab-pill" id="tab-btn-reset" onclick="switchAuthTab('reset')">
+            <i class="fa-solid fa-key"></i> Recovery
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-body-content">
+        <!-- 1. Student Sign In Tab -->
+        <div id="auth-pane-login">
+          <!-- Google 1-Tap Sign In Button -->
+          <button type="button" class="google-auth-btn" onclick="handleGoogleSignIn()">
+            <svg class="google-icon-svg" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span>Continue with Google Account</span>
+          </button>
+
+          <div class="auth-separator"><span>or student email</span></div>
+
+          <form onsubmit="handleStudentLogin(event)">
+            <div class="calc-form-group">
+              <label class="calc-label">Registered Student Email</label>
+              <input type="email" id="login-email" class="calc-input" placeholder="e.g. jordan.m@university.edu" required />
+            </div>
+
+            <div class="calc-form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="calc-label" style="margin-bottom: 0;">Password</label>
+                <a href="#" onclick="event.preventDefault(); switchAuthTab('reset');" style="font-size: 0.75rem; color: var(--accent-blue); font-weight: 600;">Forgot Password?</a>
+              </div>
+              <div class="pw-input-wrapper" style="margin-top: 6px;">
+                <input type="password" id="login-password" class="calc-input" placeholder="••••••••••••" required />
+                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('login-password')">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 8px;">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to My Account
+            </button>
+          </form>
+
+          <div style="margin-top: 18px; text-align: center; font-size: 0.8125rem; color: #64748b;">
+            Don't have an account yet? <a href="#" onclick="event.preventDefault(); switchAuthTab('register');" style="color: var(--accent-blue); font-weight: 700;">Create Free Account</a>
+          </div>
+        </div>
+
+        <!-- 2. Create Student Account Tab -->
+        <div id="auth-pane-register" style="display: none;">
+          <!-- Google 1-Tap Sign Up -->
+          <button type="button" class="google-auth-btn" onclick="handleGoogleSignIn()">
+            <svg class="google-icon-svg" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span>One-Tap Sign Up with Google</span>
+          </button>
+
+          <div class="auth-separator"><span>or standard academic profile</span></div>
+
+          <form onsubmit="handleStudentRegister(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Full Name</label>
+                <input type="text" id="reg-name" class="calc-input" placeholder="e.g. Emma Watson" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Student Email</label>
+                <input type="email" id="reg-email" class="calc-input" placeholder="e.g. emma@stanford.edu" required />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px;">
+              <div class="calc-form-group">
+                <label class="calc-label">University / College</label>
+                <input type="text" id="reg-uni" class="calc-input" placeholder="e.g. Stanford University" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Degree Level</label>
+                <select id="reg-level" class="calc-select">
+                  <option>Undergraduate</option>
+                  <option>High School</option>
+                  <option>Master’s Degree</option>
+                  <option>Doctoral / Ph.D.</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Major Field</label>
+                <input type="text" id="reg-major" class="calc-input" placeholder="e.g. Economics & Law" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">WhatsApp Contact</label>
+                <input type="text" id="reg-whatsapp" class="calc-input" placeholder="+1 (667) 775-7597" required />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Password</label>
+                <div class="pw-input-wrapper">
+                  <input type="password" id="reg-password" class="calc-input" placeholder="Create password" required oninput="checkPasswordStrength(this.value)" />
+                  <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reg-password')">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
+                <div class="pw-strength-container">
+                  <div class="pw-strength-bar"><div class="pw-strength-fill" id="reg-pw-fill"></div></div>
+                  <span class="pw-strength-lbl" id="reg-pw-lbl">Password strength</span>
+                </div>
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Confirm Password</label>
+                <div class="pw-input-wrapper">
+                  <input type="password" id="reg-password-confirm" class="calc-input" placeholder="Repeat password" required />
+                  <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reg-password-confirm')">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-accent" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 10px;">
+              <i class="fa-solid fa-user-check"></i> Register Account & Open Dashboard
+            </button>
+          </form>
+
+          <div style="margin-top: 18px; text-align: center; font-size: 0.8125rem; color: #64748b;">
+            Already registered? <a href="#" onclick="event.preventDefault(); switchAuthTab('login');" style="color: var(--accent-blue); font-weight: 700;">Sign In</a>
+          </div>
+        </div>
+
+        <!-- 3. Super Admin Gate (2FA Shield) Tab -->
+        <div id="auth-pane-admin" style="display: none;">
+          <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 14px; color: #ffffff; margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(251, 191, 36, 0.2); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+              <strong style="font-size: 0.9rem; display: block;">Master Administrator Control Center</strong>
+              <span style="font-size: 0.72rem; color: #cbd5e1;">Requires Master Passcode & 2FA Authenticator Token</span>
+            </div>
+          </div>
+
+          <form onsubmit="handleSuperAdminLogin(event)">
+            <div class="calc-form-group">
+              <label class="calc-label">Super Admin Master Email</label>
+              <input type="email" id="admin-login-email" class="calc-input" placeholder="admin@scholarverge.com" required />
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">Master Admin Passcode</label>
+              <div class="pw-input-wrapper">
+                <input type="password" id="admin-login-password" class="calc-input" placeholder="••••••••••••" required />
+                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('admin-login-password')">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">2FA Authenticator PIN</label>
+              <input type="text" id="admin-login-2fa" class="calc-input" placeholder="Enter 6-digit Authenticator PIN" style="letter-spacing: 3px; font-weight: 800; text-align: center;" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fbbf24; border: 1px solid #4338ca;">
+              <i class="fa-solid fa-shield-halved"></i> Verify 2FA & Access Command Center
+            </button>
+          </form>
+        </div>
+
+        <!-- 4. Forgot Password & Account Recovery Tab -->
+        <div id="auth-pane-reset" style="display: none;">
+          <div id="reset-step-1">
+            <p style="font-size: 0.85rem; color: #475569; margin-bottom: 16px;">
+              Enter your registered student email address. Our system will generate a secure 6-digit verification code and dispatch it to your inbox immediately.
+            </p>
+            <form onsubmit="handleForgotPasswordRequest(event)">
+              <div class="calc-form-group">
+                <label class="calc-label">Registered Student Email</label>
+                <input type="email" id="reset-req-email" class="calc-input" placeholder="e.g. jordan.m@university.edu" required />
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
+                <i class="fa-solid fa-paper-plane"></i> Send 6-Digit Reset Code
+              </button>
+            </form>
+          </div>
+
+          <!-- Realistic Simulated Inbox Notification Card (Reveals after request) -->
+          <div id="reset-email-preview-wrap" style="display: none;">
+            <div class="email-dispatch-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-envelope-open-text" style="color: #38bdf8; font-size: 1.1rem;"></i>
+                  <strong style="font-size: 0.85rem; color: #ffffff;">Incoming Notification from ScholarVerge Auth</strong>
+                </div>
+                <span style="font-size: 0.7rem; color: #34d399; font-weight: 700;"><i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> Dispatched Just Now</span>
+              </div>
+              
+              <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                <p style="margin-bottom: 6px;">To: <strong id="dispatch-email-to" style="color: #ffffff;">jordan.m@university.edu</strong></p>
+                <p style="margin-bottom: 8px;">Subject: <strong>ScholarVerge - Password Reset Verification Code</strong></p>
+                <p style="margin-bottom: 8px;">Your one-time 6-digit password reset verification code is:</p>
+                
+                <div class="otp-digit-display" id="dispatch-otp-display">
+                  <div class="otp-box">8</div>
+                  <div class="otp-box">4</div>
+                  <div class="otp-box">9</div>
+                  <div class="otp-box">2</div>
+                  <div class="otp-box">0</div>
+                  <div class="otp-box">5</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                  <span style="font-size: 0.72rem; color: #94a3b8;"><i class="fa-solid fa-clock"></i> Valid for 15 minutes</span>
+                  <button type="button" class="btn btn-accent" style="padding: 6px 12px; font-size: 0.75rem;" onclick="autoFillResetCode()">
+                    <i class="fa-solid fa-paste"></i> Auto-Fill Code & Proceed
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Set New Password Form -->
+            <form onsubmit="handleResetPasswordSubmit(event)">
+              <div class="calc-form-group">
+                <label class="calc-label">6-Digit Verification Code</label>
+                <input type="text" id="reset-code-input" class="calc-input" placeholder="Enter 6-digit OTP" required style="letter-spacing: 3px; font-weight: 800; text-align: center; font-size: 1.1rem;" />
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="calc-form-group">
+                  <label class="calc-label">New Password</label>
+                  <div class="pw-input-wrapper">
+                    <input type="password" id="reset-new-password" class="calc-input" placeholder="Enter new password" required />
+                    <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reset-new-password')">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="calc-form-group">
+                  <label class="calc-label">Confirm New Password</label>
+                  <div class="pw-input-wrapper">
+                    <input type="password" id="reset-confirm-password" class="calc-input" placeholder="Repeat new password" required />
+                    <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reset-confirm-password')">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 8px;">
+                <i class="fa-solid fa-shield-check"></i> Set New Password & Sign In
+              </button>
+            </form>
+          </div>
+
+          <div style="margin-top: 18px; text-align: center; font-size: 0.8125rem; color: #64748b;">
+            Remembered your password? <a href="#" onclick="event.preventDefault(); switchAuthTab('login');" style="color: var(--accent-blue); font-weight: 700;">Back to Sign In</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal 1: Student Profile Creator & Onboarding Wizard -->
   <div class="modal-overlay" id="student-profile-modal">
@@ -1223,8 +1598,8 @@
 
           <div class="student-dash-stats">
             <div class="student-stat-chip">
-              <div class="student-stat-val" id="dash-escrow-balance">$240.00</div>
-              <div class="student-stat-lbl">Escrow Wallet</div>
+              <div class="student-stat-val" id="dash-payment-status" style="color: #059669; font-size: 0.95rem;"><i class="fa-brands fa-whatsapp"></i> Verified</div>
+              <div class="student-stat-lbl">WhatsApp Facilitated</div>
             </div>
             <div class="student-stat-chip">
               <div class="student-stat-val" id="dash-orders-count">3 Papers</div>
@@ -1245,7 +1620,29 @@
           </div>
         </div>
 
-        <!-- Active Escrow Papers Table -->
+        <!-- Real-World Student Activities Action Bar -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="font-size: 0.85rem; color: var(--primary);"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Student Academic Activities & Workflows</strong>
+            <span style="font-size: 0.72rem; color: #64748b;">Instant 1-Click Access</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+            <button class="btn btn-outline" style="padding: 8px 12px; font-size: 0.785rem; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff;" onclick="closeModal('student-dashboard-modal'); openStudentActivitiesModal('booking');">
+              <i class="fa-solid fa-calendar-check" style="color: #10b981;"></i> 1-on-1 Booking
+            </button>
+            <button class="btn btn-outline" style="padding: 8px 12px; font-size: 0.785rem; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff;" onclick="closeModal('student-dashboard-modal'); openStudentActivitiesModal('upload');">
+              <i class="fa-solid fa-cloud-arrow-up" style="color: #2563eb;"></i> Email Doc Dispatch
+            </button>
+            <button class="btn btn-outline" style="padding: 8px 12px; font-size: 0.785rem; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff;" onclick="closeModal('student-dashboard-modal'); openStudentActivitiesModal('review');">
+              <i class="fa-solid fa-star" style="color: #f59e0b;"></i> Write Review
+            </button>
+            <button class="btn btn-outline" style="padding: 8px 12px; font-size: 0.785rem; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff;" onclick="closeModal('student-dashboard-modal'); openStudentActivitiesModal('tools');">
+              <i class="fa-solid fa-screwdriver-wrench" style="color: #8b5cf6;"></i> Citations & Tools
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Academic Papers Table -->
         <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--primary); display: flex; justify-content: space-between; align-items: center;">
           <span>My Assignment Orders & Deliverables</span>
           <button class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" onclick="closeModal('student-dashboard-modal'); openOrderModalWithTutor('');">
@@ -1261,46 +1658,321 @@
                 <th>Topic & Subject</th>
                 <th>Tutor</th>
                 <th>Status</th>
-                <th>Escrow Hold</th>
+                <th>Amount & Payment</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>#SV-84920</strong></td>
-                <td>Telehealth Nursing PICOT (Nursing)</td>
-                <td>Sophia Mitchell</td>
-                <td><span class="status-pill review">Ready for Review (100%)</span></td>
-                <td><strong>$120.00</strong></td>
-                <td>
-                  <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem;" onclick="closeModal('student-dashboard-modal'); loadOrderDetails('SV-84920'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });">
-                    Inspect
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>#SV-77219</strong></td>
-                <td>Econometric Models in R (Economics)</td>
-                <td>Oliver Harrison</td>
-                <td><span class="status-pill in_progress">Drafting (85%)</span></td>
-                <td><strong>$180.00</strong></td>
-                <td>
-                  <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem;" onclick="closeModal('student-dashboard-modal'); loadOrderDetails('SV-77219'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });">
-                    Inspect
-                  </button>
-                </td>
-              </tr>
+            <tbody id="student-orders-tbody">
+              <!-- Rendered dynamically from PostgreSQL database via js/app.js -->
             </tbody>
           </table>
         </div>
 
-        <div style="display: flex; justify-content: space-between; margin-top: 20px; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; gap: 12px; flex-wrap: wrap;">
           <button class="btn btn-outline" onclick="openStudentProfileModal()">
             <i class="fa-solid fa-pen-to-square"></i> Edit Profile Preferences
           </button>
           <a href="https://wa.me/16677757597" target="_blank" class="btn btn-whatsapp">
             <i class="fa-brands fa-whatsapp"></i> Chat with Academic Advisor
           </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2B: Student Activities & Academic Operations Hub -->
+  <div class="modal-overlay" id="student-activities-modal">
+    <div class="modal-card auth-modal-card" style="max-width: 720px !important;">
+      <div class="auth-header-hero" style="background: linear-gradient(135deg, #070d1e 0%, #0b132b 50%, #1e3a8a 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(37, 99, 235, 0.25); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div>
+              <h3 style="color: #ffffff; font-size: 1.3rem; margin: 0;">Student Activities Hub</h3>
+              <p style="color: #94a3b8; font-size: 0.8rem; margin: 2px 0 0;" id="activity-header-sub">
+                1-on-1 Consultations, Direct Document Email Dispatches & Academic Tools
+              </p>
+            </div>
+          </div>
+          <button class="modal-close" aria-label="Close modal" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
+        </div>
+
+        <!-- Activity Tabs Bar -->
+        <div class="auth-tabs-bar" style="margin-top: 18px; flex-wrap: wrap;">
+          <button type="button" class="auth-tab-pill active" id="act-tab-booking" onclick="switchActivityTab('booking')">
+            <i class="fa-solid fa-calendar-check"></i> 1-on-1 Booking
+          </button>
+          <button type="button" class="auth-tab-pill" id="act-tab-upload" onclick="switchActivityTab('upload')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Email Doc Dispatch
+          </button>
+          <button type="button" class="auth-tab-pill" id="act-tab-review" onclick="switchActivityTab('review')">
+            <i class="fa-solid fa-star"></i> Write Review
+          </button>
+          <button type="button" class="auth-tab-pill" id="act-tab-tools" onclick="switchActivityTab('tools')">
+            <i class="fa-solid fa-screwdriver-wrench"></i> Citations & Tools
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-body-content">
+        <!-- 1. Tab: 1-on-1 Tutor Consultation Scheduler -->
+        <div id="act-pane-booking">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start;">
+            <i class="fa-solid fa-video" style="color: #16a34a; font-size: 1.3rem; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #15803d; font-size: 0.875rem; display: block;">Live Screen-Share Consultation & Rubric Defense</strong>
+              <span style="color: #166534; font-size: 0.8rem;">Connect 1-on-1 with senior Master's & Ph.D. tutors via Google Meet, Zoom, or WhatsApp video.</span>
+            </div>
+          </div>
+
+          <form onsubmit="handleBookingSubmit(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Select Specialist Tutor</label>
+                <select id="book-tutor" class="calc-select" required>
+                  <option value="Sophia Mitchell">Sophia Mitchell (DNP • Nursing & Psychology)</option>
+                  <option value="Oliver Harrison">Oliver Harrison (Ph.D. • Econometrics & Finance)</option>
+                  <option value="Claire Bennett">Claire Bennett (Master's • Law, IT & English)</option>
+                </select>
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Consultation Focus</label>
+                <select id="book-session-type" class="calc-select" required>
+                  <option>Thesis Strategy & Research Design (45 min)</option>
+                  <option>PICOT & Clinical Evidence-Based Review (30 min)</option>
+                  <option>Quantitative Econometrics & R Debugging (60 min)</option>
+                  <option>Urgent Pre-Submission Rubric Polish (30 min)</option>
+                  <option>1-on-1 Academic Q&A & Concept Defense (45 min)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Session Date</label>
+                <input type="date" id="book-date" class="calc-input" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Preferred Time</label>
+                <select id="book-time" class="calc-select" required>
+                  <option>10:00 AM EST</option>
+                  <option>01:00 PM EST</option>
+                  <option>03:30 PM EST</option>
+                  <option>06:00 PM EST</option>
+                  <option>08:30 PM EST</option>
+                </select>
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Platform</label>
+                <select id="book-platform" class="calc-select">
+                  <option value="Google Meet">Google Meet</option>
+                  <option value="Zoom">Zoom Video</option>
+                  <option value="WhatsApp Video">WhatsApp Video</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">Session Agenda / Specific Assignment Questions</label>
+              <textarea id="book-notes" class="calc-input" rows="3" placeholder="Briefly describe what you would like to cover with your tutor during this session..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
+              <i class="fa-solid fa-calendar-plus"></i> Schedule Session & Generate Invite Link
+            </button>
+          </form>
+
+          <div id="booking-confirmation-card" style="display: none; margin-top: 18px;"></div>
+        </div>
+
+        <!-- 2. Tab: Document & Rubric Direct Dispatch to Email -->
+        <div id="act-pane-upload" style="display: none;">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start;">
+            <i class="fa-solid fa-envelope-circle-check" style="color: #2563eb; font-size: 1.3rem; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #1e40af; font-size: 0.875rem; display: block;">Direct Assignment Dispatch to scholarverge@gmail.com</strong>
+              <span style="color: #1e3a8a; font-size: 0.8rem;">Attach assignment rubrics, reading materials, or datasets. They are instantly registered and sent to the senior academic team.</span>
+            </div>
+          </div>
+
+          <form onsubmit="handleDocumentEmailDispatch(event)">
+            <!-- Real HTML5 File Dropzone -->
+            <div class="calc-form-group">
+              <label class="calc-label">Select Assignment File(s) (PDF, DOCX, XLSX, TXT, PPTX)</label>
+              <div style="border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('real-file-picker').click()">
+                <input type="file" id="real-file-picker" style="display: none;" onchange="handleRealFileChange(event)" />
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 8px;"></i>
+                <p style="font-size: 0.9rem; color: #334155; font-weight: 700; margin-bottom: 4px;" id="file-dropzone-label">
+                  Click to browse files or drag & drop here
+                </p>
+                <span style="font-size: 0.75rem; color: #94a3b8;" id="file-dropzone-sub">Supports up to 50MB (PDF, DOCX, XLSX, PPTX, TXT)</span>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Assignment Topic / Course Code</label>
+                <input type="text" id="upload-topic" class="calc-input" placeholder="e.g. NURS-420: Systematic Evidence-Based Review" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Required Citation Style</label>
+                <select id="upload-citation" class="calc-select">
+                  <option>APA 7th Edition</option>
+                  <option>MLA 9th Edition</option>
+                  <option>Harvard Style</option>
+                  <option>Chicago / Turabian</option>
+                  <option>OSCOLA / Bluebook</option>
+                  <option>IEEE</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Target Deadline</label>
+                <input type="text" id="upload-deadline" class="calc-input" placeholder="e.g. 24 Hours / Nov 15th 5PM" required />
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Destination Email Address</label>
+                <input type="email" class="calc-input" value="scholarverge@gmail.com" readonly style="background: #f1f5f9; color: #475569; font-weight: 700;" />
+              </div>
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">Professor Instructions, Grading Rubric Notes & Minimum Source Count</label>
+              <textarea id="upload-instructions" class="calc-input" rows="3" placeholder="Paste rubric guidelines, required databases (PubMed/Scopus/JSTOR), word count, and grading expectations..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
+              <i class="fa-solid fa-paper-plane"></i> Dispatch to ScholarVerge Academic Team (scholarverge@gmail.com)
+            </button>
+          </form>
+
+          <div id="upload-confirmation-card" style="display: none; margin-top: 18px;"></div>
+        </div>
+
+        <!-- 3. Tab: Write & Publish Verified Review -->
+        <div id="act-pane-review" style="display: none;">
+          <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start;">
+            <i class="fa-solid fa-award" style="color: #f59e0b; font-size: 1.3rem; margin-top: 2px;"></i>
+            <div>
+              <strong style="color: #b45309; font-size: 0.875rem; display: block;">Post-Delivery Grade & Tutoring Review</strong>
+              <span style="color: #92400e; font-size: 0.8rem;">Share your academic milestone! Verified reviews appear in real-time on our live homepage wall of excellence.</span>
+            </div>
+          </div>
+
+          <form onsubmit="handleStudentReviewSubmit(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Tutor Who Handled Your Assignment</label>
+                <select id="rev-act-tutor" class="calc-select" required>
+                  <option value="Sophia Mitchell">Sophia Mitchell (Nursing & Healthcare)</option>
+                  <option value="Oliver Harrison">Oliver Harrison (Economics & Finance)</option>
+                  <option value="Claire Bennett">Claire Bennett (Law & English)</option>
+                </select>
+              </div>
+              <div class="calc-form-group">
+                <label class="calc-label">Grade or Academic Result Achieved</label>
+                <select id="rev-act-grade" class="calc-select">
+                  <option value="A+ (98-100%)">A+ (98 - 100% Exemplary)</option>
+                  <option value="A (93-97%)">A (93 - 97% First Class)</option>
+                  <option value="4.0 GPA Target">4.0 GPA Milestone Achieved</option>
+                  <option value="High Distinction">High Distinction / Honors</option>
+                  <option value="Passed Defense">Master's / Ph.D. Defense Passed</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Interactive Star Selector -->
+            <div class="calc-form-group">
+              <label class="calc-label">Overall Rating</label>
+              <div id="review-hub-stars" style="display: flex; gap: 8px; font-size: 1.6rem; color: #f59e0b; cursor: pointer; margin-top: 4px;">
+                <i class="fa-solid fa-star" onclick="setHubReviewStars(1)"></i>
+                <i class="fa-solid fa-star" onclick="setHubReviewStars(2)"></i>
+                <i class="fa-solid fa-star" onclick="setHubReviewStars(3)"></i>
+                <i class="fa-solid fa-star" onclick="setHubReviewStars(4)"></i>
+                <i class="fa-solid fa-star" onclick="setHubReviewStars(5)"></i>
+              </div>
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">Review Title</label>
+              <input type="text" id="rev-act-title" class="calc-input" placeholder="e.g. Master-Level Rigor & Spotless Turnitin Report" required />
+            </div>
+
+            <div class="calc-form-group">
+              <label class="calc-label">Your Feedback & Experience</label>
+              <textarea id="rev-act-content" class="calc-input" rows="4" placeholder="Detail the tutor's depth of research, turnaround speed, and how it boosted your academic GPA..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-accent" style="width: 100%; padding: 13px; font-size: 0.95rem;">
+              <i class="fa-solid fa-star"></i> Submit & Publish Verified Review
+            </button>
+          </form>
+        </div>
+
+        <!-- 4. Tab: Academic Power Tools & Citation Suite -->
+        <div id="act-pane-tools" style="display: none;">
+          <!-- Citation Formatter Widget -->
+          <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 20px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <strong style="font-size: 0.95rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-quote-left" style="color: #2563eb;"></i> Instant Academic Citation Generator
+              </strong>
+              <span class="badge badge-trust" style="font-size: 0.7rem;">APA 7 • MLA 9 • Harvard • OSCOLA</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <label class="calc-label">Citation Style</label>
+                <select id="tool-cit-style" class="calc-select" onchange="generateLiveCitation()">
+                  <option value="apa">APA 7th Edition</option>
+                  <option value="mla">MLA 9th Edition</option>
+                  <option value="harvard">Harvard Style</option>
+                  <option value="chicago">Chicago / Turabian</option>
+                  <option value="oscola">OSCOLA (Legal)</option>
+                </select>
+              </div>
+              <div>
+                <label class="calc-label">Author(s)</label>
+                <input type="text" id="tool-cit-author" class="calc-input" placeholder="e.g. Bennett, C. & Mitchell, S." value="Bennett, C., & Mitchell, S." oninput="generateLiveCitation()" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <label class="calc-label">Article / Book Title</label>
+                <input type="text" id="tool-cit-title" class="calc-input" placeholder="Title of scholarly paper" value="Evidence-Based Methodologies in Modern Clinical Practice" oninput="generateLiveCitation()" />
+              </div>
+              <div>
+                <label class="calc-label">Publication Year</label>
+                <input type="text" id="tool-cit-year" class="calc-input" value="2025" oninput="generateLiveCitation()" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+              <div>
+                <label class="calc-label">Journal / Publication</label>
+                <input type="text" id="tool-cit-journal" class="calc-input" value="Journal of Academic Nursing & Law, 18(4), 210-228" oninput="generateLiveCitation()" />
+              </div>
+              <div>
+                <label class="calc-label">DOI / URL</label>
+                <input type="text" id="tool-cit-doi" class="calc-input" value="https://doi.org/10.1016/j.janl.2025.04.012" oninput="generateLiveCitation()" />
+              </div>
+            </div>
+
+            <!-- Formatted Citation Output -->
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">Formatted Bibliographic Reference:</span>
+              <p id="tool-cit-output" style="font-size: 0.85rem; color: #0f172a; font-family: 'Times New Roman', Georgia, serif; line-height: 1.5; margin: 0;"></p>
+            </div>
+
+            <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.85rem; padding: 8px;" onclick="copyLiveCitation()">
+              <i class="fa-solid fa-copy"></i> Copy Formatted Citation to Clipboard
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1326,10 +1998,10 @@
         <!-- Live Analytics Stats Grid -->
         <div class="admin-stats-grid">
           <div class="admin-stat-card">
-            <div class="admin-stat-icon vault"><i class="fa-solid fa-vault"></i></div>
+            <div class="admin-stat-icon vault"><i class="fa-solid fa-chart-line"></i></div>
             <div>
               <div class="admin-stat-num" id="admin-stat-vault">$585.00</div>
-              <div class="admin-stat-lbl">Escrow Vault Volume</div>
+              <div class="admin-stat-lbl">Gross Assignment Volume</div>
             </div>
           </div>
 
@@ -1361,7 +2033,7 @@
         <!-- Super Admin Navigation Tabs -->
         <div class="admin-tabs-nav">
           <button class="admin-tab-btn active" data-tab="orders" onclick="switchAdminTab('orders')">
-            <i class="fa-solid fa-list-check"></i> Orders & Escrow Dispatcher
+            <i class="fa-solid fa-list-check"></i> Orders & WhatsApp Coordination
           </button>
           <button class="admin-tab-btn" data-tab="students" onclick="switchAdminTab('students')">
             <i class="fa-solid fa-user-graduate"></i> Student Roster (24)
@@ -1385,7 +2057,7 @@
                   <th>Tutor</th>
                   <th>Topic</th>
                   <th>Status & Progress</th>
-                  <th>Escrow</th>
+                  <th>Amount & Payment</th>
                   <th>Admin Actions</th>
                 </tr>
               </thead>
@@ -1443,7 +2115,7 @@
   <div class="modal-overlay" id="order-paper-modal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title"><i class="fa-solid fa-pen-nib" style="color: var(--accent-blue);"></i> Write My Paper - Escrow Order</h3>
+        <h3 class="modal-title"><i class="fa-solid fa-pen-nib" style="color: var(--accent-blue);"></i> Write My Paper - Assignment Order</h3>
         <button class="modal-close" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body">
@@ -1462,7 +2134,7 @@
           </div>
           <div class="wizard-step-node" id="order-node-4">
             <div class="wizard-step-circle">4</div>
-            <span>Escrow Deposit</span>
+            <span>WhatsApp Payment</span>
           </div>
         </div>
 
@@ -1557,29 +2229,32 @@
           </div>
           <div style="background: #f1f5f9; padding: 14px; border-radius: 12px; font-size: 0.85rem; color: #334155; margin-bottom: 18px;">
             <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> 
-            Your selected tutor will immediately review your prompt and open a direct 1-on-1 chat in your order dashboard.
+            Your selected tutor will immediately review your prompt and coordinate directly via WhatsApp.
           </div>
           <div style="display: flex; gap: 12px;">
             <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Review & Escrow <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Review & WhatsApp Payment <i class="fa-solid fa-arrow-right"></i></button>
           </div>
         </div>
 
-        <!-- Step 4: Escrow Deposit Review -->
+        <!-- Step 4: WhatsApp Payment Coordination Review -->
         <div id="order-step-pane-4" style="display: none;">
           <div id="order-summary-box" style="margin-bottom: 18px;"></div>
-          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
-            <strong style="color: #047857; font-size: 0.875rem; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-shield-check"></i> Escrow Guarantee Active
-            </strong>
-            <p style="color: #065f46; font-size: 0.8rem; margin: 4px 0 0;">
-              Your funds are held securely in escrow and are NOT paid out to the tutor until you have reviewed the completed assignment and approved it.
-            </p>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <i class="fa-brands fa-whatsapp" style="font-size: 1.8rem; color: #16a34a; flex-shrink: 0; margin-top: 2px;"></i>
+              <div>
+                <strong style="color: #15803d; font-size: 0.9rem; display: block;">Offline Payment Facilitation via WhatsApp Admin</strong>
+                <p style="color: #166534; font-size: 0.8125rem; margin: 4px 0 0; line-height: 1.45;">
+                  Payment is facilitated directly offline with the ScholarVerge Admin via WhatsApp (<strong>+1 667 775 7597</strong>). Submitting your order registers it in our PostgreSQL database and opens direct WhatsApp chat with the Admin to arrange your payment.
+                </p>
+              </div>
+            </div>
           </div>
           <div style="display: flex; gap: 12px;">
             <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-accent" style="flex: 2;" onclick="submitEscrowOrder(event)">
-              <i class="fa-solid fa-lock"></i> Place Escrow Deposit & Start
+            <button class="btn btn-whatsapp" style="flex: 2; padding: 12px 18px; font-size: 0.92rem;" onclick="submitAcademicOrder(event)">
+              <i class="fa-brands fa-whatsapp"></i> Confirm & Open WhatsApp Payment
             </button>
           </div>
         </div>
@@ -1686,8 +2361,8 @@
   <div class="toast-container"></div>
 
   <!-- Application Scripts -->
-  <script src="js/i18n.js"></script>
-  <script src="js/tutors-data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/i18n.js?v=7"></script>
+  <script src="js/tutors-data.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>
