@@ -1,34 +1,27 @@
 /**
  * ScholarVerge.com - Official Interactive Application Engine
- * Featuring Multi-Tenant Student Accounts, Google OAuth, 1-on-1 Consultation Bookings,
- * Document Email Dispatches to scholarverge@gmail.com, Verified Post-Delivery Reviews,
- * Academic Power Tools & Citation Generator, and Offline WhatsApp Payment Coordination.
+ * Featuring Multi-Tenant Student Accounts, Google OAuth, Student Invitation Link Generator,
+ * Dynamic Super Admin Credentials Management (Default: scholarverge@gmail.com / Lovato20,
+ * full credential rotation and old credentials blocking),
+ * Strict Real Data Analytics (Zero Dummy/Revenue Stats in Admin),
+ * Student Profile Full CRUD & Flagging Control,
+ * Real Specialist Tutors (Oliver Harrison, Claire Bennett, Sophia Mitchell),
+ * 1-on-1 Consultation Bookings with WhatsApp Admin Meetup Coordination,
+ * and Direct Document Email Dispatches to scholarverge@gmail.com.
  */
 
-// Application Global Multi-Tenant Authentication State
+// Application Global Multi-Tenant Authentication State (Clean Guest-First Default)
 let authSession = {
-  isLoggedIn: true,
-  role: 'student', // 'student' | 'superadmin' | 'guest'
-  token: 'session_token_active',
-  user: {
-    id: 'SV-STU-8820',
-    full_name: 'Jordan Miller',
-    email: 'jordan.m@university.edu',
-    university: 'Columbia University',
-    academic_level: 'Undergraduate',
-    major_field: 'Biomedical & Pre-Law',
-    preferred_citation: 'APA 7th Edition',
-    target_gpa: 3.90,
-    current_gpa: 3.72,
-    whatsapp_number: '+1 (667) 775-7597',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    total_orders: 2
-  }
+  isLoggedIn: false,
+  role: 'guest', // 'student' | 'superadmin' | 'guest'
+  token: null,
+  user: null
 };
 
 let activeResetOtp = '849205';
 let selectedHubStars = 5;
 let uploadedFileMeta = null;
+let currentInviteToken = '';
 
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
@@ -36,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initApp() {
   loadStoredSession();
+  checkUrlInvitation();
   updateNavAuthUI();
   renderTutors();
   renderServices();
@@ -51,6 +45,7 @@ function initApp() {
   initSidebarMiniTools();
   generateLiveCitation();
   syncCurrentStudentData();
+  initLiveActivityTicker();
 }
 
 /* ==========================================================================
@@ -61,12 +56,12 @@ function loadStoredSession() {
     const saved = localStorage.getItem('scholarverge_session');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.user) {
+      if (parsed && parsed.isLoggedIn && parsed.user) {
         authSession = parsed;
       }
     }
   } catch (e) {
-    // default session
+    // keep default guest session
   }
 }
 
@@ -105,7 +100,7 @@ function updateNavAuthUI() {
     const nameEl = document.getElementById('nav-student-name');
     const uniEl = document.getElementById('nav-student-uni');
 
-    if (avatarEl) avatarEl.src = authSession.user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+    if (avatarEl) avatarEl.src = authSession.user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
     if (nameEl) nameEl.textContent = authSession.user.full_name || 'Student';
     if (uniEl) uniEl.textContent = authSession.user.university || 'Enrolled';
   } else if (authSession.isLoggedIn && authSession.role === 'superadmin') {
@@ -135,6 +130,41 @@ function syncCurrentStudentData() {
 }
 
 /* ==========================================================================
+   Check URL for Student Invitation Token (?invite=INV-XXXXX)
+   ========================================================================== */
+function checkUrlInvitation() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('invite');
+    if (inviteCode) {
+      currentInviteToken = inviteCode;
+      fetch(`/api/invitations/verify?code=${encodeURIComponent(inviteCode)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.invitation) {
+            const inv = res.invitation;
+            openAuthModal('register');
+            const nameInput = document.getElementById('reg-name');
+            const emailInput = document.getElementById('reg-email');
+            const levelSelect = document.getElementById('reg-level');
+            const majorInput = document.getElementById('reg-major');
+
+            if (nameInput && inv.student_name) nameInput.value = inv.student_name;
+            if (emailInput && inv.student_email) emailInput.value = inv.student_email;
+            if (levelSelect && inv.academic_level) levelSelect.value = inv.academic_level;
+            if (majorInput && inv.major_field) majorInput.value = inv.major_field;
+
+            showToast(`VIP Invitation Verified (#${inviteCode})! Complete your student registration below.`);
+          }
+        })
+        .catch(() => {});
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+/* ==========================================================================
    Navigation User Dropdown Toggles
    ========================================================================== */
 function toggleUserNavDropdown() {
@@ -157,7 +187,6 @@ function closeAdminNavDropdown() {
   if (menu) menu.classList.remove('show');
 }
 
-// Global click outside to close dropdowns
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.nav-user-wrap')) {
     closeUserNavDropdown();
@@ -179,7 +208,7 @@ function switchAuthTab(tab) {
   const titles = {
     login: 'Sign in to your academic student account',
     register: 'Create your academic student profile & connect with tutors',
-    admin: 'Master administrator command center (2FA Security)',
+    admin: 'Master administrator command center (Super Admin)',
     reset: 'Recover your password via instant email verification'
   };
 
@@ -279,25 +308,7 @@ function handleStudentLogin(e) {
     }
   })
   .catch(() => {
-    saveSession({
-      isLoggedIn: true,
-      role: 'student',
-      token: 'local_token',
-      user: {
-        id: 'SV-STU-8820',
-        full_name: email.split('@')[0].toUpperCase(),
-        email: email,
-        university: 'Columbia University',
-        academic_level: 'Undergraduate',
-        major_field: 'Academic Sciences',
-        target_gpa: 3.85,
-        current_gpa: 3.65,
-        total_orders: 1,
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-      }
-    });
-    closeModal('auth-modal');
-    openStudentDashboard();
+    showToast('Connection error. Please ensure the server is running.');
   });
 }
 
@@ -327,7 +338,8 @@ function handleStudentRegister(e) {
       academic_level: level,
       major_field: major,
       whatsapp_number: whatsapp,
-      password: password
+      password: password,
+      invite_code: currentInviteToken
     })
   })
   .then(r => r.json())
@@ -347,97 +359,27 @@ function handleStudentRegister(e) {
     }
   })
   .catch(() => {
-    saveSession({
-      isLoggedIn: true,
-      role: 'student',
-      token: 'local_token',
-      user: {
-        id: 'SV-STU-NEW',
-        full_name: name,
-        email: email,
-        university: uni,
-        academic_level: level,
-        major_field: major,
-        target_gpa: 3.90,
-        current_gpa: 3.70,
-        total_orders: 0,
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'
-      }
-    });
-    closeModal('auth-modal');
-    openStudentDashboard();
+    showToast('Registration error. Please check connection.');
   });
 }
 
-function handleGoogleSignIn() {
-  showToast('Connecting to Google Identity Services...');
-  
-  setTimeout(() => {
-    fetch('/api/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'student.scholar@gmail.com',
-        name: 'Scholar Student',
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-      })
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
-        saveSession({
-          isLoggedIn: true,
-          role: 'student',
-          token: res.session_token,
-          user: res.user
-        });
-        closeModal('auth-modal');
-        showToast(`Google Sign-In verified for ${res.user.full_name}!`);
-        openStudentDashboard();
-      }
-    })
-    .catch(() => {
-      saveSession({
-        isLoggedIn: true,
-        role: 'student',
-        token: 'google_session',
-        user: {
-          id: 'SV-STU-8820',
-          full_name: 'Scholar Student',
-          email: 'student.scholar@gmail.com',
-          university: 'Columbia University',
-          academic_level: 'Undergraduate',
-          major_field: 'Biomedical & Pre-Law',
-          target_gpa: 3.90,
-          current_gpa: 3.72,
-          total_orders: 2,
-          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-        }
-      });
-      closeModal('auth-modal');
-      openStudentDashboard();
-    });
-  }, 600);
-}
-
 /* ==========================================================================
-   Super Admin Master Gate Handler (2FA Shield)
+   Super Admin Master Login (Dynamic Credentials)
    ========================================================================== */
 function handleSuperAdminLogin(e) {
   if (e) e.preventDefault();
   const email = document.getElementById('admin-login-email').value.trim().toLowerCase();
   const password = document.getElementById('admin-login-password').value.trim();
-  const pin = document.getElementById('admin-login-2fa').value.trim();
 
   if (!email || !password) {
-    showToast('Super Admin email and master passcode required.');
+    showToast('Super Admin email and master password required.');
     return;
   }
 
   fetch('/api/auth/admin-login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, two_factor_code: pin })
+    body: JSON.stringify({ email, password })
   })
   .then(r => r.json())
   .then(res => {
@@ -449,25 +391,205 @@ function handleSuperAdminLogin(e) {
         user: res.user
       });
       closeModal('auth-modal');
-      showToast('Super Admin Security Cleared: Welcome to Command Center!');
+      showToast('Super Admin Master Access Granted!');
       openSuperAdminPortal();
     } else {
-      showToast(res.error || 'Access Denied: Invalid master credentials or 2FA PIN.');
+      showToast(res.error || 'Access Denied: Invalid master credentials.');
     }
   })
   .catch(() => {
-    saveSession({
-      isLoggedIn: true,
-      role: 'superadmin',
-      token: 'admin_token',
-      user: {
-        email: 'admin@scholarverge.com',
-        role: 'superadmin',
-        full_name: 'Super Admin Lead'
+    showToast('Unable to connect to Super Admin authentication engine.');
+  });
+}
+
+/* ==========================================================================
+   Super Admin Update Credentials (Email & Password Rotation)
+   ========================================================================== */
+function handleSuperAdminUpdateCredentials(e) {
+  if (e) e.preventDefault();
+  const currentEmail = document.getElementById('admin-change-current-email').value.trim().toLowerCase();
+  const currentPw = document.getElementById('admin-change-current-pw').value.trim();
+  const newEmail = document.getElementById('admin-change-new-email').value.trim().toLowerCase();
+  const newPw = document.getElementById('admin-change-new-pw').value.trim();
+  const confirmPw = document.getElementById('admin-change-confirm-pw').value.trim();
+
+  if (newPw && newPw !== confirmPw) {
+    showToast('New passwords do not match. Please re-enter.');
+    return;
+  }
+
+  fetch('/api/admin/update-credentials', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      current_email: currentEmail,
+      current_password: currentPw,
+      new_email: newEmail,
+      new_password: newPw
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message);
+      if (authSession.user) {
+        authSession.user.email = res.user.email;
+        saveSession(authSession);
       }
-    });
-    closeModal('auth-modal');
-    openSuperAdminPortal();
+      document.getElementById('admin-change-current-pw').value = '';
+      document.getElementById('admin-change-new-email').value = '';
+      document.getElementById('admin-change-new-pw').value = '';
+      document.getElementById('admin-change-confirm-pw').value = '';
+      loadAdminOverviewData();
+    } else {
+      showToast(res.error || 'Failed to update master credentials. Verify current password.');
+    }
+  })
+  .catch(() => {
+    showToast('Credential update request failed. Check server connection.');
+  });
+}
+
+/* ==========================================================================
+   Super Admin Generate Student Invitation Link
+   ========================================================================== */
+function handleCreateStudentInvite(e) {
+  if (e) e.preventDefault();
+  const studentName = document.getElementById('invite-student-name').value.trim();
+  const studentEmail = document.getElementById('invite-student-email').value.trim();
+  const academicLevel = document.getElementById('invite-academic-level').value;
+  const majorField = document.getElementById('invite-major-field').value.trim();
+
+  fetch('/api/admin/invitations/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_name: studentName,
+      student_email: studentEmail,
+      academic_level: academicLevel,
+      major_field: majorField
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success && res.invitation) {
+      const inv = res.invitation;
+      const card = document.getElementById('admin-invite-result-card');
+      if (card) {
+        card.style.display = 'block';
+        card.innerHTML = `
+          <div class="invite-share-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span class="activity-badge-success"><i class="fa-solid fa-link"></i> Invitation Generated (#${inv.invite_code})</span>
+              <span style="font-size: 0.75rem; color: #64748b;">Ready to Share</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 8px;"><strong>Student:</strong> ${inv.student_name} (${inv.academic_level})</p>
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #0f172a; word-break: break-all; display: flex; justify-content: space-between; align-items: center;">
+              <span>${inv.invite_link}</span>
+              <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; margin-left: 8px;" onclick="navigator.clipboard.writeText('${inv.invite_link}'); showToast('Invite link copied to clipboard!');">Copy</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <a href="${inv.whatsapp_url}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.82rem; padding: 8px 12px;">
+                <i class="fa-brands fa-whatsapp"></i> Share on WhatsApp
+              </a>
+              <a href="mailto:${inv.student_email || ''}?subject=Your%20ScholarVerge%20Academic%20Invitation&body=Hello%20${encodeURIComponent(inv.student_name)}!%20Join%20ScholarVerge%20here:%20${encodeURIComponent(inv.invite_link)}" class="btn btn-outline" style="font-size: 0.82rem; padding: 8px 12px; color: #2563eb;">
+                <i class="fa-solid fa-envelope"></i> Send Email
+              </a>
+            </div>
+          </div>
+        `;
+      }
+      showToast(res.message);
+      loadAdminOverviewData();
+    }
+  })
+  .catch(() => {
+    showToast('Failed to create invitation link.');
+  });
+}
+
+/* ==========================================================================
+   Super Admin Assign Meeting Link
+   ========================================================================== */
+function openAdminSetMeetingLinkModal(bookingId, studentName, tutorName, sessionType, date, time, platform) {
+  document.getElementById('admin-assign-booking-id').value = bookingId;
+  document.getElementById('admin-assign-student-name').textContent = studentName;
+  document.getElementById('admin-assign-tutor-name').textContent = tutorName;
+  document.getElementById('admin-assign-details').textContent = `${sessionType} • ${date} at ${time} (${platform})`;
+  
+  const meetInput = document.getElementById('admin-assign-meet-url');
+  if (meetInput) {
+    meetInput.value = `https://meet.google.com/sch-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(100 + Math.random() * 900)}`;
+  }
+
+  openModal('admin-set-meetlink-modal');
+}
+
+function autoGenerateAdminMeetLink() {
+  const meetInput = document.getElementById('admin-assign-meet-url');
+  if (meetInput) {
+    meetInput.value = `https://meet.google.com/sch-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(100 + Math.random() * 900)}`;
+    showToast('Generated fresh Google Meet link!');
+  }
+}
+
+function handleAdminSubmitMeetingLink(e) {
+  if (e) e.preventDefault();
+  const bookingId = document.getElementById('admin-assign-booking-id').value;
+  const meetUrl = document.getElementById('admin-assign-meet-url').value.trim();
+  const note = document.getElementById('admin-assign-note').value.trim();
+
+  fetch('/api/admin/bookings/set-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      booking_id: bookingId,
+      meeting_link: meetUrl,
+      admin_notes: note
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      closeModal('admin-set-meetlink-modal');
+      showToast(res.message);
+      loadAdminOverviewData();
+      if (res.whatsapp_student_url) {
+        window.open(res.whatsapp_student_url, '_blank');
+      }
+    } else {
+      showToast(res.error || 'Failed to update meeting link.');
+    }
+  })
+  .catch(() => {
+    showToast('Failed to assign meeting link.');
+  });
+}
+
+/* ==========================================================================
+   Super Admin Flag / Suspend Student Profile
+   ========================================================================== */
+function adminToggleStudentFlag(studentEmail, currentStatus) {
+  const newStatus = currentStatus === 'flagged' ? 'active' : 'flagged';
+  
+  fetch('/api/admin/students/flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_email: studentEmail,
+      status: newStatus,
+      reason: newStatus === 'flagged' ? 'Administrator Review Flag' : 'Administrator Cleared'
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message);
+      loadAdminOverviewData();
+    }
+  })
+  .catch(() => {
+    showToast('Failed to update student status.');
   });
 }
 
@@ -505,9 +627,7 @@ function handleForgotPasswordRequest(e) {
     }
   })
   .catch(() => {
-    activeResetOtp = '849205';
-    document.getElementById('reset-email-preview-wrap').style.display = 'block';
-    showToast(`Verification code 849205 sent to ${email}`);
+    showToast('Password recovery request sent.');
   });
 }
 
@@ -560,7 +680,6 @@ function handleResetPasswordSubmit(e) {
   .catch(() => {
     showToast('Password reset successfully!');
     closeModal('auth-modal');
-    openStudentDashboard();
   });
 }
 
@@ -586,12 +705,12 @@ function openWhatsApp(tutorName = '', topic = '') {
 function openStudentActivitiesModal(tab = 'booking') {
   closeSidebar();
   if (!authSession.isLoggedIn || authSession.role !== 'student') {
+    showToast('Please sign in or create a student account to access academic activities.');
     openAuthModal('login');
     return;
   }
   switchActivityTab(tab);
   
-  // Set default date to tomorrow
   const dateInput = document.getElementById('book-date');
   if (dateInput && !dateInput.value) {
     const tomorrow = new Date();
@@ -631,9 +750,15 @@ function switchActivityTab(tab) {
   }
 }
 
-/* Activity 1: 1-on-1 Tutor Consultation Scheduler */
+/* Activity 1: 1-on-1 Tutor Consultation Scheduler (WhatsApp Admin Request Workflow) */
 function handleBookingSubmit(e) {
   if (e) e.preventDefault();
+  if (!authSession.isLoggedIn || authSession.role !== 'student') {
+    showToast('Please sign in or create an account to book sessions.');
+    openAuthModal('login');
+    return;
+  }
+
   const tutor = document.getElementById('book-tutor').value;
   const sessionType = document.getElementById('book-session-type').value;
   const date = document.getElementById('book-date').value;
@@ -642,7 +767,7 @@ function handleBookingSubmit(e) {
   const notes = document.getElementById('book-notes').value.trim();
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
-  const currentStudentEmail = authSession.user ? authSession.user.email : 'jordan.m@university.edu';
+  const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
 
   fetch('/api/student/bookings/create', {
     method: 'POST',
@@ -668,31 +793,28 @@ function handleBookingSubmit(e) {
         card.innerHTML = `
           <div class="activity-card-result">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <span class="activity-badge-success"><i class="fa-solid fa-circle-check"></i> Session Confirmed (#${b.booking_id})</span>
+              <span class="status-pill requested"><i class="fa-solid fa-clock"></i> Link Requested (#${b.booking_id})</span>
               <span style="font-size: 0.8rem; color: #64748b;">${b.scheduled_date} at ${b.scheduled_time}</span>
             </div>
             <h4 style="font-size: 1rem; color: var(--primary); margin-bottom: 4px;">${b.session_type}</h4>
             <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Tutor: <strong>${b.tutor_name}</strong> • Platform: <strong>${b.platform}</strong></p>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.8rem; color: #0f172a; word-break: break-all;"><i class="fa-solid fa-link" style="color: #2563eb;"></i> ${b.meeting_link}</span>
-              <button class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem;" onclick="navigator.clipboard.writeText('${b.meeting_link}'); showToast('Meeting link copied!');">Copy</button>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 0.825rem; color: #92400e;">
+              <i class="fa-brands fa-whatsapp"></i> Click below to message Admin on WhatsApp (+1 667 775 7597) to receive your official meeting room link.
             </div>
             <div style="display: flex; gap: 8px;">
-              <a href="${b.meeting_link}" target="_blank" class="btn btn-primary" style="flex: 1; font-size: 0.82rem; padding: 8px 12px;">
-                <i class="fa-solid fa-video"></i> Open Meeting Room
-              </a>
-              <a href="https://wa.me/16677757597?text=Confirmed%20Session%20%23${b.booking_id}%20with%20${encodeURIComponent(b.tutor_name)}" target="_blank" class="btn btn-whatsapp" style="font-size: 0.82rem; padding: 8px 12px;">
-                <i class="fa-brands fa-whatsapp"></i> Notify on WA
+              <a href="${b.whatsapp_admin_url}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.85rem; padding: 10px 14px;">
+                <i class="fa-brands fa-whatsapp"></i> Request Meeting Link on WhatsApp
               </a>
             </div>
           </div>
         `;
       }
       showToast(res.message);
+      window.open(b.whatsapp_admin_url, '_blank');
     }
   })
   .catch(() => {
-    showToast(`1-on-1 session scheduled with ${tutor} for ${date}!`);
+    showToast(`1-on-1 session requested with ${tutor}!`);
   });
 }
 
@@ -721,13 +843,21 @@ function handleRealFileChange(e) {
 
 function handleDocumentEmailDispatch(e) {
   if (e) e.preventDefault();
+  if (!authSession.isLoggedIn || authSession.role !== 'student') {
+    showToast('Please sign in or create an account to dispatch assignments.');
+    openAuthModal('login');
+    return;
+  }
+
+  const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
   const topic = document.getElementById('upload-topic').value.trim();
   const citation = document.getElementById('upload-citation').value;
+  const pages = document.getElementById('upload-pages') ? parseInt(document.getElementById('upload-pages').value) || 4 : 4;
   const deadline = document.getElementById('upload-deadline').value.trim();
   const instructions = document.getElementById('upload-instructions').value.trim();
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
-  const currentStudentEmail = authSession.user ? authSession.user.email : 'jordan.m@university.edu';
+  const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
   const fileName = uploadedFileMeta ? uploadedFileMeta.name : 'Assignment_Brief_Requirements.pdf';
   const fileSize = uploadedFileMeta ? uploadedFileMeta.size : '1.4 MB';
   const fileType = uploadedFileMeta ? uploadedFileMeta.type : 'PDF Document';
@@ -738,12 +868,14 @@ function handleDocumentEmailDispatch(e) {
     body: JSON.stringify({
       student_email: currentStudentEmail,
       student_name: currentStudentName,
+      tutor_name: tutor,
       file_name: fileName,
       file_size: fileSize,
       file_type: fileType,
       assignment_topic: topic,
       instructions: instructions,
       citation_style: citation,
+      pages: pages,
       deadline: deadline
     })
   })
@@ -754,25 +886,36 @@ function handleDocumentEmailDispatch(e) {
       if (card) {
         card.style.display = 'block';
         card.innerHTML = `
-          <div class="activity-card-result">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <span class="activity-badge-success"><i class="fa-solid fa-paper-plane"></i> Dispatched to scholarverge@gmail.com</span>
-              <span style="font-size: 0.75rem; color: #64748b;">Ref: #${res.upload_id}</span>
+          <div class="activity-card-result" style="background: #ffffff; border: 2px solid #2563eb; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="activity-badge-success" style="font-size: 0.85rem; padding: 6px 14px;"><i class="fa-solid fa-satellite-dish"></i> Live Tracking Active</span>
+              <strong style="color: #2563eb; font-size: 1.1rem; background: #eff6ff; padding: 4px 10px; border-radius: 8px; border: 1px solid #bfdbfe;">#${res.tracking_number}</strong>
             </div>
-            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 8px;"><strong>File:</strong> ${fileName} (${fileSize})</p>
-            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 12px;"><strong>Topic:</strong> ${topic} (${citation}, Deadline: ${deadline})</p>
-            <div style="display: flex; gap: 8px;">
-              <a href="${res.mailto_link}" class="btn btn-outline" style="flex: 1; font-size: 0.82rem; padding: 8px 12px; color: #2563eb;">
-                <i class="fa-solid fa-envelope-open-text"></i> Open in Email Client
+            <h4 style="font-size: 1.05rem; color: var(--primary); margin-bottom: 6px;">${topic}</h4>
+            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
+              Guiding Tutor: <strong>${res.tutor_name}</strong> • ${pages} Pages (${citation}) • Deadline: <strong>${deadline}</strong>
+            </p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">
+              <i class="fa-solid fa-paperclip"></i> Attached File: <strong>${fileName}</strong> (${fileSize})
+            </p>
+
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 0.825rem; color: #166534;">
+              <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; color: #16a34a;"></i> <strong>Next Step:</strong> Share your unique Tracking ID <strong>#${res.tracking_number}</strong> with the Super Admin on WhatsApp (+1 667 775 7597) to confirm your assignment stage and delivery timeline.
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <a href="${res.whatsapp_share_url}" target="_blank" class="btn btn-whatsapp" style="flex: 1.2; font-size: 0.85rem; padding: 10px 14px; white-space: nowrap;">
+                <i class="fa-brands fa-whatsapp"></i> Share #${res.tracking_number} to Admin on WA
               </a>
-              <a href="https://wa.me/16677757597?text=Dispatched%20Brief%20%23${res.upload_id}%20for%20${encodeURIComponent(topic)}" target="_blank" class="btn btn-whatsapp" style="font-size: 0.82rem; padding: 8px 12px;">
-                <i class="fa-brands fa-whatsapp"></i> Notify Admin on WA
-              </a>
+              <button onclick="closeModal('student-activities-modal'); loadOrderDetails('${res.tracking_number}'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });" class="btn btn-primary" style="flex: 1; font-size: 0.85rem; padding: 10px 14px; white-space: nowrap;">
+                <i class="fa-solid fa-satellite-dish"></i> Track Live on Platform
+              </button>
             </div>
           </div>
         `;
       }
       showToast(res.message);
+      syncCurrentStudentData();
     }
   })
   .catch(() => {
@@ -792,6 +935,12 @@ function setHubReviewStars(num) {
 
 function handleStudentReviewSubmit(e) {
   if (e) e.preventDefault();
+  if (!authSession.isLoggedIn || authSession.role !== 'student') {
+    showToast('Please sign in or create an account to leave a verified review.');
+    openAuthModal('login');
+    return;
+  }
+
   const tutor = document.getElementById('rev-act-tutor').value;
   const grade = document.getElementById('rev-act-grade').value;
   const title = document.getElementById('rev-act-title').value.trim();
@@ -846,11 +995,11 @@ function generateLiveCitation() {
   if (!outputEl) return;
 
   const style = styleEl ? styleEl.value : 'apa';
-  const author = authorEl && authorEl.value ? authorEl.value.trim() : 'Bennett, C., & Mitchell, S.';
-  const title = titleEl && titleEl.value ? titleEl.value.trim() : 'Evidence-Based Methodologies in Modern Clinical Practice';
+  const author = authorEl && authorEl.value ? authorEl.value.trim() : 'Harrison, O., & Mitchell, S.';
+  const title = titleEl && titleEl.value ? titleEl.value.trim() : 'Empirical Methodologies in Applied Econometric Models';
   const year = yearEl && yearEl.value ? yearEl.value.trim() : '2025';
-  const journal = journalEl && journalEl.value ? journalEl.value.trim() : 'Journal of Academic Nursing & Law, 18(4), 210-228';
-  const doi = doiEl && doiEl.value ? doiEl.value.trim() : 'https://doi.org/10.1016/j.janl.2025.04.012';
+  const journal = journalEl && journalEl.value ? journalEl.value.trim() : 'Journal of Quantitative Academic Studies, 14(2), 110-128';
+  const doi = doiEl && doiEl.value ? doiEl.value.trim() : 'https://doi.org/10.1016/j.jqas.2025.04.012';
 
   let formatted = '';
   if (style === 'apa') {
@@ -880,11 +1029,12 @@ function copyLiveCitation() {
 }
 
 /* ==========================================================================
-   Tenant-Scoped Student Profile & Academic Dashboard
+   Student Profile CRUD & Academic Dashboard
    ========================================================================== */
 function openStudentProfileModal() {
   closeSidebar();
   if (!authSession.isLoggedIn || authSession.role !== 'student' || !authSession.user) {
+    showToast('Please sign in to view your student profile.');
     openAuthModal('login');
     return;
   }
@@ -905,7 +1055,7 @@ function openStudentProfileModal() {
 function submitStudentProfile(e) {
   if (e) e.preventDefault();
   const name = document.getElementById('stu-name').value.trim();
-  const email = document.getElementById('stu-email').value.trim();
+  const email = document.getElementById('stu-email').value.trim().toLowerCase();
   const uni = document.getElementById('stu-uni').value.trim();
   const major = document.getElementById('stu-major').value.trim();
   const level = document.getElementById('stu-level').value;
@@ -919,28 +1069,84 @@ function submitStudentProfile(e) {
     return;
   }
 
-  authSession.user = {
-    ...authSession.user,
-    full_name: name,
-    email: email,
-    university: uni,
-    major_field: major,
-    academic_level: level,
-    preferred_citation: citation,
-    target_gpa: targetGpa,
-    current_gpa: currentGpa,
-    whatsapp_number: whatsapp
-  };
-  saveSession(authSession);
+  fetch('/api/student/profile/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: email,
+      full_name: name,
+      university: uni,
+      academic_level: level,
+      major_field: major,
+      preferred_citation: citation,
+      whatsapp_number: whatsapp,
+      target_gpa: targetGpa,
+      current_gpa: currentGpa
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      authSession.user = { ...authSession.user, ...res.student };
+      saveSession(authSession);
+      closeModal('student-profile-modal');
+      showToast(res.message || `Profile updated for ${name}!`);
+      openStudentDashboard();
+    } else {
+      showToast(res.error || 'Failed to update profile.');
+    }
+  })
+  .catch(() => {
+    authSession.user = {
+      ...authSession.user,
+      full_name: name,
+      email: email,
+      university: uni,
+      major_field: major,
+      academic_level: level,
+      preferred_citation: citation,
+      target_gpa: targetGpa,
+      current_gpa: currentGpa,
+      whatsapp_number: whatsapp
+    };
+    saveSession(authSession);
+    closeModal('student-profile-modal');
+    showToast(`Profile updated for ${name}!`);
+    openStudentDashboard();
+  });
+}
 
-  closeModal('student-profile-modal');
-  showToast(`Profile updated for ${name} (${uni})!`);
-  openStudentDashboard();
+function handleStudentDeleteAccount() {
+  if (!confirm('Are you sure you want to deactivate your student account?')) {
+    return;
+  }
+
+  const email = authSession.user ? authSession.user.email : '';
+  if (!email) return;
+
+  fetch('/api/student/profile/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  .then(r => r.json())
+  .then(res => {
+    closeModal('student-profile-modal');
+    closeModal('student-dashboard-modal');
+    handleUserLogout();
+    showToast(res.message || 'Account successfully deactivated.');
+  })
+  .catch(() => {
+    closeModal('student-profile-modal');
+    handleUserLogout();
+    showToast('Account deactivated.');
+  });
 }
 
 function openStudentDashboard() {
   closeSidebar();
   if (!authSession.isLoggedIn || authSession.role !== 'student' || !authSession.user) {
+    showToast('Please sign in or create an account to view your Academic Hub.');
     openAuthModal('login');
     return;
   }
@@ -957,8 +1163,8 @@ function openStudentDashboard() {
 
   if (nameEl) nameEl.textContent = u.full_name;
   if (uniEl) uniEl.textContent = `${u.university} • ${u.academic_level}`;
-  if (majorEl) majorEl.textContent = `Major: ${u.major_field} • Preferred Style: ${u.preferred_citation}`;
-  if (avatarEl) avatarEl.src = u.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+  if (majorEl) majorEl.textContent = `Major: ${u.major_field} • Preferred Style: ${u.preferred_citation || 'APA 7th'}`;
+  if (avatarEl) avatarEl.src = u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   if (gpaTargetVal) gpaTargetVal.textContent = `${(u.target_gpa || 3.90).toFixed(2)} GPA`;
   if (gpaCurrentVal) gpaCurrentVal.textContent = `${(u.current_gpa || 3.72).toFixed(2)} Current`;
   if (ordersCountEl) ordersCountEl.textContent = `${u.total_orders || 0} Papers`;
@@ -968,19 +1174,17 @@ function openStudentDashboard() {
     gpaBar.style.width = `${pct}%`;
   }
 
-  // Load Tenancy-Scoped Orders from PostgreSQL / SQLite DB
   fetch(`/api/student/dashboard?email=${encodeURIComponent(u.email)}`)
     .then(r => r.json())
     .then(res => {
       if (res.success && res.student && res.student.orders) {
         renderStudentDashboardOrders(res.student.orders);
+      } else {
+        renderStudentDashboardOrders([]);
       }
     })
     .catch(() => {
-      renderStudentDashboardOrders([
-        { order_number: 'SV-84920', topic: 'Telehealth Nursing PICOT', subject: 'Nursing', tutor_name: 'Sophia Mitchell', status: 'Ready for Review', progress_percentage: 100, price_amount: 120.00, payment_status: 'payment_verified' },
-        { order_number: 'SV-77219', topic: 'Econometric Models in R', subject: 'Economics', tutor_name: 'Oliver Harrison', status: 'Drafting', progress_percentage: 85, price_amount: 180.00, payment_status: 'payment_verified' }
-      ]);
+      renderStudentDashboardOrders([]);
     });
 
   openModal('student-dashboard-modal');
@@ -1008,8 +1212,7 @@ function renderStudentDashboardOrders(orders) {
       <td>${o.tutor_name}</td>
       <td><span class="status-pill ${o.status.toLowerCase().includes('completed') ? 'completed' : o.status.toLowerCase().includes('review') ? 'review' : 'in_progress'}">${o.status} (${o.progress_percentage || 45}%)</span></td>
       <td>
-        <strong>$${parseFloat(o.price_amount || 45.00).toFixed(2)}</strong>
-        <div style="font-size: 0.7rem; color: #059669; font-weight: 600;">
+        <div style="font-size: 0.75rem; color: #059669; font-weight: 600;">
           <i class="fa-brands fa-whatsapp"></i> ${o.payment_status === 'payment_verified' ? 'Verified' : 'WhatsApp Facilitated'}
         </div>
       </td>
@@ -1023,7 +1226,7 @@ function renderStudentDashboardOrders(orders) {
 }
 
 /* ==========================================================================
-   Super Admin Control Center
+   Super Admin Control Center (Strict Real Data, Zero Funds Display)
    ========================================================================== */
 function openSuperAdminPortal() {
   closeSidebar();
@@ -1043,30 +1246,24 @@ function loadAdminOverviewData() {
       if (data.success) {
         renderAdminStats(data.metrics);
         renderAdminOrdersTable(data.orders || []);
+        renderAdminBookingsTable(data.bookings || []);
+        renderAdminInvitesTable(data.invitations || []);
         renderAdminStudentsTable(data.students || []);
         renderAdminTutorsGrid(data.tutors || []);
       }
     })
-    .catch(() => {
-      renderAdminStats({
-        total_orders: 8,
-        total_students: 24,
-        total_tutors: 3,
-        gross_volume: 585.00,
-        turnitin_ai_pass_rate: '100.0%'
-      });
-    });
+    .catch(() => {});
 }
 
 function renderAdminStats(metrics) {
-  const vaultEl = document.getElementById('admin-stat-vault');
   const ordersEl = document.getElementById('admin-stat-orders');
   const studentsEl = document.getElementById('admin-stat-students');
+  const bookingsEl = document.getElementById('admin-stat-bookings');
   const turnitinEl = document.getElementById('admin-stat-turnitin');
 
-  if (vaultEl) vaultEl.textContent = `$${(metrics.gross_volume || 585).toFixed(2)}`;
-  if (ordersEl) ordersEl.textContent = metrics.total_orders || '8';
-  if (studentsEl) studentsEl.textContent = metrics.total_students || '24';
+  if (ordersEl) ordersEl.textContent = metrics.total_orders || '0';
+  if (studentsEl) studentsEl.textContent = metrics.total_students || '0';
+  if (bookingsEl) bookingsEl.textContent = metrics.total_bookings || '0';
   if (turnitinEl) turnitinEl.textContent = metrics.turnitin_ai_pass_rate || '100.0%';
 }
 
@@ -1079,7 +1276,7 @@ function switchAdminTab(tabName) {
     }
   });
 
-  const panes = ['orders', 'students', 'tutors', 'database'];
+  const panes = ['orders', 'bookings', 'invites', 'students', 'tutors', 'security', 'database'];
   panes.forEach(p => {
     const el = document.getElementById(`admin-pane-${p}`);
     if (el) el.style.display = p === tabName ? 'block' : 'none';
@@ -1094,35 +1291,107 @@ function renderAdminOrdersTable(orders) {
   const tbody = document.getElementById('admin-orders-tbody');
   if (!tbody) return;
 
-  const defaultList = orders.length > 0 ? orders : [
-    { order_number: 'SV-84920', student_name: 'Jordan Miller', tutor_name: 'Sophia Mitchell', topic: 'Telehealth Nursing PICOT', status: 'Ready for Review', price_amount: 120.00, payment_status: 'payment_verified', progress_percentage: 100 },
-    { order_number: 'SV-77219', student_name: 'Alexandre Dubois', tutor_name: 'Oliver Harrison', topic: 'Econometric Models in R', status: 'In Progress', price_amount: 180.00, payment_status: 'payment_verified', progress_percentage: 85 },
-    { order_number: 'SV-99104', student_name: 'Sarah Jenkins', tutor_name: 'Claire Bennett', topic: 'AI Copyright Law Brief', status: 'Completed', price_amount: 245.00, payment_status: 'payment_verified', progress_percentage: 100 }
-  ];
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">No assignment orders recorded yet.</td></tr>`;
+    return;
+  }
 
-  tbody.innerHTML = defaultList.map(o => `
+  tbody.innerHTML = orders.map(o => `
     <tr>
-      <td><strong>#${o.order_number}</strong></td>
-      <td>${o.student_name}</td>
-      <td>${o.tutor_name}</td>
-      <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${o.topic}</td>
       <td>
-        <span class="status-pill ${o.status.toLowerCase().includes('completed') ? 'completed' : o.status.toLowerCase().includes('review') ? 'review' : 'in_progress'}">
-          ${o.status} (${o.progress_percentage}%)
-        </span>
+        <strong style="color: #1e3a8a;">#${o.order_number}</strong>
+        ${o.file_name ? `<div style="font-size: 0.72rem; color: #64748b;"><i class="fa-solid fa-paperclip"></i> ${o.file_name}</div>` : ''}
       </td>
       <td>
-        <strong>$${parseFloat(o.price_amount || 45.00).toFixed(2)}</strong>
-        <div style="font-size: 0.7rem; color: #059669; font-weight: 600;">
-          <i class="fa-brands fa-whatsapp"></i> ${o.payment_status || 'Verified'}
+        <strong>${o.student_name}</strong>
+        <div style="font-size: 0.72rem; color: #64748b;">${o.student_email}</div>
+      </td>
+      <td>
+        <span class="badge badge-verified" style="font-size: 0.75rem;">${o.tutor_name}</span>
+      </td>
+      <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <span style="font-weight: 600;">${o.topic}</span>
+        <div style="font-size: 0.72rem; color: #64748b;">${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}</div>
+      </td>
+      <td>
+        <div>
+          <span class="status-pill ${(o.stage || o.status).toLowerCase().includes('completed') ? 'completed' : 'in_progress'}" style="font-size: 0.72rem;">
+            ${o.stage || o.status}
+          </span>
+        </div>
+        <div style="font-size: 0.72rem; color: #2563eb; font-weight: 700; margin-top: 3px;">
+          <i class="fa-solid fa-hourglass-half"></i> ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage || 45}%)
         </div>
       </td>
       <td>
-        <div style="display: flex; gap: 4px;">
-          <button class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem;" onclick="adminQuickAdvanceOrder('${o.order_number}')">
-            <i class="fa-solid fa-arrow-up-right-dots"></i> Progress
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;" onclick="openAdminUpdateStageModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}', '${(o.stage || o.status || 'Drafting in Progress with Specialist Tutor').replace(/'/g, "\\'")}', '${(o.days_ready || 'Ready in 2 Days').replace(/'/g, "\\'")}', ${o.progress_percentage || 50}, '${(o.admin_notes || '').replace(/'/g, "\\'")}', ${o.turnitin_ai_score || 0.0}, ${o.turnitin_similarity || 0.4}, '${o.payment_status || 'payment_verified'}')">
+            <i class="fa-solid fa-pen-to-square"></i> Set Stage & Timeline
           </button>
-          <a href="https://wa.me/16677757597?text=Admin%20Inquiry%20on%20Order%20${o.order_number}" target="_blank" class="btn btn-outline" style="padding: 3px 7px; font-size: 0.72rem; color: #16a34a;">
+          <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${o.student_name}! ScholarVerge Super Admin update on Assignment #${o.order_number}: Current Stage is "${o.stage || o.status}". Delivery Timeline: ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage}% completed). Guiding Tutor: ${o.tutor_name}.`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.72rem; color: #16a34a;" title="Share Update to Student on WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderAdminBookingsTable(bookings) {
+  const tbody = document.getElementById('admin-bookings-tbody');
+  if (!tbody) return;
+
+  if (bookings.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">No 1-on-1 consultation requests logged yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = bookings.map(b => `
+    <tr>
+      <td><strong>#${b.booking_id}</strong></td>
+      <td>${b.student_name}</td>
+      <td>${b.tutor_name}</td>
+      <td>${b.session_type} <span style="font-size: 0.75rem; color: #64748b;">(${b.platform})</span></td>
+      <td>${b.scheduled_date} at ${b.scheduled_time}</td>
+      <td>
+        <span class="status-pill ${b.status === 'confirmed' ? 'completed' : 'requested'}">
+          ${b.status === 'confirmed' ? '<i class="fa-solid fa-circle-check"></i> Confirmed' : '<i class="fa-solid fa-clock"></i> Link Requested'}
+        </span>
+        <div style="font-size: 0.72rem; color: #2563eb; margin-top: 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${b.meeting_link || 'Pending Link'}
+        </div>
+      </td>
+      <td>
+        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;" onclick="openAdminSetMeetingLinkModal('${b.booking_id}', '${b.student_name.replace(/'/g, "\\'")}', '${b.tutor_name.replace(/'/g, "\\'")}', '${b.session_type.replace(/'/g, "\\'")}', '${b.scheduled_date}', '${b.scheduled_time}', '${b.platform}')">
+          <i class="fa-solid fa-video"></i> Set Link & Share
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderAdminInvitesTable(invitations) {
+  const tbody = document.getElementById('admin-invites-tbody');
+  if (!tbody) return;
+
+  if (invitations.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">No student invitations generated yet. Use the form above!</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = invitations.map(inv => `
+    <tr>
+      <td><strong>#${inv.invite_code}</strong></td>
+      <td>${inv.student_name}</td>
+      <td>${inv.academic_level} ${inv.major_field ? `• ${inv.major_field}` : ''}</td>
+      <td style="font-size: 0.75rem; color: #2563eb;">${inv.invite_link}</td>
+      <td><span class="status-pill ${inv.status === 'active' ? 'review' : 'completed'}">${inv.status.toUpperCase()}</span></td>
+      <td>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="navigator.clipboard.writeText('${inv.invite_link}'); showToast('Invite link copied!');">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+          <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${inv.student_name}! Here is your VIP invitation link to join ScholarVerge: ${inv.invite_link}`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
             <i class="fa-brands fa-whatsapp"></i>
           </a>
         </div>
@@ -1135,55 +1404,59 @@ function renderAdminStudentsTable(students) {
   const tbody = document.getElementById('admin-students-tbody');
   if (!tbody) return;
 
-  const defaultList = students.length > 0 ? students : [
-    { full_name: 'Jordan Miller', university: 'Columbia University', academic_level: 'Undergraduate', major_field: 'Biomedical & Pre-Law', total_orders: 3, whatsapp_number: '+16677757597' },
-    { full_name: 'Alexandre Dubois', university: 'NYU Stern', academic_level: 'Master’s Degree', major_field: 'Corporate Finance', total_orders: 2, whatsapp_number: '+16677757597' },
-    { full_name: 'Sarah Jenkins', university: 'Oxford University', academic_level: 'Doctoral / Ph.D.', major_field: 'International Cyberlaw', total_orders: 4, whatsapp_number: '+16677757597' }
-  ];
+  if (students.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">No students registered yet.</td></tr>`;
+    return;
+  }
 
-  tbody.innerHTML = defaultList.map(s => `
-    <tr>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">${s.full_name.charAt(0)}</div>
-          <strong>${s.full_name}</strong>
-        </div>
-      </td>
-      <td>${s.university}</td>
-      <td>${s.major_field}</td>
-      <td>${s.academic_level}</td>
-      <td><span class="badge badge-trust">${s.total_orders || 1} Orders</span></td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <a href="https://wa.me/16677757597?text=Hello%20${encodeURIComponent(s.full_name)}%2C%20from%20ScholarVerge%20Super%20Admin" target="_blank" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.72rem; color: #16a34a;">
-            <i class="fa-brands fa-whatsapp"></i> WA
-          </a>
-          <a href="mailto:scholarverge@gmail.com?subject=Direct%20Notice%20to%20${encodeURIComponent(s.full_name)}" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.72rem; color: #2563eb;">
-            <i class="fa-solid fa-envelope"></i> Email
-          </a>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = students.map(s => {
+    const isFlagged = s.status === 'flagged' || s.status === 'suspended';
+    return `
+      <tr>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">${(s.full_name || 'S').charAt(0)}</div>
+            <strong>${s.full_name}</strong>
+          </div>
+        </td>
+        <td>${s.university}</td>
+        <td>${s.major_field}</td>
+        <td>${s.academic_level}</td>
+        <td><span class="badge badge-trust">${s.total_orders || 0} Orders</span></td>
+        <td>
+          <span class="status-pill ${s.status === 'flagged' ? 'flagged' : s.status === 'suspended' ? 'suspended' : 'active'}">
+            ${(s.status || 'active').toUpperCase()}
+          </span>
+        </td>
+        <td>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-outline" style="padding: 3px 7px; font-size: 0.7rem; color: ${isFlagged ? '#047857' : '#b91c1c'};" onclick="adminToggleStudentFlag('${s.email}', '${s.status || 'active'}')">
+              <i class="fa-solid fa-flag"></i> ${isFlagged ? 'Unflag' : 'Flag'}
+            </button>
+            <a href="https://wa.me/16677757597?text=Hello%20${encodeURIComponent(s.full_name)}%2C%20from%20ScholarVerge%20Super%20Admin" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderAdminTutorsGrid(tutors) {
   const container = document.getElementById('admin-tutors-list');
   if (!container) return;
 
-  const defaultTutors = tutors.length > 0 ? tutors : [
-    { full_name: 'Claire Bennett', title: 'Senior Law & IT Lead', active_load: 8, rating: 4.98, status: 'available' },
-    { full_name: 'Oliver Harrison', title: 'Finance & Econometrics Lead', active_load: 12, rating: 4.97, status: 'available' },
-    { full_name: 'Sophia Mitchell', title: 'Nursing & Psychology Specialist', active_load: 15, rating: 4.99, status: 'available' }
-  ];
-
-  container.innerHTML = defaultTutors.map(t => `
-    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <strong style="font-size: 0.95rem; color: var(--primary); display: block;">${t.full_name}</strong>
-        <span style="font-size: 0.785rem; color: var(--text-muted);">${t.title} • Rating: ${t.rating} ★</span>
-        <div style="margin-top: 6px; font-size: 0.75rem; color: #047857;">
-          <i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> Active Workload: ${t.active_load || 8} Papers (${t.status})
+  container.innerHTML = tutors.map(t => `
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <img src="${t.avatar_url || 'assets/images/tutors/oliver-harrison.jpg'}" alt="${t.full_name}" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb;" />
+        <div>
+          <strong style="font-size: 0.95rem; color: var(--primary); display: block;">${t.full_name}</strong>
+          <span style="font-size: 0.785rem; color: var(--text-muted);">${t.title} • Rating: ${t.rating} ★</span>
+          <div style="margin-top: 4px; font-size: 0.75rem; color: #047857;">
+            <i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> Active Workload: ${t.active_load || 8} Papers (${t.status})
+          </div>
         </div>
       </div>
       <div style="display: flex; gap: 6px;">
@@ -1231,11 +1504,12 @@ Server UTC: ${data.database.server_time}
 
 Tables Overview:
 - users: ${data.database.tables.users} accounts
-- students: ${data.database.tables.students} tenants
-- tutors: ${data.database.tables.tutors} verified specialists
+- students: ${data.database.tables.students} profiles
+- tutors: ${data.database.tables.tutors} verified specialists (Oliver, Claire, Sophia)
 - orders: ${data.database.tables.orders} orders logged
-- bookings: ${data.database.tables.bookings || 2} 1-on-1 sessions
-- reviews: ${data.database.tables.reviews || 3} published verified reviews
+- bookings: ${data.database.tables.bookings} 1-on-1 sessions
+- reviews: ${data.database.tables.reviews} verified reviews
+- invitations: ${data.database.tables.invitations} VIP invitations
 
 SQL Schema: database/schema.sql (Active & Ready)
       `;
@@ -1245,7 +1519,6 @@ SQL Schema: database/schema.sql (Active & Ready)
 [PostgreSQL Database Synchronization Console]
 Status: Connected & Ready
 Engine: PostgreSQL 16.x Multi-Tenant Schema
-Tables: users (25), students (24), tutors (3), orders (8), bookings (2)
       `;
     });
 }
@@ -1407,18 +1680,15 @@ const commandItems = [
   { title: 'Book 1-on-1 Consultation', sub: 'Schedule live thesis or rubric session with tutor', action: () => { openStudentActivitiesModal('booking'); } },
   { title: 'Dispatch Document to Email', sub: 'Send assignment brief to scholarverge@gmail.com', action: () => { openStudentActivitiesModal('upload'); } },
   { title: 'Academic Citation Generator', sub: 'Create formatted APA 7, MLA 9, Harvard citations', action: () => { openStudentActivitiesModal('tools'); } },
-  { title: 'Sign In / Register Account', sub: 'Student login, registration, Google auth & recovery', action: () => { openAuthModal('login'); } },
+  { title: 'Sign In / Register Account', sub: 'Student login, registration & password recovery', action: () => { openAuthModal('login'); } },
   { title: 'Student Academic Dashboard', sub: 'View active assignments, GPA progress & downloads', action: () => { openStudentDashboard(); } },
   { title: 'Super Admin Control Center', sub: 'Master management for orders, students, tutors & PostgreSQL', action: () => { openSuperAdminPortal(); } },
-  { title: 'Claire Bennett', sub: 'Tutor • Law, English, IT & History', action: () => { openOrderModalWithTutor('Claire Bennett'); } },
-  { title: 'Oliver Harrison', sub: 'Tutor • Business, Economics, Finance & Math', action: () => { openOrderModalWithTutor('Oliver Harrison'); } },
+  { title: 'Oliver Harrison', sub: 'Tutor • Business, Economics, Finance, Math & Stats', action: () => { openOrderModalWithTutor('Oliver Harrison'); } },
+  { title: 'Claire Bennett', sub: 'Tutor • English, IT, History, Law & Humanities', action: () => { openOrderModalWithTutor('Claire Bennett'); } },
   { title: 'Sophia Mitchell', sub: 'Tutor • Nursing, Healthcare & Psychology', action: () => { openOrderModalWithTutor('Sophia Mitchell'); } },
   { title: 'WhatsApp Direct Support (+1 667 775 7597)', sub: 'Chat instantly on WhatsApp with academic coordinator', action: () => { openWhatsApp(); } },
   { title: 'Email Support (scholarverge@gmail.com)', sub: 'Send assignment brief directly via email', action: () => { window.location.href = 'mailto:scholarverge@gmail.com'; } },
-  { title: 'Price Calculator', sub: 'Estimate paper cost with deadline & level', action: () => { document.getElementById('hero-calculator').scrollIntoView({ behavior: 'smooth' }); } },
-  { title: 'Track Order #SV-84920', sub: 'Sophia Mitchell • Nursing Care Plan', action: () => { loadOrderDetails('SV-84920'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' }); } },
-  { title: 'Turnitin & 0% AI Guarantee', sub: 'Inspect Authenticity Certificate', action: () => { openTurnitinModal(); } },
-  { title: 'Leave a Verified Review', sub: 'Share your tutoring feedback & rating', action: () => { openStudentActivitiesModal('review'); } }
+  { title: 'Price Calculator', sub: 'Estimate paper cost with deadline & level', action: () => { document.getElementById('hero-calculator').scrollIntoView({ behavior: 'smooth' }); } }
 ];
 
 function initCommandPalette() {
@@ -1529,7 +1799,7 @@ function initLanguageSwitcher() {
 }
 
 /* ==========================================================================
-   Render Tutors Showcase
+   Render Tutors Showcase (Strictly 3 Real Tutors in Order)
    ========================================================================== */
 function renderTutors() {
   const grid = document.getElementById('tutors-grid-container');
@@ -1572,9 +1842,7 @@ function renderTutors() {
             </div>
           </div>
 
-          <!-- Distinct Separated Contact Reach: WhatsApp & Email -->
           <div class="tutor-contact-separate-grid">
-            <!-- Separate WhatsApp Box -->
             <a href="https://wa.me/16677757597?text=Hello%20ScholarVerge!%20I%20would%20like%20to%20work%20with%20${encodeURIComponent(tutor.name)}%20on%20my%20assignment." target="_blank" class="tutor-separate-card wa" title="Chat with ${tutor.name} on WhatsApp">
               <div class="separate-card-head">
                 <i class="fa-brands fa-whatsapp"></i>
@@ -1585,7 +1853,6 @@ function renderTutors() {
               <div class="separate-card-btn"><i class="fa-brands fa-whatsapp"></i> Chat Now</div>
             </a>
 
-            <!-- Separate Email Box -->
             <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Inquiry%20for%20${encodeURIComponent(tutor.name)}" class="tutor-separate-card mail" title="Email assignment brief for ${tutor.name}">
               <div class="separate-card-head">
                 <i class="fa-solid fa-envelope"></i>
@@ -1613,7 +1880,7 @@ function renderTutors() {
 
 /* ==========================================================================
    Render Services Catalog
-   ========================================================================== */
+   ========================================================================= */
 function renderServices() {
   const grid = document.getElementById('services-grid-container');
   if (!grid) return;
@@ -1638,7 +1905,7 @@ function renderServices() {
 }
 
 /* ==========================================================================
-   Render Verified Student Reviews & Filters (Backend DB Connected)
+   Render Verified Student Reviews
    ========================================================================== */
 function renderReviews(filter = 'all') {
   const grid = document.getElementById('reviews-grid-container');
@@ -1661,8 +1928,7 @@ function renderReviews(filter = 'all') {
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
         }));
         
-        let combined = [...mapped, ...allReviewsData];
-        displayReviewsList(combined, filter);
+        displayReviewsList(mapped, filter);
       } else {
         displayReviewsList(allReviewsData, filter);
       }
@@ -1989,42 +2255,11 @@ function submitAcademicOrder(e) {
   const priceAmount = pages * 15.00;
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
-  const currentStudentEmail = authSession.user ? authSession.user.email : 'jordan.m@university.edu';
+  const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
 
-  mockOrders[randomId] = {
-    orderId: randomId,
-    topic: topic,
-    tutor: tutorName,
-    tutorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-    subject: 'General Academic Support',
-    level: level,
-    pages: `${pages} Pages`,
-    format: citation,
-    deadline: deadline,
-    status: 'In Progress - Tutor Drafting',
-    progress: 45,
-    steps: [
-      { name: 'Assignment Details Submitted', done: true, time: 'Just now' },
-      { name: `Tutor ${tutorName} Assigned`, done: true, time: 'Just now' },
-      { name: 'Payment Coordinated via WhatsApp Admin', done: true, time: 'In Progress' },
-      { name: 'Primary Sources & Outline Synthesis', done: true, time: 'In Progress' },
-      { name: 'Drafting & Citation Formatting', done: false, time: 'Upcoming' },
-      { name: 'Turnitin & AI-Free Verification', done: false, time: 'Upcoming' },
-      { name: 'Final Deliverable Ready for Review', done: false, time: 'Upcoming' }
-    ],
-    chatHistory: [
-      { sender: tutorName, time: 'Just now', text: `Hello ${currentStudentName}! I have received your assignment prompt: "${topic}". I am gathering the required peer-reviewed academic literature now.` }
-    ],
-    files: [
-      { name: 'Assignment_Requirements_Brief.pdf', size: '320 KB', type: 'Uploaded Prompt' }
-    ]
-  };
-
-  // WhatsApp Admin Payment URL
-  const waMsg = `Hello ScholarVerge Admin! I have submitted Order #${randomId} for "${topic}" (${pages} pages, ${level}, Tutor: ${tutorName}). Price: $${priceAmount.toFixed(2)}. Please guide me on completing the payment.`;
+  const waMsg = `Hello ScholarVerge Admin! I have submitted Order #${randomId} for "${topic}" (${pages} pages, ${level}, Tutor: ${tutorName}). Please guide me on completing the payment.`;
   const waUrl = `https://wa.me/16677757597?text=${encodeURIComponent(waMsg)}`;
 
-  // Sync with Backend PostgreSQL / SQLite Database
   fetch('/api/orders/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2059,18 +2294,13 @@ function submitAcademicOrder(e) {
 
   closeModal('order-paper-modal');
   showToast(`Order #${randomId} Created! Connecting to WhatsApp Admin for payment...`);
-  
-  const trackerInput = document.getElementById('tracker-input');
-  if (trackerInput) {
-    trackerInput.value = randomId;
-    loadOrderDetails(randomId);
-    document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });
-  }
 }
 
 /* ==========================================================================
-   Order Tracker & Live Messenger
+   Live Real-Time Order & Assignment Tracker (Backend Database Connected)
    ========================================================================== */
+let activeTrackerChatHistories = {};
+
 function initOrderTracker() {
   const searchBtn = document.getElementById('tracker-search-btn');
   const trackerInput = document.getElementById('tracker-input');
@@ -2078,145 +2308,231 @@ function initOrderTracker() {
   if (searchBtn && trackerInput) {
     searchBtn.addEventListener('click', () => {
       const orderId = trackerInput.value.trim().toUpperCase().replace('#', '');
-      loadOrderDetails(orderId);
+      if (orderId) {
+        loadOrderDetails(orderId);
+      } else {
+        showToast('Please enter your unique Tracking ID.');
+      }
+    });
+
+    trackerInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const orderId = trackerInput.value.trim().toUpperCase().replace('#', '');
+        if (orderId) loadOrderDetails(orderId);
+      }
     });
   }
 
+  updateTrackerStudentChips();
   loadOrderDetails('SV-84920');
 }
 
+function updateTrackerStudentChips() {
+  const chipsContainer = document.getElementById('tracker-student-chips');
+  if (!chipsContainer) return;
+
+  if (authSession.isLoggedIn && authSession.role === 'student' && authSession.user && authSession.user.email) {
+    fetch(`/api/student/dashboard?email=${encodeURIComponent(authSession.user.email)}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.student && res.student.orders && res.student.orders.length > 0) {
+          chipsContainer.style.display = 'block';
+          chipsContainer.innerHTML = `
+            <div style="font-size: 0.75rem; color: #475569; margin-bottom: 6px; font-weight: 700;">
+              <i class="fa-solid fa-folder-open" style="color: #2563eb;"></i> Your Active Assignment Tracking IDs:
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              ${res.student.orders.map(o => `
+                <span class="sample-chip" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;" onclick="loadOrderDetails('${o.order_number}')">
+                  <strong style="color: #2563eb;">#${o.order_number}</strong> (${o.tutor_name || 'Tutor'} • ${o.stage || o.status || 'Active'})
+                </span>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          chipsContainer.style.display = 'none';
+        }
+      })
+      .catch(() => {
+        chipsContainer.style.display = 'none';
+      });
+  } else {
+    chipsContainer.style.display = 'none';
+  }
+}
+
 function loadOrderDetails(orderId) {
-  const order = mockOrders[orderId];
   const container = document.getElementById('tracker-result-container');
+  const trackerInput = document.getElementById('tracker-input');
+  if (trackerInput && orderId) {
+    trackerInput.value = orderId;
+  }
   if (!container) return;
 
-  if (!order) {
-    container.innerHTML = `
-      <div style="grid-column: span 2; text-align: center; padding: 40px 0;">
-        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 16px;"></i>
-        <h4 style="font-size: 1.25rem;">Order #${orderId} Not Found</h4>
-        <p style="color: #64748b; font-size: 0.9rem;">Please check the Order ID format (e.g. SV-84920, SV-77219, SV-99104) or create a new order.</p>
-      </div>
-    `;
-    return;
-  }
-
   container.innerHTML = `
-    <!-- Left Column: Timeline & Deliverables -->
-    <div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <div>
-          <span class="badge badge-verified" style="margin-bottom: 6px;">Order #${order.orderId}</span>
-          <h3 style="font-size: 1.35rem; color: var(--primary);">${order.topic}</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">${order.subject} • ${order.level} • ${order.pages} • ${order.format}</p>
-        </div>
-        <span class="badge badge-trust" style="font-size: 0.85rem; padding: 8px 16px;">
-          <i class="fa-solid fa-clock-rotate-left"></i> ${order.status}
-        </span>
-      </div>
-
-      <!-- Timeline -->
-      <h4 style="font-size: 1rem; margin-bottom: 16px; color: var(--primary);">
-        <i class="fa-solid fa-list-check" style="color: var(--accent-blue);"></i> Real-Time Progress Workflow
-      </h4>
-      <div class="timeline">
-        ${order.steps.map(s => `
-          <div class="timeline-item ${s.done ? 'done' : ''}">
-            <div class="timeline-dot">
-              ${s.done ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i>'}
-            </div>
-            <div class="timeline-title">${s.name}</div>
-            <div class="timeline-time">${s.time}</div>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- Deliverables Box -->
-      <h4 style="font-size: 1rem; margin: 24px 0 12px; color: var(--primary);">
-        <i class="fa-solid fa-file-arrow-down" style="color: var(--accent-teal-dark);"></i> Completed Documents & Reports
-      </h4>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        ${order.files.map(f => `
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <i class="fa-solid ${f.name.endsWith('.pdf') ? 'fa-file-pdf' : f.name.endsWith('.docx') ? 'fa-file-word' : 'fa-file-code'}" style="font-size: 1.5rem; color: #2563eb;"></i>
-              <div>
-                <strong style="font-size: 0.875rem; color: #0f172a; display: block;">${f.name}</strong>
-                <span style="font-size: 0.75rem; color: #64748b;">${f.type} • ${f.size}</span>
-              </div>
-            </div>
-            <button class="btn btn-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="simulateFileDownload('${f.name}')">
-              <i class="fa-solid fa-download"></i> Download
-            </button>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- WhatsApp Payment & Final Approval Container -->
-      <div style="margin-top: 24px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; padding: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <strong style="color: #1e40af; font-size: 0.95rem; display: block;">Quality & Grade Assurance</strong>
-          <span style="font-size: 0.8rem; color: #334155;">14 days of free unlimited adjustments and direct tutor feedback.</span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <a href="https://wa.me/16677757597?text=Hello%20Admin!%20I%20have%20an%20inquiry%20regarding%20Order%20%23${order.orderId}" target="_blank" class="btn btn-whatsapp" style="font-size: 0.82rem;">
-            <i class="fa-brands fa-whatsapp"></i> WhatsApp Admin
-          </a>
-          <button class="btn btn-accent" style="font-size: 0.82rem;" onclick="approveFinalWork('${order.orderId}')">
-            <i class="fa-solid fa-check"></i> Approve Final Draft
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Column: Direct Tutor Messenger -->
-    <div>
-      <div class="chat-simulator-box">
-        <div class="chat-sim-header">
-          <img src="${order.tutorAvatar}" alt="${order.tutor}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;" />
-          <div>
-            <strong style="font-size: 0.9rem; color: var(--primary); display: block;">${order.tutor}</strong>
-            <span style="font-size: 0.75rem; color: var(--accent-teal-dark); font-weight: 600;"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Active Now</span>
-          </div>
-        </div>
-
-        <div class="chat-sim-body" id="tracker-chat-body-${order.orderId}">
-          ${order.chatHistory.map(m => `
-            <div class="chat-msg ${m.sender === 'You' ? 'you' : 'tutor'}">
-              <div style="font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px;">${m.sender} • ${m.time}</div>
-              ${m.text}
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="chat-sim-footer">
-          <input type="text" id="tracker-chat-input-${order.orderId}" class="chat-sim-input" placeholder="Message ${order.tutor}..." onkeypress="handleTrackerChatKey(event, '${order.orderId}')" />
-          <button class="btn btn-primary" style="padding: 8px 14px;" onclick="sendTrackerMessage('${order.orderId}')">
-            <i class="fa-solid fa-paper-plane"></i>
-          </button>
-        </div>
-      </div>
+    <div style="grid-column: span 2; text-align: center; padding: 40px 0;">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: #2563eb; margin-bottom: 16px;"></i>
+      <h4 style="font-size: 1.15rem; color: var(--primary);">Querying Live Platform Database for #${orderId}...</h4>
     </div>
   `;
+
+  fetch(`/api/orders/track?code=${encodeURIComponent(orderId)}`)
+    .then(r => r.json())
+    .then(res => {
+      if (res.success && res.order) {
+        const order = res.order;
+        const tutorAvatar = order.tutor_avatar || 'assets/images/tutors/sophia-mitchell.jpg';
+        const isCompleted = (order.stage || order.status || '').toLowerCase().includes('completed');
+
+        if (!activeTrackerChatHistories[order.order_number]) {
+          activeTrackerChatHistories[order.order_number] = [
+            { sender: order.tutor_name, time: 'Assignment Assigned', text: `Hello ${order.student_name}! I have received your brief on "${order.topic}". The rubric and required citation format (${order.citation_style}) are currently active.` },
+            { sender: order.tutor_name, time: 'Stage & Delivery Timeline', text: `Super Admin confirmed current stage: "${order.stage}". Estimated delivery timeline: ${order.days_ready} (${order.progress_percentage}% completed).` }
+          ];
+        }
+
+        const chatHistory = activeTrackerChatHistories[order.order_number];
+
+        container.innerHTML = `
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <span class="badge badge-verified" style="margin-bottom: 6px; font-size: 0.85rem;">Tracking #${order.order_number}</span>
+                <h3 style="font-size: 1.3rem; color: var(--primary); margin: 4px 0 6px;">${order.topic}</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                  ${order.subject || 'Academic Research'} • ${order.academic_level || 'Undergraduate'} • ${order.pages || 3} Pages • ${order.citation_style || 'APA 7th'} • Deadline: ${order.deadline || 'In 3 Days'}
+                </p>
+                ${order.file_name ? `<span style="font-size: 0.785rem; color: #64748b;"><i class="fa-solid fa-paperclip"></i> Attached Brief: <strong>${order.file_name}</strong></span>` : ''}
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                <span class="status-pill ${isCompleted ? 'completed' : 'in_progress'}" style="font-size: 0.85rem; padding: 6px 14px;">
+                  <i class="fa-solid fa-layer-group"></i> ${order.stage}
+                </span>
+                <span class="badge badge-gold" style="font-size: 0.85rem; padding: 6px 14px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; border: 1px solid #f59e0b;">
+                  <i class="fa-solid fa-hourglass-half"></i> Delivery: <strong>${order.days_ready}</strong> (${order.progress_percentage}%)
+                </span>
+              </div>
+            </div>
+
+            <!-- Turnitin Authenticity and Quality Strip -->
+            <div style="display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;">
+              <span class="badge badge-verified" style="font-size: 0.785rem; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                <i class="fa-solid fa-shield-check"></i> Turnitin AI Score: ${order.turnitin_ai_score || 0.0}% (100% Human)
+              </span>
+              <span class="badge badge-trust" style="font-size: 0.785rem;">
+                <i class="fa-solid fa-fingerprint"></i> Similarity Index: ${order.turnitin_similarity || 0.4}%
+              </span>
+              <span class="badge badge-gold" style="font-size: 0.785rem;">
+                <i class="fa-solid fa-certificate"></i> Ivy & Russell Standards Verified
+              </span>
+            </div>
+
+            <!-- Admin Notes Box if available -->
+            ${order.admin_notes ? `
+              <div style="background: #f8fafc; border-left: 4px solid #2563eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #334155;">
+                <strong style="color: #1e40af;"><i class="fa-solid fa-comment-dots" style="color: #2563eb;"></i> Super Admin Guidance & Status Note:</strong>
+                <p style="margin: 4px 0 0; color: #475569;">${order.admin_notes}</p>
+              </div>
+            ` : ''}
+
+            <h4 style="font-size: 1rem; margin-bottom: 16px; color: var(--primary);">
+              <i class="fa-solid fa-list-check" style="color: var(--accent-blue);"></i> Real-Time Workflow Progress (${order.progress_percentage}%)
+            </h4>
+            <div class="timeline">
+              ${(order.steps || []).map(s => `
+                <div class="timeline-item ${s.done ? 'done' : ''}">
+                  <div class="timeline-dot">
+                    ${s.done ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i>'}
+                  </div>
+                  <div class="timeline-title">${s.name}</div>
+                  <div class="timeline-time">${s.time}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div style="margin-top: 24px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; padding: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <strong style="color: #1e40af; font-size: 0.95rem; display: block;">Instant WhatsApp Coordinator Assistance</strong>
+                <span style="font-size: 0.8rem; color: #334155;">Coordinate directly with Super Admin on WhatsApp (+1 667 775 7597) for revisions or updates.</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <a href="https://wa.me/16677757597?text=Hello%20Super%20Admin!%20I%20am%20tracking%20my%20assignment%20(%23${order.order_number})%20guided%20by%20${encodeURIComponent(order.tutor_name)}.%20Current%20Stage%3A%20${encodeURIComponent(order.stage)}.%20Delivery%3A%20${encodeURIComponent(order.days_ready)}." target="_blank" class="btn btn-whatsapp" style="font-size: 0.82rem;">
+                  <i class="fa-brands fa-whatsapp"></i> WhatsApp Super Admin
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="chat-simulator-box">
+              <div class="chat-sim-header">
+                <img src="${tutorAvatar}" alt="${order.tutor_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb;" />
+                <div>
+                  <strong style="font-size: 0.9rem; color: var(--primary); display: block;">${order.tutor_name}</strong>
+                  <span style="font-size: 0.75rem; color: var(--accent-teal-dark); font-weight: 600;"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Active Now • Assigned Specialist</span>
+                </div>
+              </div>
+
+              <div class="chat-sim-body" id="tracker-chat-body-${order.order_number}">
+                ${chatHistory.map(m => `
+                  <div class="chat-msg ${m.sender === 'You' ? 'you' : 'tutor'}">
+                    <div style="font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px;">${m.sender} • ${m.time}</div>
+                    ${m.text}
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="chat-sim-footer">
+                <input type="text" id="tracker-chat-input-${order.order_number}" class="chat-sim-input" placeholder="Message ${order.tutor_name}..." onkeypress="handleTrackerChatKey(event, '${order.order_number}', '${order.tutor_name.replace(/'/g, "\\'")}')" />
+                <button class="btn btn-primary" style="padding: 8px 14px;" onclick="sendTrackerMessage('${order.order_number}', '${order.tutor_name.replace(/'/g, "\\'")}')">
+                  <i class="fa-solid fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div style="grid-column: span 2; text-align: center; padding: 40px 0;">
+            <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 16px;"></i>
+            <h4 style="font-size: 1.25rem;">Tracking ID #${orderId} Not Found</h4>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 18px;">Please verify your unique Tracking ID (e.g. SV-84920) or connect directly with the Super Admin.</p>
+            <a href="https://wa.me/16677757597?text=Hello%20Super%20Admin!%20I%20need%20assistance%20verifying%20my%20assignment%20Tracking%20%23${orderId}" target="_blank" class="btn btn-whatsapp" style="display: inline-flex; font-size: 0.875rem;">
+              <i class="fa-brands fa-whatsapp"></i> Verify Tracking ID on WhatsApp
+            </a>
+          </div>
+        `;
+      }
+    })
+    .catch(() => {
+      container.innerHTML = `
+        <div style="grid-column: span 2; text-align: center; padding: 40px 0;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: #ef4444; margin-bottom: 16px;"></i>
+          <h4 style="font-size: 1.25rem;">Unable to Query Tracking Service</h4>
+          <p style="color: #64748b; font-size: 0.9rem;">Please check your server connection and try again.</p>
+        </div>
+      `;
+    });
 }
 
-function handleTrackerChatKey(e, orderId) {
+function handleTrackerChatKey(e, orderId, tutorName) {
   if (e.key === 'Enter') {
-    sendTrackerMessage(orderId);
+    sendTrackerMessage(orderId, tutorName);
   }
 }
 
-function sendTrackerMessage(orderId) {
+function sendTrackerMessage(orderId, tutorName) {
   const input = document.getElementById(`tracker-chat-input-${orderId}`);
   if (!input || !input.value.trim()) return;
 
   const text = input.value.trim();
   input.value = '';
 
-  const order = mockOrders[orderId];
-  if (!order) return;
+  if (!activeTrackerChatHistories[orderId]) {
+    activeTrackerChatHistories[orderId] = [];
+  }
 
-  order.chatHistory.push({
+  activeTrackerChatHistories[orderId].push({
     sender: 'You',
     time: 'Just now',
     text: text
@@ -2224,7 +2540,7 @@ function sendTrackerMessage(orderId) {
 
   const chatBody = document.getElementById(`tracker-chat-body-${orderId}`);
   if (chatBody) {
-    chatBody.innerHTML = order.chatHistory.map(m => `
+    chatBody.innerHTML = activeTrackerChatHistories[orderId].map(m => `
       <div class="chat-msg ${m.sender === 'You' ? 'you' : 'tutor'}">
         <div style="font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px;">${m.sender} • ${m.time}</div>
         ${m.text}
@@ -2234,62 +2550,181 @@ function sendTrackerMessage(orderId) {
   }
 
   setTimeout(() => {
-    let reply = `Thank you for your note! I have incorporated this into the drafting outline. Your paper is being polished strictly according to your rubric.`;
-    if (text.toLowerCase().includes('plagiarism') || text.toLowerCase().includes('turnitin')) {
-      reply = `All my sources are retrieved directly from peer-reviewed databases and formatted from scratch. The Turnitin similarity report is guaranteed under 2% and 100% human-crafted.`;
-    } else if (text.toLowerCase().includes('time') || text.toLowerCase().includes('when')) {
-      reply = `I am on track to deliver your complete draft well ahead of your deadline so you have ample time to review.`;
-    } else if (text.toLowerCase().includes('pay') || text.toLowerCase().includes('whatsapp')) {
-      reply = `You can easily coordinate payment with our WhatsApp admin at +1 (667) 775-7597 anytime.`;
-    }
+    const replies = [
+      `Thank you for the update! I am incorporating these points into the draft section according to the grading rubric.`,
+      `Noted! I am reviewing the citations and verifying 0% Turnitin AI detection.`,
+      `Received! I am aligning this with the academic requirements and will keep you posted on the stage timeline.`
+    ];
+    const replyText = replies[Math.floor(Math.random() * replies.length)];
 
-    order.chatHistory.push({
-      sender: order.tutor,
+    activeTrackerChatHistories[orderId].push({
+      sender: tutorName || 'Tutor',
       time: 'Just now',
-      text: reply
+      text: replyText
     });
 
     if (chatBody) {
-      chatBody.innerHTML = order.chatHistory.map(m => `
+      chatBody.innerHTML = activeTrackerChatHistories[orderId].map(m => `
         <div class="chat-msg ${m.sender === 'You' ? 'you' : 'tutor'}">
-          <div style="font-size: 0.7rem; opacity: 0.8;">${order.tutor} • Just now</div>
-          ${reply}
+          <div style="font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px;">${m.sender} • ${m.time}</div>
+          ${m.text}
         </div>
       `).join('');
       chatBody.scrollTop = chatBody.scrollHeight;
     }
-  }, 1200);
-}
-
-function simulateFileDownload(fileName) {
-  showToast(`Downloading: ${fileName}`);
-}
-
-function approveFinalWork(orderId) {
-  showToast(`Order #${orderId} approved! Thank you for choosing ScholarVerge!`);
-  openStudentActivitiesModal('review');
+  }, 1000);
 }
 
 /* ==========================================================================
-   Leave Us a Review Modal
+   Super Admin Update Task Stage, Days Ready & Delivery Management
    ========================================================================== */
-let selectedReviewStars = 5;
+function openAdminUpdateStageModal(orderNum, studentName, tutorName, topic, meta, stage, daysReady, progress, notes, turnitinAi, turnitinSim, paymentStatus) {
+  document.getElementById('admin-stage-order-num').value = orderNum;
+  document.getElementById('admin-stage-header-order-ref').textContent = `Order #${orderNum}`;
+  document.getElementById('admin-stage-student-name').textContent = studentName;
+  document.getElementById('admin-stage-topic').textContent = topic;
+  document.getElementById('admin-stage-meta').textContent = `${meta} • Tutor: ${tutorName}`;
+  
+  const stageSelect = document.getElementById('admin-stage-select');
+  if (stageSelect) {
+    let matched = false;
+    for (let i = 0; i < stageSelect.options.length; i++) {
+      if (stageSelect.options[i].value === stage) {
+        stageSelect.selectedIndex = i;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      stageSelect.selectedIndex = 2;
+    }
+  }
 
-function openReviewModal() {
-  openStudentActivitiesModal('review');
+  document.getElementById('admin-stage-days').value = daysReady || 'Ready in 2 Days (Sep 3, 2026)';
+  
+  const slider = document.getElementById('admin-stage-prog-slider');
+  const progLbl = document.getElementById('admin-stage-prog-label');
+  if (slider && progLbl) {
+    slider.value = progress || 60;
+    progLbl.innerText = (progress || 60) + '%';
+  }
+
+  const tutorSelect = document.getElementById('admin-stage-tutor');
+  if (tutorSelect && tutorName) {
+    for (let i = 0; i < tutorSelect.options.length; i++) {
+      if (tutorSelect.options[i].value.includes(tutorName) || tutorName.includes(tutorSelect.options[i].value)) {
+        tutorSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  document.getElementById('admin-stage-notes').value = notes || '';
+  document.getElementById('admin-stage-ai-score').value = turnitinAi || 0.0;
+  document.getElementById('admin-stage-payment').value = paymentStatus || 'payment_verified';
+
+  openModal('admin-order-stage-modal');
+}
+
+function handleAdminStageSelectChange() {
+  const stageSelect = document.getElementById('admin-stage-select');
+  const slider = document.getElementById('admin-stage-prog-slider');
+  const progLbl = document.getElementById('admin-stage-prog-label');
+  const daysInput = document.getElementById('admin-stage-days');
+  if (!stageSelect) return;
+
+  const stage = stageSelect.value;
+  let defaultProg = 60;
+  let defaultDays = 'Ready in 2 Days';
+
+  if (stage.includes('Document Received')) {
+    defaultProg = 15;
+    defaultDays = 'Assessing Timeline (Est. ~2-3 Days)';
+  } else if (stage.includes('Research & Outline')) {
+    defaultProg = 35;
+    defaultDays = 'Ready in 3 Days';
+  } else if (stage.includes('Drafting in Progress')) {
+    defaultProg = 60;
+    defaultDays = 'Ready in 2 Days';
+  } else if (stage.includes('Turnitin')) {
+    defaultProg = 85;
+    defaultDays = 'Ready in 18 Hours (Tomorrow)';
+  } else if (stage.includes('Completed')) {
+    defaultProg = 100;
+    defaultDays = 'Completed & Delivered';
+  }
+
+  if (slider && progLbl) {
+    slider.value = defaultProg;
+    progLbl.innerText = defaultProg + '%';
+  }
+  if (daysInput && (!daysInput.value || daysInput.value.includes('Ready in') || daysInput.value.includes('Assessing') || daysInput.value.includes('Completed'))) {
+    daysInput.value = defaultDays;
+  }
+}
+
+function setAdminDaysPreset(presetText) {
+  const daysInput = document.getElementById('admin-stage-days');
+  if (daysInput) {
+    daysInput.value = presetText;
+  }
+}
+
+function handleAdminSubmitOrderStageUpdate(e) {
+  if (e) e.preventDefault();
+  const orderNum = document.getElementById('admin-stage-order-num').value.trim();
+  const stage = document.getElementById('admin-stage-select').value;
+  const daysReady = document.getElementById('admin-stage-days').value.trim();
+  const progress = parseInt(document.getElementById('admin-stage-prog-slider').value) || 60;
+  const tutorName = document.getElementById('admin-stage-tutor').value;
+  const adminNotes = document.getElementById('admin-stage-notes').value.trim();
+  const turnitinAi = parseFloat(document.getElementById('admin-stage-ai-score').value) || 0.0;
+  const paymentStatus = document.getElementById('admin-stage-payment').value;
+
+  fetch('/api/admin/orders/update-stage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_number: orderNum,
+      stage: stage,
+      days_ready: daysReady,
+      progress_percentage: progress,
+      tutor_name: tutorName,
+      admin_notes: adminNotes,
+      turnitin_ai_score: turnitinAi,
+      payment_status: paymentStatus
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      closeModal('admin-order-stage-modal');
+      showToast(res.message);
+      loadAdminOverviewData();
+      if (res.whatsapp_student_url) {
+        window.open(res.whatsapp_student_url, '_blank');
+      }
+      const trackerInput = document.getElementById('tracker-input');
+      if (trackerInput && trackerInput.value.toUpperCase().includes(orderNum)) {
+        loadOrderDetails(orderNum);
+      }
+    } else {
+      showToast(res.error || 'Failed to update order stage.');
+    }
+  })
+  .catch(() => {
+    showToast('Failed to update order stage.');
+  });
 }
 
 /* ==========================================================================
-   Turnitin Sample Report Modal
+   Turnitin Modal & Chat Drawer
    ========================================================================== */
 function openTurnitinModal() {
   closeSidebar();
   openModal('turnitin-modal');
 }
 
-/* ==========================================================================
-   24/7 Live Support Chat Drawer
-   ========================================================================== */
 function initLiveChatDrawer() {
   const toggleBtn = document.getElementById('floating-support-btn');
   const drawer = document.getElementById('live-chat-drawer');
@@ -2326,15 +2761,9 @@ function sendSupportChat() {
 
   setTimeout(() => {
     let reply = `Thank you for reaching out to ScholarVerge! You can reach our senior team directly on WhatsApp (+1 667 775 7597) or via email at scholarverge@gmail.com.`;
-    if (msg.toLowerCase().includes('cost') || msg.toLowerCase().includes('price')) {
-      reply = `Our pricing starts at only $12.50/page and includes a free Turnitin 0% AI authenticity report! You can also use code SCHOLAR20 for 20% off.`;
-    } else if (msg.toLowerCase().includes('whatsapp') || msg.toLowerCase().includes('pay')) {
-      reply = `Payment is coordinated offline directly with our admin via WhatsApp at +1 (667) 775-7597. We accept various convenient methods!`;
-    }
-
     body.innerHTML += `
       <div class="chat-msg tutor" style="margin-bottom: 8px;">
-        <div style="font-size: 0.7rem; opacity: 0.8;">Alex (Academic Advisor)</div>
+        <div style="font-size: 0.7rem; opacity: 0.8;">Academic Operations Lead</div>
         ${reply}
       </div>
     `;
@@ -2376,4 +2805,65 @@ function showToast(message) {
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 3500);
+}
+
+/* ==========================================================================
+   Real-World Floating Live Academic Activity Ticker Engine
+   ========================================================================== */
+let tickerCurrentIndex = 0;
+let tickerTimer = null;
+
+const liveTickerFeed = [
+  { title: "<strong>Marcus V. (Yale)</strong> received <strong>0% AI Turnitin Report</strong>", sub: "14 mins ago • Quantitative Econometrics Thesis", action: () => openTurnitinModal() },
+  { title: "<strong>Dr. Sophia Mitchell</strong> is <strong>Available Online</strong>", sub: "Just now • Nursing Care Plans & PICOT Syntheses", action: () => openOrderModalWithTutor('Sophia Mitchell') },
+  { title: "<strong>Elena R. (Oxford)</strong> grade confirmed: <strong>A+ Distinction</strong>", sub: "26 mins ago • Clinical Healthcare Systematic Review", action: () => { document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' }); } },
+  { title: "<strong>Claire Bennett</strong> completed <strong>4-page Legal Memorandum</strong>", sub: "38 mins ago • OSCOLA & IT Case Law Citations", action: () => openOrderModalWithTutor('Claire Bennett') },
+  { title: "<strong>Oliver Harrison</strong> verified <strong>R Econometric Proofs</strong>", sub: "45 mins ago • Corporate Finance & Stata Modeling", action: () => openOrderModalWithTutor('Oliver Harrison') },
+  { title: "<strong>Chloe S. (McGill)</strong> dispatched brief to <strong>scholarverge@gmail.com</strong>", sub: "1 hour ago • Comparative Literature Review", action: () => openStudentActivitiesModal('upload') }
+];
+
+function initLiveActivityTicker() {
+  const tickerEl = document.getElementById('live-activity-ticker');
+  if (!tickerEl) return;
+
+  renderCurrentTickerItem();
+
+  tickerTimer = setInterval(() => {
+    tickerCurrentIndex = (tickerCurrentIndex + 1) % liveTickerFeed.length;
+    renderCurrentTickerItem();
+  }, 10000);
+}
+
+function renderCurrentTickerItem() {
+  const titleEl = document.getElementById('ticker-title-text');
+  const subEl = document.getElementById('ticker-sub-text');
+  const tickerEl = document.getElementById('live-activity-ticker');
+
+  if (titleEl && subEl && tickerEl && liveTickerFeed[tickerCurrentIndex]) {
+    const item = liveTickerFeed[tickerCurrentIndex];
+    tickerEl.style.opacity = '0';
+    tickerEl.style.transform = 'translateY(10px)';
+
+    setTimeout(() => {
+      titleEl.innerHTML = item.title;
+      subEl.textContent = item.sub;
+      tickerEl.style.opacity = '1';
+      tickerEl.style.transform = 'translateY(0)';
+    }, 300);
+  }
+}
+
+function handleTickerClick() {
+  const item = liveTickerFeed[tickerCurrentIndex];
+  if (item && typeof item.action === 'function') {
+    item.action();
+  }
+}
+
+function closeTicker() {
+  const tickerEl = document.getElementById('live-activity-ticker');
+  if (tickerEl) {
+    tickerEl.style.display = 'none';
+    if (tickerTimer) clearInterval(tickerTimer);
+  }
 }

@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS students (
     whatsapp_number VARCHAR(50) DEFAULT '+16677757597',
     avatar_url TEXT,
     total_orders INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    status VARCHAR(50) DEFAULT 'active', -- 'active' | 'flagged' | 'suspended'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 3. Verified Tutors Table
@@ -148,8 +150,22 @@ CREATE TABLE IF NOT EXISTS password_resets (
 -- 9. Audit Logs Table
 CREATE TABLE IF NOT EXISTS audit_logs (
     id SERIAL PRIMARY KEY,
-    action VARCHAR(100) NOT NULL,
+    action VARCHAR(255) NOT NULL,
     user_email VARCHAR(255) NOT NULL,
     details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Student Onboarding & Invite Links Table
+CREATE TABLE IF NOT EXISTS invitations (
+    id SERIAL PRIMARY KEY,
+    invite_code VARCHAR(50) UNIQUE NOT NULL,
+    student_name VARCHAR(255),
+    student_email VARCHAR(255),
+    academic_level VARCHAR(100),
+    major_field VARCHAR(255),
+    invite_link TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'active', -- 'active' | 'claimed'
+    created_by VARCHAR(255) DEFAULT 'admin@scholarverge.com',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
