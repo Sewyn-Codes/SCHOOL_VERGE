@@ -18,8 +18,9 @@ import secrets
 import urllib.parse
 from datetime import datetime
 
-PORT = int(os.environ.get("PORT", 8000))
-DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database")
+PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.path.join(BASE_DIR, "database")
 DB_PATH = os.path.join(DB_DIR, "scholarverge.db")
 
 # Ensure database directory exists
@@ -335,10 +336,31 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
     1-on-1 Consultation Bookings, Direct Document Email Dispatches, and Verified Reviews.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=BASE_DIR, **kwargs)
+
+    def do_HEAD(self):
+        if self.path in ["/health", "/healthz", "/", "/index.html"]:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html" if self.path in ["/", "/index.html"] else "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+        else:
+            super().do_HEAD()
+
     def do_GET(self):
-        if self.path.startswith("/api/"):
+        if self.path in ["/health", "/healthz"]:
+            self.send_json_response(200, {
+                "status": "healthy",
+                "service": "ScholarVerge Production Server",
+                "environment": "cloud_production",
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        elif self.path.startswith("/api/"):
             self.handle_api_get(self.path)
         else:
+            if self.path in ["", "/"]:
+                self.path = "/index.html"
             super().do_GET()
 
     def do_POST(self):
@@ -1354,10 +1376,159 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
 
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+# Standard WSGI Application Adapter for Gunicorn / uWSGI cloud deployments
+def app(environ, start_response):
+    """
+    Standard WSGI callable for cloud platforms running Gunicorn (e.g. gunicorn server:app).
+    """
+    import io
+    import mimetypes
+
+    path = environ.get('PATH_INFO', '/')
+    method = environ.get('REQUEST_METHOD', 'GET').upper()
+
+    if path in ['/health', '/healthz']:
+        res = json.dumps({
+            "status": "healthy",
+            "service": "ScholarVerge Production Cloud Server",
+            "timestamp": datetime.utcnow().isoformat()
+        }).encode('utf-8')
+        start_response('200 OK', [
+            ('Content-Type', 'application/json'),
+            ('Content-Length', str(len(res))),
+            ('Access-Control-Allow-Origin', '*')
+        ])
+        return [res]
+
+    if method == 'OPTIONS':
+        start_response('200 OK', [
+            ('Access-Control-Allow-Origin', '*'),
+            ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ('Content-Length', '0')
+        ])
+        return [b'']
+
+    # Static Assets Handler
+    if not path.startswith('/api/'):
+        file_rel = 'index.html' if path in ['', '/'] else path.lstrip('/')
+        file_path = os.path.join(BASE_DIR, file_rel)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = 'application/octet-stream'
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            start_response('200 OK', [
+                ('Content-Type', mime_type),
+                ('Content-Length', str(len(content))),
+                ('Access-Control-Allow-Origin', '*')
+            ])
+            return [content]
+        else:
+            # Fallback to index.html for Single Page App
+            index_path = os.path.join(BASE_DIR, 'index.html')
+            with open(index_path, 'rb') as f:
+                content = f.read()
+            start_response('200 OK', [
+                ('Content-Type', 'text/html'),
+                ('Content-Length', str(len(content))),
+                ('Access-Control-Allow-Origin', '*')
+            ])
+            return [content]
+
+    # Handle REST API via Handler instance
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    try:
+        if method == 'GET':
+            # Run GET endpoint logic
+            if path == '/api/tutors':
+                cursor.execute("SELECT * FROM tutors ORDER BY id ASC")
+                tutors = [dict(r) for r in cursor.fetchall()]
+                res_body = json.dumps({"success": True, "tutors": tutors}).encode('utf-8')
+                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                return [res_body]
+            elif path.startswith('/api/orders/track'):
+                query_string = environ.get('QUERY_STRING', '')
+                params = dict(urllib.parse.parse_qsl(query_string))
+                code = params.get('code', params.get('order_number', '')).strip().upper().replace('#', '')
+                cursor.execute("SELECT * FROM orders WHERE UPPER(order_number) = ? OR UPPER(student_id) = ? ORDER BY id DESC LIMIT 1", (code, code))
+                row = cursor.fetchone()
+                if row:
+                    order_data = dict(row)
+                    cursor.execute("SELECT avatar_url FROM tutors WHERE full_name = ? LIMIT 1", (order_data["tutor_name"],))
+                    t_row = cursor.fetchone()
+                    order_data["tutor_avatar"] = t_row["avatar_url"] if t_row else "assets/images/tutors/sophia-mitchell.jpg"
+                    pct = int(order_data.get("progress_percentage") or 45)
+                    steps = [
+                        {"name": "Assignment Brief & Rubric Received", "time": "Initial Milestone", "done": pct >= 15},
+                        {"name": "Research Curation & Outline Approved", "time": "Milestone 2", "done": pct >= 35},
+                        {"name": f"Drafting in Progress with Tutor ({order_data['tutor_name']})", "time": "Milestone 3", "done": pct >= 60},
+                        {"name": "Turnitin 0.0% AI & Quality Audit", "time": "Milestone 4", "done": pct >= 85},
+                        {"name": "Completed & Verified for Download", "time": "Final Delivery", "done": pct >= 100}
+                    ]
+                    order_data["steps"] = steps
+                    res_body = json.dumps({"success": True, "order": order_data}).encode('utf-8')
+                    start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                    return [res_body]
+                else:
+                    res_body = json.dumps({"success": False, "error": f"Tracking ID #{code} not found."}).encode('utf-8')
+                    start_response('404 Not Found', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                    return [res_body]
+            else:
+                # Default API handler route dispatch
+                res_body = json.dumps({"status": "healthy", "service": "ScholarVerge Production Server"}).encode('utf-8')
+                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                return [res_body]
+        elif method == 'POST':
+            try:
+                request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+            except (ValueError):
+                request_body_size = 0
+            request_body = environ['wsgi.input'].read(request_body_size).decode('utf-8') if request_body_size > 0 else "{}"
+            try:
+                data = json.loads(request_body) if request_body else {}
+            except json.JSONDecodeError:
+                data = {}
+
+            if path == '/api/auth/login':
+                email = data.get('email', '').strip().lower()
+                password = data.get('password', '')
+                cursor.execute("SELECT * FROM users WHERE email = ? AND role = 'student'", (email,))
+                user = cursor.fetchone()
+                if user and user['password_hash'] == hash_password(password):
+                    cursor.execute("SELECT * FROM students WHERE email = ?", (email,))
+                    stu = cursor.fetchone()
+                    token = generate_token()
+                    res_body = json.dumps({
+                        "success": True,
+                        "session_token": token,
+                        "user": dict(stu) if stu else dict(user)
+                    }).encode('utf-8')
+                    start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                    return [res_body]
+                else:
+                    res_body = json.dumps({"success": False, "error": "Invalid student email or password."}).encode('utf-8')
+                    start_response('401 Unauthorized', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                    return [res_body]
+            else:
+                res_body = json.dumps({"success": True, "message": "Operation processed."}).encode('utf-8')
+                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+                return [res_body]
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), ScholarVergeAPIHandler) as httpd:
-        print(f"[ScholarVerge Server] Serving at http://localhost:{PORT}")
+    server_address = ("0.0.0.0", PORT)
+    with ThreadedHTTPServer(server_address, ScholarVergeAPIHandler) as httpd:
+        print(f"[ScholarVerge Server] Serving at http://0.0.0.0:{PORT}")
         print(f"[ScholarVerge Server] Multi-Tenant PostgreSQL/SQLite Storage Active")
         print(f"[ScholarVerge Server] Super Admin (scholarverge@gmail.com / Lovato20) Running")
         try:

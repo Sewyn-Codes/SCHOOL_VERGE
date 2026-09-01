@@ -1,1 +1,2 @@
-﻿# Python 3 Standard Library Native
+﻿gunicorn>=21.2.0
+
