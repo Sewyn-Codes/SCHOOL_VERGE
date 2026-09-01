@@ -3528,20 +3528,54 @@ img {
   }
 }
 
-@media (max-width: 900px) {
-  .institutional-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .live-activity-ticker {
-    bottom: 80px;
-    left: 12px;
-    right: 12px;
-    max-width: calc(100% - 24px);
-  }
+/* ==========================================================================
+   Comprehensive Mobile Responsive System & Speed Optimizations
+   Supports All Screen Sizes: Desktops, Laptops, Tablets, iPads, iPhones & Android
+   ========================================================================== */
+
+/* Universal Mobile Table Wrapper */
+.table-responsive,
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
 }
 
-/* Responsive Breakpoints */
+.table-responsive table,
+.admin-table-wrap table {
+  min-width: 580px;
+  width: 100%;
+}
+
+/* Horizontal Scroll Tab Bar for Student Activities */
+.activities-tab-nav {
+  display: flex !important;
+  overflow-x: auto !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  padding: 4px 2px 12px !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+}
+
+.activities-tab-nav::-webkit-scrollbar {
+  display: none !important;
+}
+
+.activities-tab-btn {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Tablet Breakpoint (<= 1200px) */
 @media (max-width: 1200px) {
+  .container {
+    max-width: 100%;
+    padding: 0 20px;
+  }
   .nav-links {
     gap: 0;
   }
@@ -3550,51 +3584,302 @@ img {
     font-size: 0.875rem;
   }
   .mega-menu {
-    min-width: 480px;
+    min-width: 460px;
   }
 }
 
+/* Tablet Portrait & Small Laptops (<= 1024px) */
 @media (max-width: 1024px) {
-  .nav-links, .nav-search-btn {
-    display: none;
+  .nav-links,
+  .nav-search-btn {
+    display: none !important;
   }
   .mobile-toggle {
-    display: block;
+    display: block !important;
   }
   .hero-grid {
-    grid-template-columns: 1fr;
-    gap: 40px;
+    grid-template-columns: 1fr !important;
+    gap: 36px;
   }
-  .tutors-grid, .services-grid, .steps-wrapper, .reviews-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .tutors-grid,
+  .services-grid,
+  .steps-wrapper,
+  .reviews-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px;
   }
-  .guarantee-grid, .tracker-result {
-    grid-template-columns: 1fr;
+  .guarantee-grid,
+  .tracker-result {
+    grid-template-columns: 1fr !important;
   }
   .footer-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 32px;
+  }
+  .institutional-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
   }
 }
 
+/* Phablets & Large Phones (<= 768px) */
 @media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  /* Urgent Bar Responsive */
+  .urgent-banner {
+    padding: 6px 0;
+    font-size: 0.75rem;
+  }
+  .urgent-banner .container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+  .desk-status-pill {
+    display: none;
+  }
+  .urgent-right {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Header & Logo */
+  .nav-container {
+    height: 60px;
+  }
+  .logo-title {
+    font-size: 1.15rem;
+  }
+  .logo-sub {
+    font-size: 0.58rem;
+  }
+
+  /* Hero Section */
+  .hero-section {
+    padding: 40px 0 60px;
+  }
   .hero-title {
-    font-size: 2.35rem;
+    font-size: clamp(2rem, 6.5vw, 2.75rem);
+    line-height: 1.18;
+    margin-bottom: 16px;
   }
-  .tutors-grid, .services-grid, .steps-wrapper, .reviews-grid {
-    grid-template-columns: 1fr;
+  .hero-subtitle {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin-bottom: 22px;
   }
-  .footer-grid {
-    grid-template-columns: 1fr;
+  .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .hero-ctas .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 18px;
+  }
+  .hero-trust-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-top: 18px;
+  }
+
+  /* Calculator Card */
+  .calc-card {
+    padding: 24px 18px;
+    border-radius: var(--radius-lg);
+  }
+  .calc-header h3 {
+    font-size: 1.2rem;
+  }
+
+  /* Grids to Single Column */
+  .tutors-grid,
+  .services-grid,
+  .steps-wrapper,
+  .reviews-grid,
+  .footer-grid,
+  .institutional-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px;
+  }
+
+  .tutor-card {
+    padding: 22px 18px;
   }
   .tutor-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+  .tutor-actions .btn {
+    width: 100%;
+  }
+
+  /* Live Order Tracker */
+  .tracker-box {
+    padding: 22px 16px;
+    border-radius: var(--radius-lg);
+  }
+  .tracker-search-bar {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .tracker-search-bar .btn {
+    width: 100%;
+  }
+  .tracker-result {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    padding-top: 20px;
+  }
+  .chat-simulator-box {
+    height: 350px;
+  }
+
+  /* Form Grids & Modal Inputs on Mobile */
+  .modal-body form div[style*="grid-template-columns: 1fr 1fr"],
+  .modal-body form div[style*="grid-template-columns: repeat(2, 1fr)"],
+  .modal-body form div[style*="grid-template-columns: repeat(3, 1fr)"],
+  .grid-2-col,
+  .grid-3-col {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Modals Bottom-Sheet on Mobile */
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-end;
+  }
+  .modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh;
+    border-radius: 24px 24px 0 0;
+    padding: 22px 16px;
+  }
+  .admin-modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    padding: 18px 12px;
+  }
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+  .student-dash-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+  }
+  .student-dash-stats {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Floating Buttons */
+  .floating-whatsapp-btn {
+    bottom: 18px;
+    right: 16px;
+    left: auto;
+    padding: 10px 15px;
+    font-size: 0.8125rem;
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+  }
+  .floating-support-btn {
+    bottom: 18px;
+    right: 84px;
+  }
+  .live-activity-ticker {
+    display: none !important;
   }
   .collapsible-sidebar {
     width: 100%;
+    max-width: 100%;
   }
-  .floating-whatsapp-btn {
-    bottom: 85px;
-    left: 20px;
-    padding: 10px 16px;
+
+  .toast {
+    min-width: auto;
+    max-width: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
+    bottom: 80px;
+  }
+}
+
+/* Compact Mobile Screens (<= 480px) */
+@media (max-width: 480px) {
+  .logo-sub {
+    display: none !important;
+  }
+  .role-toggle-btn span {
+    display: none;
+  }
+  .role-toggle-btn {
+    padding: 6px 10px;
+  }
+  .hero-title {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+  .hero-tag {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+  .calc-card {
+    padding: 18px 14px;
+  }
+  .calc-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .inst-item {
+    gap: 10px;
+  }
+  .inst-icon-wrap {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+  .review-card {
+    padding: 18px 14px;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  .admin-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-card {
+    padding: 18px 14px;
+  }
+}
+
+/* Ultra-Compact & Foldables (<= 360px) */
+@media (max-width: 360px) {
+  .nav-container {
+    padding: 0 8px;
+  }
+  .logo-title {
+    font-size: 1rem;
+  }
+  .btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  .hero-title {
+    font-size: 1.6rem;
   }
 }

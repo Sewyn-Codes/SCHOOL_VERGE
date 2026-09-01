@@ -339,6 +339,16 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
+    def end_headers(self):
+        clean_path = self.path.split("?")[0]
+        if clean_path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        elif clean_path.endswith(".html") or clean_path in ["", "/"]:
+            self.send_header("Cache-Control", "no-cache")
+        elif any(clean_path.endswith(ext) for ext in [".css", ".js", ".jpg", ".png", ".webp", ".svg", ".woff2", ".ttf"]):
+            self.send_header("Cache-Control", "public, max-age=86400")
+        super().end_headers()
+
     def do_HEAD(self):
         if self.path in ["/health", "/healthz", "/", "/index.html"]:
             self.send_response(200)

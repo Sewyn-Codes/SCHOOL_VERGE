@@ -71,10 +71,15 @@
   }
   </script>
 
+  <!-- Performance Preconnect & Resource Hints -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <!-- Custom Enhanced Stylesheet -->
-  <link rel="stylesheet" href="styles/main.css?v=9" />
+  <!-- Custom Responsive & Performance-Optimized Stylesheet -->
+  <link rel="stylesheet" href="styles/main.css?v=10" />
 </head>
 <body>
 
@@ -149,27 +154,9 @@
             </div>
             
             <div class="mega-tutors-grid">
-              <!-- Claire Bennett Preview -->
-              <div class="mega-tutor-card">
-                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80" alt="Claire Bennett" class="mega-tutor-avatar" />
-                <h4 class="mega-tutor-name">Claire Bennett</h4>
-                <p class="mega-tutor-subj">Law • IT • History • English</p>
-                <div style="display: flex; gap: 4px; width: 100%; margin-bottom: 6px;">
-                  <a href="https://wa.me/16677757597?text=Hi%20ScholarVerge%2C%20I%20want%20to%20work%20with%20Claire%20Bennett" target="_blank" class="mega-tutor-btn" style="background: rgba(37, 211, 102, 0.12); color: #047857;" title="WhatsApp +1 667 775 7597">
-                    <i class="fa-brands fa-whatsapp"></i> WA
-                  </a>
-                  <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Request%20for%20Claire%20Bennett" class="mega-tutor-btn" style="background: rgba(37, 99, 235, 0.08); color: #1d4ed8;" title="Email scholarverge@gmail.com">
-                    <i class="fa-solid fa-envelope"></i> Mail
-                  </a>
-                </div>
-                <button class="mega-tutor-btn" onclick="openOrderModalWithTutor('Claire Bennett')">
-                  <i class="fa-solid fa-pen-nib"></i> Write Paper
-                </button>
-              </div>
-
               <!-- Oliver Harrison Preview -->
               <div class="mega-tutor-card">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="Oliver Harrison" class="mega-tutor-avatar" />
+                <img src="assets/images/tutors/oliver-harrison.jpg" alt="Oliver Harrison" class="mega-tutor-avatar" loading="lazy" decoding="async" />
                 <h4 class="mega-tutor-name">Oliver Harrison</h4>
                 <p class="mega-tutor-subj">Business • Econ • Finance • Math</p>
                 <div style="display: flex; gap: 4px; width: 100%; margin-bottom: 6px;">
@@ -185,9 +172,27 @@
                 </button>
               </div>
 
+              <!-- Claire Bennett Preview -->
+              <div class="mega-tutor-card">
+                <img src="assets/images/tutors/claire-bennett.jpg" alt="Claire Bennett" class="mega-tutor-avatar" loading="lazy" decoding="async" />
+                <h4 class="mega-tutor-name">Claire Bennett</h4>
+                <p class="mega-tutor-subj">Law • IT • History • English</p>
+                <div style="display: flex; gap: 4px; width: 100%; margin-bottom: 6px;">
+                  <a href="https://wa.me/16677757597?text=Hi%20ScholarVerge%2C%20I%20want%20to%20work%20with%20Claire%20Bennett" target="_blank" class="mega-tutor-btn" style="background: rgba(37, 211, 102, 0.12); color: #047857;" title="WhatsApp +1 667 775 7597">
+                    <i class="fa-brands fa-whatsapp"></i> WA
+                  </a>
+                  <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Request%20for%20Claire%20Bennett" class="mega-tutor-btn" style="background: rgba(37, 99, 235, 0.08); color: #1d4ed8;" title="Email scholarverge@gmail.com">
+                    <i class="fa-solid fa-envelope"></i> Mail
+                  </a>
+                </div>
+                <button class="mega-tutor-btn" onclick="openOrderModalWithTutor('Claire Bennett')">
+                  <i class="fa-solid fa-pen-nib"></i> Write Paper
+                </button>
+              </div>
+
               <!-- Sophia Mitchell Preview -->
               <div class="mega-tutor-card">
-                <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80" alt="Sophia Mitchell" class="mega-tutor-avatar" />
+                <img src="assets/images/tutors/sophia-mitchell.jpg" alt="Sophia Mitchell" class="mega-tutor-avatar" loading="lazy" decoding="async" />
                 <h4 class="mega-tutor-name">Sophia Mitchell</h4>
                 <p class="mega-tutor-subj">Nursing • Healthcare • Psych</p>
                 <div style="display: flex; gap: 4px; width: 100%; margin-bottom: 6px;">
@@ -310,7 +315,7 @@
         <div id="nav-student-actions" style="display: none;">
           <div class="nav-user-wrap">
             <div class="nav-user-chip" id="nav-user-toggle-btn" onclick="toggleUserNavDropdown()">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Student" class="nav-user-avatar" id="nav-student-avatar" />
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Student" class="nav-user-avatar" id="nav-student-avatar" loading="lazy" decoding="async" />
               <div class="nav-user-details">
                 <span class="nav-user-name" id="nav-student-name">Jordan Miller</span>
                 <span class="nav-user-uni" id="nav-student-uni">Columbia Univ</span>
@@ -400,7 +405,7 @@
       </div>
 
       <!-- Mobile Burger Toggle Button -->
-      <button class="mobile-toggle" aria-label="Toggle Navigation">
+      <button class="mobile-toggle" aria-label="Toggle Navigation" onclick="openSidebar()">
         <i class="fa-solid fa-bars"></i>
       </button>
     </div>
@@ -512,7 +517,7 @@
           <!-- 1. Oliver Harrison -->
           <div class="sidebar-tutor-row">
             <div class="sidebar-tutor-meta" onclick="openOrderModalWithTutor('Oliver Harrison');" style="cursor: pointer; flex: 1;">
-              <img src="assets/images/tutors/oliver-harrison.jpg" alt="Oliver Harrison" class="sidebar-tutor-avatar" />
+              <img src="assets/images/tutors/oliver-harrison.jpg" alt="Oliver Harrison" class="sidebar-tutor-avatar" loading="lazy" decoding="async" />
               <div>
                 <strong style="font-size: 0.85rem; color: var(--primary); display: block;">Oliver Harrison</strong>
                 <span style="font-size: 0.72rem; color: #64748b;">Econometrics & Math • Ph.D.</span>
@@ -531,7 +536,7 @@
           <!-- 2. Claire Bennett -->
           <div class="sidebar-tutor-row">
             <div class="sidebar-tutor-meta" onclick="openOrderModalWithTutor('Claire Bennett');" style="cursor: pointer; flex: 1;">
-              <img src="assets/images/tutors/claire-bennett.jpg" alt="Claire Bennett" class="sidebar-tutor-avatar" />
+              <img src="assets/images/tutors/claire-bennett.jpg" alt="Claire Bennett" class="sidebar-tutor-avatar" loading="lazy" decoding="async" />
               <div>
                 <strong style="font-size: 0.85rem; color: var(--primary); display: block;">Claire Bennett</strong>
                 <span style="font-size: 0.72rem; color: #64748b;">Law, English & IT • Master's</span>
@@ -550,7 +555,7 @@
           <!-- 3. Sophia Mitchell -->
           <div class="sidebar-tutor-row">
             <div class="sidebar-tutor-meta" onclick="openOrderModalWithTutor('Sophia Mitchell');" style="cursor: pointer; flex: 1;">
-              <img src="assets/images/tutors/sophia-mitchell.jpg" alt="Sophia Mitchell" class="sidebar-tutor-avatar" />
+              <img src="assets/images/tutors/sophia-mitchell.jpg" alt="Sophia Mitchell" class="sidebar-tutor-avatar" loading="lazy" decoding="async" />
               <div>
                 <strong style="font-size: 0.85rem; color: var(--primary); display: block;">Sophia Mitchell</strong>
                 <span style="font-size: 0.72rem; color: #64748b;">Nursing & Psych • DNP</span>
@@ -1674,7 +1679,7 @@
         <!-- Student Hero Banner -->
         <div class="student-dash-hero">
           <div class="student-meta-wrap">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Student" class="student-dash-avatar" id="dash-stu-avatar" />
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Student" class="student-dash-avatar" id="dash-stu-avatar" loading="lazy" decoding="async" />
             <div>
               <h3 class="student-dash-name" id="dash-stu-name">Jordan Miller</h3>
               <p class="student-dash-sub" id="dash-stu-uni">Columbia University • Undergraduate</p>
