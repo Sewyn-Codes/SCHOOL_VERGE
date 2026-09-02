@@ -1476,126 +1476,105 @@ img {
   text-transform: uppercase;
 }
 
-/* Tutor Direct Contact Reach - Distinct Separated Boxes */
-.tutor-contact-separate-grid {
+/* Tutor Direct Contact Reach - Interactive Icon Action Buttons */
+.tutor-contact-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 20px;
 }
 
-.tutor-separate-card {
-  border-radius: var(--radius-md);
-  padding: 12px;
+.tutor-contact-btn {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: var(--transition);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
   text-decoration: none;
+  transition: var(--transition);
   border: 1.5px solid transparent;
+  cursor: pointer;
+  user-select: none;
 }
 
-.tutor-separate-card.wa {
+.tutor-contact-btn.wa {
   background: #f0fdf4;
   border-color: #bbf7d0;
   color: #065f46;
 }
 
-.tutor-separate-card.wa:hover {
+.tutor-contact-btn.wa:hover {
   background: #dcfce7;
   border-color: #22c55e;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.2);
 }
 
-.tutor-separate-card.mail {
+.tutor-contact-btn.mail {
   background: #eff6ff;
   border-color: #bfdbfe;
   color: #1e40af;
 }
 
-.tutor-separate-card.mail:hover {
+.tutor-contact-btn.mail:hover {
   background: #dbeafe;
   border-color: #3b82f6;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.18);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.2);
 }
 
-.separate-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.separate-card-head i {
-  font-size: 1.25rem;
-}
-
-.tutor-separate-card.wa .separate-card-head i {
-  color: #16a34a;
-}
-
-.tutor-separate-card.mail .separate-card-head i {
-  color: #2563eb;
-}
-
-.separate-status-badge {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  text-transform: uppercase;
-}
-
-.tutor-separate-card.wa .separate-status-badge {
-  background: #bbf7d0;
-  color: #15803d;
-}
-
-.tutor-separate-card.mail .separate-status-badge {
-  background: #bfdbfe;
-  color: #1d4ed8;
-}
-
-.separate-card-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.8;
-  margin-bottom: 2px;
-}
-
-.separate-card-val {
-  font-size: 0.825rem;
-  font-weight: 800;
-  display: block;
-  word-break: break-all;
-  line-height: 1.2;
-}
-
-.separate-card-btn {
-  margin-top: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
-  text-align: center;
+.tutor-contact-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tutor-contact-btn:hover .tutor-contact-icon {
+  transform: scale(1.08);
+}
+
+.tutor-contact-btn.wa .tutor-contact-icon {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+}
+
+.tutor-contact-btn.mail .tutor-contact-icon {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.tutor-contact-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tutor-contact-title {
+  font-size: 0.825rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.tutor-contact-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
   gap: 4px;
 }
 
-.tutor-separate-card.wa .separate-card-btn {
-  background: #16a34a;
-  color: #ffffff;
-}
-
-.tutor-separate-card.mail .separate-card-btn {
-  background: #2563eb;
-  color: #ffffff;
+.tutor-contact-btn.wa .tutor-contact-sub i {
+  color: #16a34a;
+  font-size: 0.45rem;
 }
 
 .tutor-contact-strip {
@@ -3803,6 +3782,7 @@ img {
   .tutor-actions .btn {
     width: 100% !important;
   }
+  .tutor-contact-actions,
   .tutor-contact-separate-grid {
     grid-template-columns: 1fr !important;
     gap: 8px !important;

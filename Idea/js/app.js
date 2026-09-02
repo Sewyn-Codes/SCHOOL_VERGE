@@ -1842,25 +1842,25 @@ function renderTutors() {
             </div>
           </div>
 
-          <div class="tutor-contact-separate-grid">
-            <a href="https://wa.me/16677757597?text=Hello%20ScholarVerge!%20I%20would%20like%20to%20work%20with%20${encodeURIComponent(tutor.name)}%20on%20my%20assignment." target="_blank" class="tutor-separate-card wa" title="Chat with ${tutor.name} on WhatsApp">
-              <div class="separate-card-head">
+          <div class="tutor-contact-actions">
+            <a href="https://wa.me/16677757597?text=Hello%20ScholarVerge!%20I%20would%20like%20to%20work%20with%20${encodeURIComponent(tutor.name)}%20on%20my%20assignment." target="_blank" class="tutor-contact-btn wa" title="Chat with ${tutor.name} on WhatsApp" aria-label="WhatsApp ${tutor.name}">
+              <div class="tutor-contact-icon">
                 <i class="fa-brands fa-whatsapp"></i>
-                <span class="separate-status-badge"><i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> Online</span>
               </div>
-              <div class="separate-card-title">WhatsApp Chat</div>
-              <span class="separate-card-val">+1 (667) 775-7597</span>
-              <div class="separate-card-btn"><i class="fa-brands fa-whatsapp"></i> Chat Now</div>
+              <div class="tutor-contact-details">
+                <span class="tutor-contact-title">WhatsApp</span>
+                <span class="tutor-contact-sub"><i class="fa-solid fa-circle"></i> Online</span>
+              </div>
             </a>
 
-            <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Inquiry%20for%20${encodeURIComponent(tutor.name)}" class="tutor-separate-card mail" title="Email assignment brief for ${tutor.name}">
-              <div class="separate-card-head">
+            <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Inquiry%20for%20${encodeURIComponent(tutor.name)}" class="tutor-contact-btn mail" title="Email assignment brief for ${tutor.name}" aria-label="Email ${tutor.name}">
+              <div class="tutor-contact-icon">
                 <i class="fa-solid fa-envelope"></i>
-                <span class="separate-status-badge">Direct Mail</span>
               </div>
-              <div class="separate-card-title">Official Email</div>
-              <span class="separate-card-val">scholarverge@gmail.com</span>
-              <div class="separate-card-btn"><i class="fa-solid fa-paper-plane"></i> Email Brief</div>
+              <div class="tutor-contact-details">
+                <span class="tutor-contact-title">Email</span>
+                <span class="tutor-contact-sub">Direct Inquiry</span>
+              </div>
             </a>
           </div>
 
