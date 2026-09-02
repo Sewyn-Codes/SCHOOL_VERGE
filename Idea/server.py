@@ -1105,7 +1105,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 pages = int(data.get("pages", 3))
                 citation = data.get("citation_style", "APA 7th")
                 deadline = data.get("deadline", "3 Days")
-                price_amount = float(data.get("price_amount", pages * 15.00))
+                price_amount = float(data.get("price_amount", pages * 10.00))
                 order_num = f"SV-{secrets.randbelow(90000) + 10000}"
 
                 cursor.execute("SELECT student_id FROM students WHERE email = ?", (student_email,))
@@ -1228,7 +1228,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 citation = data.get("citation_style", "APA 7th")
                 deadline = data.get("deadline", "In 3 Days")
                 pages = int(data.get("pages", 4))
-                price_amount = float(data.get("price_amount", pages * 15.00))
+                price_amount = float(data.get("price_amount", pages * 10.00))
 
                 # Generate unique tracking number every time
                 tracking_number = f"SV-{secrets.randbelow(90000) + 10000}"
