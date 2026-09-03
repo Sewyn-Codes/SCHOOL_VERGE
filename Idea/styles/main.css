@@ -3758,6 +3758,7 @@ img {
   }
 
   /* Grids to Single Column */
+  .assignment-details-grid,
   .tutors-grid,
   .services-grid,
   .steps-wrapper,

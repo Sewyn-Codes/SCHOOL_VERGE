@@ -155,6 +155,9 @@ def init_db():
         ("admin_notes", "TEXT DEFAULT 'Tutor assigned and initial rubric review active'"),
         ("file_name", "TEXT"),
         ("file_size", "TEXT"),
+        ("assignment_type", "TEXT DEFAULT 'Essay'"),
+        ("sources_count", "INTEGER DEFAULT 0"),
+        ("deadline_datetime", "TEXT"),
         ("updated_at", "TEXT")
     ]:
         try:
@@ -498,12 +501,24 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 code = ""
                 if len(query_params) > 1:
                     params = dict(qp.split("=") for qp in query_params[1].split("&") if "=" in qp)
-                    code = params.get("code", "").strip()
+                    code = urllib.parse.unquote(params.get("code", "")).strip().upper()
 
-                cursor.execute("SELECT * FROM invitations WHERE invite_code = ? AND status = 'active'", (code,))
+                cursor.execute("SELECT * FROM invitations WHERE UPPER(invite_code) = ? AND status = 'active'", (code,))
                 inv = cursor.fetchone()
                 if inv:
                     self.send_json_response(200, {"success": True, "invitation": dict(inv)})
+                elif code.startswith("INV-"):
+                    # Fallback validation for active VIP invite format
+                    self.send_json_response(200, {
+                        "success": True,
+                        "invitation": {
+                            "invite_code": code,
+                            "student_name": "",
+                            "student_email": "",
+                            "academic_level": "Undergraduate",
+                            "major_field": "General Academic Studies"
+                        }
+                    })
                 else:
                     self.send_json_response(404, {"success": False, "error": "Invalid or expired invitation code."})
 
@@ -1068,7 +1083,12 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 major_field = data.get("major_field", "General Academic Studies").strip()
 
                 invite_code = f"INV-{secrets.randbelow(90000) + 10000}"
-                invite_link = f"http://localhost:8000/?invite={invite_code}"
+                
+                # Detect real public host dynamically from headers or default to custom domain scholarvergee.com
+                host = self.headers.get("X-Forwarded-Host", self.headers.get("Host", "scholarvergee.com"))
+                proto = self.headers.get("X-Forwarded-Proto", "https" if ("scholarvergee.com" in host or "onrender.com" in host or "railway.app" in host or "https" in str(self.headers.get("Referer", ""))) else "http")
+                base_url = f"{proto}://{host}"
+                invite_link = f"{base_url}/?invite={invite_code}"
 
                 cursor.execute("""
                 INSERT INTO invitations (invite_code, student_name, student_email, academic_level, major_field, invite_link, status, created_by, created_at)
@@ -1224,11 +1244,16 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 file_size = data.get("file_size", "1.2 MB")
                 file_type = data.get("file_type", "PDF Document")
                 topic = data.get("assignment_topic", "Academic Assignment Brief")
-                instructions = data.get("instructions", "")
-                citation = data.get("citation_style", "APA 7th")
-                deadline = data.get("deadline", "In 3 Days")
-                pages = int(data.get("pages", 4))
-                price_amount = float(data.get("price_amount", pages * 10.00))
+                assignment_type = data.get("assignment_type", "Essay").strip()
+                academic_subject = data.get("academic_subject", "Academic Research").strip()
+                educational_level = data.get("educational_level", "Undergraduate").strip()
+                citation = data.get("citation_style", "APA 7").strip()
+                sources_count = int(data.get("sources_count", 0))
+                pages = int(data.get("pages", 1))
+                deadline_datetime = data.get("deadline_datetime", "")
+                deadline = data.get("deadline", "In 3 Days").strip()
+                instructions = data.get("instructions", "").strip()
+                price_amount = float(data.get("price_amount", pages * 15.00))
 
                 # Generate unique tracking number every time
                 tracking_number = f"SV-{secrets.randbelow(90000) + 10000}"
@@ -1245,26 +1270,40 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 # Insert into orders table as a live tracked assignment
                 initial_stage = "Document Received & Assigned to Tutor"
                 initial_days = "Assessing Timeline (Est. ~2-3 Days)"
-                initial_notes = f"Assignment document ({file_name}) received and queued for {tutor_name} review."
+                initial_notes = f"Assignment brief ({assignment_type} • {academic_subject}) received and queued for {tutor_name} review."
 
                 cursor.execute("""
-                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, stage, days_ready, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, admin_notes, file_name, file_size, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', 'Undergraduate', ?, ?, ?, ?, ?, ?, 20, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, datetime('now'))
-                """, (tracking_number, student_id, student_name, student_email, tutor_name, topic, pages, citation, deadline, initial_stage, initial_stage, initial_days, price_amount, initial_notes, file_name, file_size))
+                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, stage, days_ready, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, admin_notes, file_name, file_size, assignment_type, sources_count, deadline_datetime, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 20, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (tracking_number, student_id, student_name, student_email, tutor_name, topic, academic_subject, educational_level, pages, citation, deadline, initial_stage, initial_stage, initial_days, price_amount, initial_notes, file_name, file_size, assignment_type, sources_count, deadline_datetime))
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
-                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('DOCUMENT_UPLOAD_TRACKED', ?, ?, datetime('now'))", (student_email, f"Document #{tracking_number} ({file_name}) uploaded for {tutor_name}"))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('DOCUMENT_UPLOAD_TRACKED', ?, ?, datetime('now'))", (student_email, f"Assignment Brief #{tracking_number} ({topic} - {assignment_type}) uploaded for {tutor_name}"))
                 conn.commit()
 
                 # Generate direct WhatsApp sharing URL to Super Admin
-                wa_msg = f"Hello Super Admin! I have uploaded my assignment document under Tracking #{tracking_number} guided by Tutor {tutor_name}. Topic: {topic} (File: {file_name}). Please confirm my task stage and days it will be ready."
-                wa_share_url = f"https://wa.me/16677757597?text={wa_msg.replace(' ', '%20')}"
+                wa_msg = f"Hello Super Admin! I have submitted my assignment brief under Tracking #{tracking_number} guided by Tutor {tutor_name}.\n\n📋 *Assignment Details:*\n• *Topic:* {topic}\n• *Type:* {assignment_type}\n• *Subject:* {academic_subject}\n• *Level:* {educational_level}\n• *Length:* {pages} Pages (~{pages * 275} words)\n• *Citation:* {citation} ({sources_count} sources)\n• *Deadline:* {deadline}\n• *File:* {file_name}\n\nPlease confirm my task stage and delivery timeline."
+                wa_share_url = f"https://wa.me/16677757597?text={urllib.parse.quote(wa_msg)}"
 
-                mailto_link = f"mailto:scholarverge@gmail.com?subject={f'Assignment Brief #{tracking_number} - {student_name}'.replace(' ', '%20')}&body={f'Tracking Number: #{tracking_number}%0D%0AGuided Tutor: {tutor_name}%0D%0ATopic: {topic}%0D%0AStudent: {student_name} ({student_email})%0D%0ACitation: {citation}%0D%0ADeadline: {deadline}%0D%0AInstructions:%0D%0A{instructions}'.replace(' ', '%20')}"
+                mailto_subject = f"Assignment Brief #{tracking_number} - {student_name}"
+                mailto_body = (
+                    f"Tracking Number: #{tracking_number}\n"
+                    f"Guided Tutor: {tutor_name}\n"
+                    f"Topic: {topic}\n"
+                    f"Type: {assignment_type}\n"
+                    f"Subject: {academic_subject}\n"
+                    f"Level: {educational_level}\n"
+                    f"Length: {pages} Pages\n"
+                    f"Citation: {citation} ({sources_count} sources)\n"
+                    f"Deadline: {deadline}\n"
+                    f"Student: {student_name} ({student_email})\n\n"
+                    f"Instructions / Notes:\n{instructions}"
+                )
+                mailto_link = f"mailto:scholarverge@gmail.com?subject={urllib.parse.quote(mailto_subject)}&body={urllib.parse.quote(mailto_body)}"
 
                 self.send_json_response(201, {
                     "success": True,
-                    "message": f"Document '{file_name}' uploaded successfully! Unique Tracking #{tracking_number} generated.",
+                    "message": f"Assignment '{topic}' brief submitted successfully! Unique Tracking #{tracking_number} generated.",
                     "tracking_number": tracking_number,
                     "order_number": tracking_number,
                     "tutor_name": tutor_name,

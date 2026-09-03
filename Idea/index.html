@@ -79,7 +79,7 @@
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Custom Responsive & Performance-Optimized Stylesheet -->
-  <link rel="stylesheet" href="styles/main.css?v=11" />
+  <link rel="stylesheet" href="styles/main.css?v=12" />
 </head>
 <body>
 
@@ -1796,7 +1796,7 @@
             <i class="fa-solid fa-calendar-check"></i> 1-on-1 Booking
           </button>
           <button type="button" class="auth-tab-pill" id="act-tab-upload" onclick="switchActivityTab('upload')">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Email Doc Dispatch
+            <i class="fa-solid fa-file-signature"></i> Assignment Details
           </button>
           <button type="button" class="auth-tab-pill" id="act-tab-review" onclick="switchActivityTab('review')">
             <i class="fa-solid fa-star"></i> Write Review
@@ -1878,130 +1878,164 @@
           <div id="booking-confirmation-card" style="display: none; margin-top: 18px;"></div>
         </div>
 
-        <!-- 2. Tab: Document & Rubric Direct Dispatch to Academic Team -->
+        <!-- 2. Tab: Assignment Details & Document Submission -->
         <div id="act-pane-upload" style="display: none;">
-          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start;">
-            <i class="fa-solid fa-envelope-circle-check" style="color: #2563eb; font-size: 1.3rem; margin-top: 2px;"></i>
-            <div>
-              <strong style="color: #1e40af; font-size: 0.875rem; display: block;">Direct Assignment Submission to Academic Team</strong>
-              <span style="color: #1e3a8a; font-size: 0.8rem;">Attach assignment rubrics, reading materials, or datasets. They are instantly registered and sent to the senior academic specialist team.</span>
-            </div>
-          </div>
-
-          <form onsubmit="handleDocumentEmailDispatch(event)">
-            <!-- Real HTML5 File Dropzone -->
-            <div class="calc-form-group">
-              <label class="calc-label">Select Assignment File(s) (PDF, DOCX, XLSX, TXT, PPTX)</label>
-              <div style="border: 2px dashed #cbd5e1; border-radius: 14px; padding: 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('real-file-picker').click()">
-                <input type="file" id="real-file-picker" style="display: none;" onchange="handleRealFileChange(event)" />
-                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 8px;"></i>
-                <p style="font-size: 0.9rem; color: #334155; font-weight: 700; margin-bottom: 4px;" id="file-dropzone-label">
-                  Click to browse files or drag & drop here
-                </p>
-                <span style="font-size: 0.75rem; color: #94a3b8;" id="file-dropzone-sub">Supports up to 50MB (PDF, DOCX, XLSX, PPTX, TXT)</span>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">
+              <div>
+                <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--primary); margin: 0; letter-spacing: -0.01em;">Assignment Details</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin: 4px 0 0;">Provide your assignment parameters for human specialist tutoring and instant tracking code generation.</p>
               </div>
+              <span class="badge badge-trust" style="font-size: 0.75rem;"><i class="fa-solid fa-shield-check"></i> Turnitin 0% AI Guaranteed</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px;">
-              <div class="calc-form-group">
-                <label class="calc-label">Preferred Specialist Tutor</label>
+            <form onsubmit="handleDocumentEmailDispatch(event)">
+              <!-- 2-Column Responsive Grid matching user design snapshot -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px;" class="assignment-details-grid">
+                <!-- Left Column -->
+                <div>
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Topic / Title</label>
+                    <input type="text" id="upload-topic" class="calc-input" placeholder="e.g. The Impact of Renewable Energy Policies on Economic Growth" required />
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Academic Subject</label>
+                    <select id="upload-subject" class="calc-select" required>
+                      <option value="" disabled selected>Select subject...</option>
+                      <option value="Nursing & Healthcare">Nursing & Healthcare</option>
+                      <option value="Business & Management">Business & Management</option>
+                      <option value="Economics & Finance">Economics & Finance</option>
+                      <option value="Law & Legal Studies">Law & Legal Studies</option>
+                      <option value="Computer Science & IT">Computer Science & IT</option>
+                      <option value="English Literature & Composition">English Literature & Composition</option>
+                      <option value="History & Political Science">History & Political Science</option>
+                      <option value="Psychology & Sociology">Psychology & Sociology</option>
+                      <option value="Mathematics & Statistics">Mathematics & Statistics</option>
+                      <option value="Biological & Biomedical Sciences">Biological & Biomedical Sciences</option>
+                      <option value="Engineering & Applied Sciences">Engineering & Applied Sciences</option>
+                      <option value="Education & Pedagogy">Education & Pedagogy</option>
+                      <option value="Philosophy & Ethics">Philosophy & Ethics</option>
+                      <option value="Other Subject Area">Other Subject Area</option>
+                    </select>
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Citation Style</label>
+                    <select id="upload-citation" class="calc-select">
+                      <option value="APA 7" selected>APA 7</option>
+                      <option value="MLA 9">MLA 9</option>
+                      <option value="Harvard">Harvard</option>
+                      <option value="Chicago / Turabian">Chicago / Turabian</option>
+                      <option value="OSCOLA">OSCOLA</option>
+                      <option value="IEEE">IEEE</option>
+                      <option value="Vancouver">Vancouver</option>
+                      <option value="Other Style">Other Style</option>
+                    </select>
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Number of Pages / Units</label>
+                    <input type="number" id="upload-pages" class="calc-input" value="1" min="1" max="200" oninput="updateBriefPricePreview()" />
+                    <span id="brief-word-count-sub" style="font-size: 0.72rem; color: #64748b; margin-top: 3px; display: block;">~275 words (Double Spaced)</span>
+                  </div>
+                </div>
+
+                <!-- Right Column -->
+                <div>
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Assignment Type</label>
+                    <select id="upload-assignment-type" class="calc-select">
+                      <option value="Essay" selected>Essay</option>
+                      <option value="Research Paper">Research Paper</option>
+                      <option value="Dissertation / Thesis">Dissertation / Thesis</option>
+                      <option value="Case Study">Case Study</option>
+                      <option value="Literature Review">Literature Review</option>
+                      <option value="Coursework">Coursework</option>
+                      <option value="Term Paper">Term Paper</option>
+                      <option value="Report / Memorandum">Report / Memorandum</option>
+                      <option value="Annotated Bibliography">Annotated Bibliography</option>
+                      <option value="Care Plan / PICOT">Care Plan / PICOT</option>
+                      <option value="Other Academic Writing">Other Academic Writing</option>
+                    </select>
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Educational Level</label>
+                    <select id="upload-level" class="calc-select" onchange="updateBriefPricePreview()">
+                      <option value="Undergraduate" selected>Undergraduate</option>
+                      <option value="High School">High School</option>
+                      <option value="College">College</option>
+                      <option value="Master's">Master's</option>
+                      <option value="Doctoral / Ph.D.">Doctoral / Ph.D.</option>
+                    </select>
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Number of Sources</label>
+                    <input type="number" id="upload-sources-count" class="calc-input" value="0" min="0" max="100" />
+                  </div>
+
+                  <div class="calc-form-group" style="margin-bottom: 14px;">
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Deadline Date & Time</label>
+                    <input type="datetime-local" id="upload-deadline-datetime" class="calc-input" required onchange="syncUploadDeadlineString()" />
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 0.75rem; color: #475569;">
+                      <span style="color: #dc2626; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-bolt"></i> Fast Turnaround:</span>
+                      <span>We accept urgent deadlines starting from <strong>2 hours and above</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <input type="hidden" id="upload-deadline" value="Ready in 3 Days" />
+
+              <!-- Assigned Guiding Tutor -->
+              <div class="calc-form-group" style="margin-top: 6px;">
+                <label class="calc-label" style="font-weight: 600; color: #334155;">Guiding Specialist Tutor</label>
                 <select id="upload-tutor" class="calc-select">
-                  <option value="Sophia Mitchell">Sophia Mitchell (Nursing, Healthcare & Psych)</option>
-                  <option value="Oliver Harrison">Oliver Harrison (Economics, Finance, Math & Stats)</option>
-                  <option value="Claire Bennett">Claire Bennett (Law, English, IT & History)</option>
+                  <option value="Sophia Mitchell">Sophia Mitchell (DNP • Nursing, Healthcare & Psychology)</option>
+                  <option value="Oliver Harrison">Oliver Harrison (Ph.D. • Economics, Finance, Math & Business)</option>
+                  <option value="Claire Bennett">Claire Bennett (Master's • Law, IT, English & History)</option>
                   <option value="Senior Academic Specialist">Auto-Match Senior Specialist</option>
                 </select>
               </div>
-              <div class="calc-form-group">
-                <label class="calc-label">Assignment Topic / Course Title</label>
-                <input type="text" id="upload-topic" class="calc-input" placeholder="e.g. NURS-420: Systematic Evidence-Based Review" required />
-              </div>
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 1fr; gap: 12px;">
+              <!-- Real HTML5 File Dropzone -->
               <div class="calc-form-group">
-                <label class="calc-label">Citation & Referencing Style</label>
-                <select id="upload-citation" class="calc-select">
-                  <option value="APA 7th Edition">APA 7th Edition</option>
-                  <option value="MLA 9th Edition">MLA 9th Edition</option>
-                  <option value="Harvard Style">Harvard Referencing</option>
-                  <option value="Chicago 17th / Turabian">Chicago / Turabian</option>
-                  <option value="OSCOLA Legal">OSCOLA (Legal)</option>
-                  <option value="IEEE">IEEE (Tech & Engineering)</option>
-                  <option value="Vancouver">Vancouver (Medical)</option>
-                  <option value="AMA 11th">AMA 11th Edition</option>
-                  <option value="Other / None">Other / No Citations</option>
-                </select>
-              </div>
-              <div class="calc-form-group">
-                <label class="calc-label">Min. Citations</label>
-                <input type="number" id="upload-sources-count" class="calc-input" value="5" min="0" max="100" />
-              </div>
-              <div class="calc-form-group">
-                <label class="calc-label">Page Count ($10/pg)</label>
-                <input type="number" id="upload-pages" class="calc-input" value="3" min="1" max="100" />
-              </div>
-            </div>
-
-            <!-- Deadline Specification: Days & Hours -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;">
-              <label class="calc-label" style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                <i class="fa-solid fa-hourglass-half" style="color: #2563eb;"></i> Specify Deadline (Days & Hours)
-              </label>
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <div>
-                  <label style="font-size: 0.72rem; color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">Days</label>
-                  <select id="upload-deadline-days" class="calc-select" onchange="syncUploadDeadlineString()">
-                    <option value="0">0 Days</option>
-                    <option value="1">1 Day</option>
-                    <option value="2">2 Days</option>
-                    <option value="3" selected>3 Days</option>
-                    <option value="5">5 Days</option>
-                    <option value="7">7 Days</option>
-                    <option value="14">14 Days</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size: 0.72rem; color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">Hours</label>
-                  <select id="upload-deadline-hours" class="calc-select" onchange="syncUploadDeadlineString()">
-                    <option value="0" selected>0 Hours</option>
-                    <option value="3">3 Hours</option>
-                    <option value="6">6 Hours</option>
-                    <option value="12">12 Hours</option>
-                    <option value="18">18 Hours</option>
-                    <option value="24">24 Hours</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size: 0.72rem; color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">Exact Date & Time</label>
-                  <input type="datetime-local" id="upload-deadline-datetime" class="calc-input" style="font-size: 0.78rem; padding: 7px 8px;" onchange="syncUploadDeadlineString()" />
+                <label class="calc-label" style="font-weight: 600; color: #334155;">Attach Assignment Brief, Rubrics or Materials (PDF, DOCX, XLSX, TXT)</label>
+                <div style="border: 2px dashed #cbd5e1; border-radius: 14px; padding: 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('real-file-picker').click()">
+                  <input type="file" id="real-file-picker" style="display: none;" onchange="handleRealFileChange(event)" />
+                  <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 8px;"></i>
+                  <p style="font-size: 0.9rem; color: #334155; font-weight: 700; margin-bottom: 4px;" id="file-dropzone-label">
+                    Click to browse files or drag & drop here
+                  </p>
+                  <span style="font-size: 0.75rem; color: #94a3b8;" id="file-dropzone-sub">Supports up to 50MB (PDF, DOCX, XLSX, PPTX, TXT)</span>
                 </div>
               </div>
-              <input type="hidden" id="upload-deadline" value="3 Days" />
-            </div>
 
-            <div class="calc-form-group">
-              <label class="calc-label">Academic Writing Style & Tone</label>
-              <select id="upload-writing-style" class="calc-select">
-                <option value="Standard Academic & Scholarly">Standard Academic & Scholarly Analysis</option>
-                <option value="Argumentative & Persuasive">Argumentative & Persuasive</option>
-                <option value="Critical Literature Synthesis">Critical Literature Synthesis (PRISMA)</option>
-                <option value="Clinical & Evidence-Based (EBP / PICOT)">Clinical & Evidence-Based (EBP / PICOT)</option>
-                <option value="Case Brief & Legal IRAC">Legal Analysis & Case Brief (IRAC / CREAC)</option>
-                <option value="Empirical & Statistical Modeling">Empirical & Statistical Modeling (R / SPSS)</option>
-                <option value="Reflective Academic Journal">Reflective Academic Journal</option>
-              </select>
-            </div>
+              <!-- Instructions / Notes -->
+              <div class="calc-form-group">
+                <label class="calc-label" style="font-weight: 600; color: #334155;">Additional Instructions & Rubric Guidelines</label>
+                <textarea id="upload-instructions" class="calc-input" rows="3" placeholder="Paste rubric guidelines, required scholarly databases (PubMed/Scopus/JSTOR), specific outline, or grading expectations..."></textarea>
+              </div>
 
-            <div class="calc-form-group">
-              <label class="calc-label">Professor Instructions, Grading Rubric Notes & Specific Guidelines</label>
-              <textarea id="upload-instructions" class="calc-input" rows="3" placeholder="Paste rubric guidelines, required scholarly databases (PubMed/Scopus/JSTOR), specific outline, or grading expectations..."></textarea>
-            </div>
+              <!-- Price & Quality Summary Box -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <span class="badge badge-verified" style="font-size: 0.785rem; margin-bottom: 4px;"><i class="fa-solid fa-shield-check"></i> Turnitin 0.0% AI Guarantee Free</span>
+                  <p style="margin: 0; font-size: 0.8rem; color: #475569;">100% Human Master's / Ph.D. Rigor • Live Progress Tracker</p>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 0.78rem; color: #64748b; display: block;">Estimated Total</span>
+                  <strong id="brief-price-total" style="font-size: 1.3rem; color: #2563eb;">$15.00</strong>
+                </div>
+              </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
-              <i class="fa-solid fa-paper-plane"></i> Dispatch Assignment to Academic Team
-            </button>
-          </form>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; border-radius: var(--radius-md);">
+                <i class="fa-solid fa-paper-plane"></i> Submit Assignment Brief & Generate Unique Tracking Code
+              </button>
+            </form>
+          </div>
 
           <div id="upload-confirmation-card" style="display: none; margin-top: 18px;"></div>
         </div>

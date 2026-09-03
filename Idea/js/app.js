@@ -137,27 +137,46 @@ function checkUrlInvitation() {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteCode = urlParams.get('invite');
     if (inviteCode) {
-      currentInviteToken = inviteCode;
-      fetch(`/api/invitations/verify?code=${encodeURIComponent(inviteCode)}`)
+      currentInviteToken = inviteCode.trim().toUpperCase();
+      openAuthModal('register');
+
+      // Add a friendly VIP invite status badge in register modal
+      const regModal = document.getElementById('auth-modal');
+      if (regModal) {
+        let badge = document.getElementById('vip-invite-banner');
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'vip-invite-banner';
+          badge.style = 'background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.85rem; color: #1e40af; display: flex; align-items: center; justify-content: space-between;';
+          const regForm = document.getElementById('register-form');
+          if (regForm && regForm.parentNode) {
+            regForm.parentNode.insertBefore(badge, regForm);
+          }
+        }
+        badge.innerHTML = `<span><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> <strong>VIP Student Invitation Applied:</strong> #${currentInviteToken}</span>`;
+      }
+
+      fetch(`/api/invitations/verify?code=${encodeURIComponent(currentInviteToken)}`)
         .then(r => r.json())
         .then(res => {
           if (res.success && res.invitation) {
             const inv = res.invitation;
-            openAuthModal('register');
             const nameInput = document.getElementById('reg-name');
             const emailInput = document.getElementById('reg-email');
             const levelSelect = document.getElementById('reg-level');
             const majorInput = document.getElementById('reg-major');
 
-            if (nameInput && inv.student_name) nameInput.value = inv.student_name;
+            if (nameInput && inv.student_name && inv.student_name !== 'VIP Student') nameInput.value = inv.student_name;
             if (emailInput && inv.student_email) emailInput.value = inv.student_email;
             if (levelSelect && inv.academic_level) levelSelect.value = inv.academic_level;
-            if (majorInput && inv.major_field) majorInput.value = inv.major_field;
+            if (majorInput && inv.major_field && inv.major_field !== 'General Academic Studies') majorInput.value = inv.major_field;
 
-            showToast(`VIP Invitation Verified (#${inviteCode})! Complete your student registration below.`);
+            showToast(`VIP Invitation #${currentInviteToken} Verified! Complete your student registration.`);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          showToast(`VIP Invitation #${currentInviteToken} Applied! Complete your registration.`);
+        });
     }
   } catch (e) {
     // ignore
@@ -474,6 +493,12 @@ function handleCreateStudentInvite(e) {
   .then(res => {
     if (res.success && res.invitation) {
       const inv = res.invitation;
+      // Always construct clean live public URL
+      const currentOrigin = window.location.origin;
+      const liveInviteLink = `${currentOrigin}/?invite=${inv.invite_code}`;
+      const waInviteMsg = `Hello ${inv.student_name}! You have been invited to join ScholarVerge by the Academic Director. Complete your personalized profile here: ${liveInviteLink}`;
+      const liveWaUrl = `https://wa.me/?text=${encodeURIComponent(waInviteMsg)}`;
+
       const card = document.getElementById('admin-invite-result-card');
       if (card) {
         card.style.display = 'block';
@@ -485,14 +510,14 @@ function handleCreateStudentInvite(e) {
             </div>
             <p style="font-size: 0.85rem; color: #334155; margin-bottom: 8px;"><strong>Student:</strong> ${inv.student_name} (${inv.academic_level})</p>
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #0f172a; word-break: break-all; display: flex; justify-content: space-between; align-items: center;">
-              <span>${inv.invite_link}</span>
-              <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; margin-left: 8px;" onclick="navigator.clipboard.writeText('${inv.invite_link}'); showToast('Invite link copied to clipboard!');">Copy</button>
+              <span>${liveInviteLink}</span>
+              <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; margin-left: 8px;" onclick="navigator.clipboard.writeText('${liveInviteLink}'); showToast('Live invite link copied to clipboard!');">Copy</button>
             </div>
             <div style="display: flex; gap: 8px;">
-              <a href="${inv.whatsapp_url}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.82rem; padding: 8px 12px;">
+              <a href="${liveWaUrl}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.82rem; padding: 8px 12px;">
                 <i class="fa-brands fa-whatsapp"></i> Share on WhatsApp
               </a>
-              <a href="mailto:${inv.student_email || ''}?subject=Your%20ScholarVerge%20Academic%20Invitation&body=Hello%20${encodeURIComponent(inv.student_name)}!%20Join%20ScholarVerge%20here:%20${encodeURIComponent(inv.invite_link)}" class="btn btn-outline" style="font-size: 0.82rem; padding: 8px 12px; color: #2563eb;">
+              <a href="mailto:${inv.student_email || ''}?subject=Your%20ScholarVerge%20Academic%20Invitation&body=${encodeURIComponent(`Hello ${inv.student_name}!\n\nHere is your official VIP invitation to join ScholarVerge:\n${liveInviteLink}`)}" class="btn btn-outline" style="font-size: 0.82rem; padding: 8px 12px; color: #2563eb;">
                 <i class="fa-solid fa-envelope"></i> Send Email
               </a>
             </div>
@@ -841,23 +866,64 @@ function handleRealFileChange(e) {
   showToast(`Attached ${file.name} (${sizeFormatted})!`);
 }
 
+function updateBriefPricePreview() {
+  const pagesInput = document.getElementById('upload-pages');
+  const levelSelect = document.getElementById('upload-level');
+  const priceDisplay = document.getElementById('brief-price-total');
+  const wordsDisplay = document.getElementById('brief-word-count-sub');
+
+  const pages = pagesInput ? Math.max(1, parseInt(pagesInput.value) || 1) : 1;
+  const level = levelSelect ? levelSelect.value : 'Undergraduate';
+
+  let ratePerPage = 15.00;
+  if (level === 'High School') ratePerPage = 12.00;
+  else if (level === 'Master\'s') ratePerPage = 18.00;
+  else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
+
+  const total = pages * ratePerPage;
+  if (priceDisplay) priceDisplay.textContent = `$${total.toFixed(2)}`;
+  if (wordsDisplay) wordsDisplay.textContent = `~${pages * 275} words (Double Spaced)`;
+}
+
+function syncUploadDeadlineString() {
+  const dtInput = document.getElementById('upload-deadline-datetime');
+  const hiddenInput = document.getElementById('upload-deadline');
+  if (dtInput && dtInput.value) {
+    const d = new Date(dtInput.value);
+    if (!isNaN(d.getTime())) {
+      const formatted = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      if (hiddenInput) hiddenInput.value = `Due by ${formatted}`;
+      return;
+    }
+  }
+  if (hiddenInput) hiddenInput.value = 'Ready in 3 Days';
+}
+
 function handleDocumentEmailDispatch(e) {
   if (e) e.preventDefault();
   if (!authSession.isLoggedIn || authSession.role !== 'student') {
-    showToast('Please sign in or create an account to dispatch assignments.');
+    showToast('Please sign in or create an account to submit your assignment brief.');
     openAuthModal('login');
     return;
   }
 
-  const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
   const topic = document.getElementById('upload-topic').value.trim();
-  const citation = document.getElementById('upload-citation') ? document.getElementById('upload-citation').value : 'APA 7th Edition';
-  const sourcesCount = document.getElementById('upload-sources-count') ? document.getElementById('upload-sources-count').value : '5';
-  const writingStyle = document.getElementById('upload-writing-style') ? document.getElementById('upload-writing-style').value : 'Standard Academic';
-  const pages = document.getElementById('upload-pages') ? parseInt(document.getElementById('upload-pages').value) || 3 : 3;
-  const deadline = document.getElementById('upload-deadline') ? document.getElementById('upload-deadline').value.trim() : '3 Days';
+  const assignmentType = document.getElementById('upload-assignment-type') ? document.getElementById('upload-assignment-type').value : 'Essay';
+  const subject = document.getElementById('upload-subject') ? document.getElementById('upload-subject').value : 'Academic Research';
+  const level = document.getElementById('upload-level') ? document.getElementById('upload-level').value : 'Undergraduate';
+  const citation = document.getElementById('upload-citation') ? document.getElementById('upload-citation').value : 'APA 7';
+  const sourcesCount = document.getElementById('upload-sources-count') ? parseInt(document.getElementById('upload-sources-count').value) || 0 : 0;
+  const pages = document.getElementById('upload-pages') ? Math.max(1, parseInt(document.getElementById('upload-pages').value) || 1) : 1;
+  const deadlineDatetime = document.getElementById('upload-deadline-datetime') ? document.getElementById('upload-deadline-datetime').value : '';
+  const deadline = document.getElementById('upload-deadline') ? document.getElementById('upload-deadline').value.trim() : 'Ready in 3 Days';
+  const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
   const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
-  const priceAmount = pages * 10.00;
+
+  let ratePerPage = 15.00;
+  if (level === 'High School') ratePerPage = 12.00;
+  else if (level === 'Master\'s') ratePerPage = 18.00;
+  else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
+  const priceAmount = pages * ratePerPage;
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
@@ -876,11 +942,15 @@ function handleDocumentEmailDispatch(e) {
       file_size: fileSize,
       file_type: fileType,
       assignment_topic: topic,
-      instructions: instructions,
-      citation_style: `${citation} (${sourcesCount} sources)`,
-      writing_style: writingStyle,
+      assignment_type: assignmentType,
+      academic_subject: subject,
+      educational_level: level,
+      citation_style: citation,
+      sources_count: sourcesCount,
       pages: pages,
+      deadline_datetime: deadlineDatetime,
       deadline: deadline,
+      instructions: instructions,
       price_amount: priceAmount
     })
   })
@@ -894,18 +964,20 @@ function handleDocumentEmailDispatch(e) {
           <div class="activity-card-result" style="background: #ffffff; border: 2px solid #2563eb; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <span class="activity-badge-success" style="font-size: 0.85rem; padding: 6px 14px;"><i class="fa-solid fa-satellite-dish"></i> Live Tracking Active</span>
-              <strong style="color: #2563eb; font-size: 1.1rem; background: #eff6ff; padding: 4px 10px; border-radius: 8px; border: 1px solid #bfdbfe;">#${res.tracking_number}</strong>
+              <strong style="color: #2563eb; font-size: 1.15rem; background: #eff6ff; padding: 4px 12px; border-radius: 8px; border: 1px solid #bfdbfe;">#${res.tracking_number}</strong>
             </div>
-            <h4 style="font-size: 1.05rem; color: var(--primary); margin-bottom: 6px;">${topic}</h4>
-            <p style="font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
-              Guiding Tutor: <strong>${res.tutor_name}</strong> • ${pages} Pages ($${priceAmount.toFixed(2)} @ $10/pg) • Style: <strong>${citation}</strong> • Deadline: <strong>${deadline}</strong>
-            </p>
+            <h4 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 6px;">${topic}</h4>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.825rem; color: #334155; line-height: 1.6;">
+              <div><strong>Type:</strong> ${assignmentType} • <strong>Subject:</strong> ${subject} (${level})</div>
+              <div><strong>Length:</strong> ${pages} Pages (~${pages * 275} words) • <strong>Citation:</strong> ${citation} (${sourcesCount} sources)</div>
+              <div><strong>Guiding Tutor:</strong> ${res.tutor_name} • <strong>Deadline:</strong> ${deadline} • <strong>Est. Total:</strong> $${priceAmount.toFixed(2)}</div>
+            </div>
             <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">
-              <i class="fa-solid fa-paperclip"></i> Attached File: <strong>${fileName}</strong> (${fileSize})
+              <i class="fa-solid fa-paperclip"></i> Attached Brief: <strong>${fileName}</strong> (${fileSize})
             </p>
 
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 0.825rem; color: #166534;">
-              <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; color: #16a34a;"></i> <strong>Next Step:</strong> Share your unique Tracking ID <strong>#${res.tracking_number}</strong> with the Super Admin on WhatsApp to confirm your assignment stage and delivery timeline.
+              <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; color: #16a34a;"></i> <strong>Next Step:</strong> Share your unique Tracking ID <strong>#${res.tracking_number}</strong> with the Super Admin on WhatsApp to confirm your task stage and delivery date.
             </div>
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1384,25 +1456,31 @@ function renderAdminInvitesTable(invitations) {
     return;
   }
 
-  tbody.innerHTML = invitations.map(inv => `
+  const currentOrigin = window.location.origin;
+
+  tbody.innerHTML = invitations.map(inv => {
+    const liveLink = `${currentOrigin}/?invite=${inv.invite_code}`;
+    const waShare = `https://wa.me/?text=${encodeURIComponent(`Hello ${inv.student_name}! Here is your VIP invitation link to join ScholarVerge: ${liveLink}`)}`;
+    return `
     <tr>
       <td><strong>#${inv.invite_code}</strong></td>
       <td>${inv.student_name}</td>
       <td>${inv.academic_level} ${inv.major_field ? `• ${inv.major_field}` : ''}</td>
-      <td style="font-size: 0.75rem; color: #2563eb;">${inv.invite_link}</td>
+      <td style="font-size: 0.75rem; color: #2563eb;">${liveLink}</td>
       <td><span class="status-pill ${inv.status === 'active' ? 'review' : 'completed'}">${inv.status.toUpperCase()}</span></td>
       <td>
         <div style="display: flex; gap: 4px;">
-          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="navigator.clipboard.writeText('${inv.invite_link}'); showToast('Invite link copied!');">
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="navigator.clipboard.writeText('${liveLink}'); showToast('Live invite link copied!');">
             <i class="fa-solid fa-copy"></i>
           </button>
-          <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${inv.student_name}! Here is your VIP invitation link to join ScholarVerge: ${inv.invite_link}`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
+          <a href="${waShare}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
             <i class="fa-brands fa-whatsapp"></i>
           </a>
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderAdminStudentsTable(students) {
