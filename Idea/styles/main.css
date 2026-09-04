@@ -328,7 +328,7 @@ img {
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-muted);
 }
 
@@ -776,7 +776,7 @@ img {
 .sidebar-section-title {
   font-size: 0.75rem;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.06em;
   color: #64748b;
   margin-bottom: 10px;
@@ -1160,7 +1160,7 @@ img {
   display: block;
   font-size: 0.8125rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.03em;
   color: var(--text-muted);
   margin-bottom: 8px;
@@ -1246,7 +1246,7 @@ img {
 
 .price-label {
   font-size: 0.75rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   color: var(--text-dim);
 }
@@ -1297,7 +1297,7 @@ img {
   border-radius: var(--radius-pill);
   font-size: 0.8125rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   margin-bottom: 14px;
 }
@@ -1473,7 +1473,7 @@ img {
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 /* Tutor Direct Contact Reach - Interactive Icon Action Buttons */
@@ -1645,7 +1645,7 @@ img {
 
 .tutor-contact-lbl {
   font-size: 0.6875rem;
-  text-transform: uppercase;
+  text-transform: none;
   font-weight: 700;
   letter-spacing: 0.03em;
   opacity: 0.8;
@@ -1947,7 +1947,7 @@ img {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 /* ==========================================================================
@@ -2638,7 +2638,7 @@ img {
 
 .student-stat-lbl {
   font-size: 0.6875rem;
-  text-transform: uppercase;
+  text-transform: none;
   color: #cbd5e1;
   font-weight: 700;
 }
@@ -2733,7 +2733,7 @@ img {
   font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .admin-tabs-nav {
@@ -2781,7 +2781,7 @@ img {
   font-weight: 700;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-subtle);
-  text-transform: uppercase;
+  text-transform: none;
   font-size: 0.7rem;
   letter-spacing: 0.04em;
 }
@@ -2956,7 +2956,7 @@ img {
   color: #94a3b8;
   font-size: 0.785rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
 }
 

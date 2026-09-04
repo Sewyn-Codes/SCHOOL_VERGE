@@ -149,7 +149,7 @@
           
           <div class="mega-menu">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
-              <strong style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Featured Master's & Ph.D. Tutors</strong>
+              <strong style="font-size: 0.85rem;  color: var(--text-muted); letter-spacing: 0.05em;">Featured Master's & Ph.D. Tutors</strong>
               <span class="badge badge-trust" style="font-size: 0.7rem;">Verified Credentials</span>
             </div>
             
@@ -780,7 +780,7 @@
           <div class="calc-form-group">
             <label class="calc-label">Promo Code</label>
             <div style="display: flex; gap: 8px;">
-              <input type="text" id="calc-promo-input" class="calc-input" placeholder="Enter SCHOLAR20" value="SCHOLAR20" style="text-transform: uppercase;" />
+              <input type="text" id="calc-promo-input" class="calc-input" placeholder="Enter SCHOLAR20" value="SCHOLAR20" style="" />
               <button class="btn btn-outline" id="calc-promo-apply" style="padding: 0 16px; font-size: 0.85rem;">Apply</button>
             </div>
           </div>
@@ -1149,7 +1149,7 @@
             <i class="fa-brands fa-whatsapp"></i>
           </div>
           <div>
-            <span style="font-size: 0.75rem; text-transform: uppercase; color: #34d399; font-weight: 700;">Instant 24/7 Consultation</span>
+            <span style="font-size: 0.75rem;  color: #34d399; font-weight: 700;">Instant 24/7 Consultation</span>
             <strong style="font-size: 1.15rem; display: block;">Chat on WhatsApp</strong>
           </div>
         </a>
@@ -1160,7 +1160,7 @@
             <i class="fa-solid fa-envelope"></i>
           </div>
           <div>
-            <span style="font-size: 0.75rem; text-transform: uppercase; color: #60a5fa; font-weight: 700;">Official Support Desk</span>
+            <span style="font-size: 0.75rem;  color: #60a5fa; font-weight: 700;">Official Support Desk</span>
             <strong style="font-size: 1.15rem; display: block;">Email Brief to Academic Team</strong>
           </div>
         </a>
@@ -1977,17 +1977,23 @@
                   </div>
 
                   <div class="calc-form-group" style="margin-bottom: 14px;">
-                    <label class="calc-label" style="font-weight: 600; color: #334155;">Deadline Date & Time</label>
-                    <input type="datetime-local" id="upload-deadline-datetime" class="calc-input" required onchange="syncUploadDeadlineString()" />
+                    <label class="calc-label" style="font-weight: 600; color: #334155;">Preferred Day to be Ready</label>
+                    <select id="upload-day-ready" class="calc-select" onchange="updateBriefPricePreview()">
+                      <option value="Today (Urgent Turnaround)">Today (Urgent Turnaround)</option>
+                      <option value="Tomorrow (1 Day)">Tomorrow (1 Day)</option>
+                      <option value="In 2 Days">In 2 Days</option>
+                      <option value="In 3 Days (Standard)" selected>In 3 Days (Standard)</option>
+                      <option value="In 5 Days">In 5 Days</option>
+                      <option value="In 7 Days (1 Week)">In 7 Days (1 Week)</option>
+                      <option value="In 10+ Days">In 10+ Days (Extended)</option>
+                    </select>
                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 0.75rem; color: #475569;">
-                      <span style="color: #dc2626; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-bolt"></i> Fast Turnaround:</span>
-                      <span>We accept urgent deadlines starting from <strong>2 hours and above</strong></span>
+                      <span style="color: #059669; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><i class="fa-solid fa-calendar-check"></i> Turnaround Timeline:</span>
+                      <span>Indicate when you would like the document ready</span>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <input type="hidden" id="upload-deadline" value="Ready in 3 Days" />
 
               <!-- Assigned Guiding Tutor -->
               <div class="calc-form-group" style="margin-top: 6px;">
@@ -2000,16 +2006,16 @@
                 </select>
               </div>
 
-              <!-- Real HTML5 File Dropzone -->
+              <!-- Real HTML5 File Dropzone for Any Format & Any Device -->
               <div class="calc-form-group">
-                <label class="calc-label" style="font-weight: 600; color: #334155;">Attach Assignment Brief, Rubrics or Materials (PDF, DOCX, XLSX, TXT)</label>
+                <label class="calc-label" style="font-weight: 600; color: #334155;">Attach Assignment Document or Brief (Any Format • Any Device)</label>
                 <div style="border: 2px dashed #cbd5e1; border-radius: 14px; padding: 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('real-file-picker').click()">
-                  <input type="file" id="real-file-picker" style="display: none;" onchange="handleRealFileChange(event)" />
+                  <input type="file" id="real-file-picker" style="display: none;" onchange="handleRealFileChange(event)" accept="*/*" />
                   <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 8px;"></i>
                   <p style="font-size: 0.9rem; color: #334155; font-weight: 700; margin-bottom: 4px;" id="file-dropzone-label">
                     Click to browse files or drag & drop here
                   </p>
-                  <span style="font-size: 0.75rem; color: #94a3b8;" id="file-dropzone-sub">Supports up to 50MB (PDF, DOCX, XLSX, PPTX, TXT)</span>
+                  <span style="font-size: 0.75rem; color: #64748b;" id="file-dropzone-sub">Upload in any format (PDF, Word, Excel, PowerPoint, Text, Image, Zip, etc.) using your phone, tablet, or computer</span>
                 </div>
               </div>
 
@@ -2152,7 +2158,7 @@
 
             <!-- Formatted Citation Output -->
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
-              <span style="font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">Formatted Bibliographic Reference:</span>
+              <span style="font-size: 0.72rem;  color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">Formatted Bibliographic Reference:</span>
               <p id="tool-cit-output" style="font-size: 0.85rem; color: #0f172a; font-family: 'Times New Roman', Georgia, serif; line-height: 1.5; margin: 0;"></p>
             </div>
 
@@ -2426,7 +2432,7 @@
               </div>
 
               <div style="border-top: 1px solid #e2e8f0; margin: 16px 0; padding-top: 12px;">
-                <span style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">New Credentials (Optional Updates)</span>
+                <span style="font-size: 0.8rem; font-weight: 700; color: #475569;  letter-spacing: 0.5px;">New Credentials (Optional Updates)</span>
               </div>
 
               <div class="calc-form-group">
@@ -2616,6 +2622,72 @@
 
           <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 6px;">
             <i class="fa-solid fa-floppy-disk"></i> Save Stage to DB & Open WhatsApp Notify
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3D: Admin Upload Completed Assignment Back to Student Modal -->
+  <div class="modal-overlay" id="admin-upload-completed-modal">
+    <div class="modal-card" style="max-width: 560px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); color: #fff;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(52, 211, 153, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: #fff; font-size: 1.1rem; margin: 0;">Load Completed Assignment</h3>
+            <span style="font-size: 0.72rem; color: #a7f3d0;" id="admin-complete-header-order-ref">Order #SV-84920</span>
+          </div>
+        </div>
+        <button class="modal-close" aria-label="Close modal" style="color: #fff; background: rgba(255,255,255,0.1);">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form onsubmit="handleAdminSubmitCompletedWork(event)">
+          <input type="hidden" id="admin-complete-order-num" />
+
+          <!-- Order Summary Card -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 0.85rem; color: #334155;">Student: <strong id="admin-complete-student-name">Elena Rostova</strong></span>
+              <span style="font-size: 0.785rem; color: #059669; font-weight: 700;" id="admin-complete-study-level">Undergraduate</span>
+            </div>
+            <div style="font-size: 0.85rem; color: #0f172a; font-weight: 600; margin-bottom: 4px;" id="admin-complete-topic">Telehealth PICOT Systematic Review</div>
+            <div style="font-size: 0.785rem; color: #64748b;" id="admin-complete-meta">Tutor: Sophia Mitchell</div>
+          </div>
+
+          <!-- File Picker for Completed Document (Any format supported) -->
+          <div class="calc-form-group">
+            <label class="calc-label" style="font-weight: 600; color: #334155;">Select Completed Assignment File (Word, PDF, Excel, etc.)</label>
+            <div style="border: 2px dashed #059669; border-radius: 12px; padding: 18px; text-align: center; background: #f0fdf4; cursor: pointer;" onclick="document.getElementById('admin-completed-file-picker').click()">
+              <input type="file" id="admin-completed-file-picker" style="display: none;" onchange="handleAdminCompletedFileChange(event)" accept="*/*" required />
+              <i class="fa-solid fa-file-circle-check" style="font-size: 2rem; color: #059669; margin-bottom: 6px;"></i>
+              <p style="font-size: 0.88rem; color: #065f46; font-weight: 700; margin: 0;" id="admin-completed-file-label">
+                Click to browse completed file from this device
+              </p>
+              <span style="font-size: 0.72rem; color: #047857;" id="admin-completed-file-size">Accepts any file format from mobile or desktop</span>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="calc-form-group">
+              <label class="calc-label">Turnitin AI Score (%)</label>
+              <input type="number" id="admin-complete-turnitin-ai" class="calc-input" value="0.0" step="0.1" min="0" max="100" />
+            </div>
+            <div class="calc-form-group">
+              <label class="calc-label">Turnitin Similarity (%)</label>
+              <input type="number" id="admin-complete-turnitin-sim" class="calc-input" value="0.2" step="0.1" min="0" max="100" />
+            </div>
+          </div>
+
+          <div class="calc-form-group">
+            <label class="calc-label">Completion Note for Student</label>
+            <textarea id="admin-complete-notes" class="calc-input" rows="2" placeholder="e.g. Your assignment has been completed by your tutor with verified 0.0% AI. Download below!"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none;">
+            <i class="fa-solid fa-upload"></i> Load Completed Work to Student Portal & WhatsApp
           </button>
         </form>
       </div>
@@ -2889,7 +2961,7 @@
         <div style="background: #0b132b; color: #ffffff; border-radius: 14px; padding: 24px; margin-bottom: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 14px; margin-bottom: 18px;">
             <div>
-              <span style="font-size: 0.75rem; color: var(--accent-teal); font-weight: 700; text-transform: uppercase;">Authenticated Originality Audit</span>
+              <span style="font-size: 0.75rem; color: var(--accent-teal); font-weight: 700; ">Authenticated Originality Audit</span>
               <h4 style="font-size: 1.25rem; color: #ffffff;">ScholarVerge Verified Human Seal</h4>
             </div>
             <span class="badge badge-trust" style="background: rgba(6, 214, 160, 0.2); color: #06d6a0;">100% Human Crafted</span>

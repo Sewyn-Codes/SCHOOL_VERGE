@@ -855,13 +855,20 @@ function handleRealFileChange(e) {
   uploadedFileMeta = {
     name: file.name,
     size: sizeFormatted,
-    type: file.type || 'Document File'
+    type: file.type || 'Document File',
+    data: ''
   };
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    uploadedFileMeta.data = evt.target.result;
+  };
+  reader.readAsDataURL(file);
 
   const label = document.getElementById('file-dropzone-label');
   const sub = document.getElementById('file-dropzone-sub');
   if (label) label.textContent = `Attached: ${file.name} (${sizeFormatted})`;
-  if (sub) sub.textContent = `Ready for dispatch to scholarverge@gmail.com`;
+  if (sub) sub.textContent = `Universal format ready for dispatch`;
 
   showToast(`Attached ${file.name} (${sizeFormatted})!`);
 }
@@ -877,26 +884,12 @@ function updateBriefPricePreview() {
 
   let ratePerPage = 15.00;
   if (level === 'High School') ratePerPage = 12.00;
-  else if (level === 'Master\'s') ratePerPage = 18.00;
+  else if (level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
   else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
 
   const total = pages * ratePerPage;
   if (priceDisplay) priceDisplay.textContent = `$${total.toFixed(2)}`;
   if (wordsDisplay) wordsDisplay.textContent = `~${pages * 275} words (Double Spaced)`;
-}
-
-function syncUploadDeadlineString() {
-  const dtInput = document.getElementById('upload-deadline-datetime');
-  const hiddenInput = document.getElementById('upload-deadline');
-  if (dtInput && dtInput.value) {
-    const d = new Date(dtInput.value);
-    if (!isNaN(d.getTime())) {
-      const formatted = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-      if (hiddenInput) hiddenInput.value = `Due by ${formatted}`;
-      return;
-    }
-  }
-  if (hiddenInput) hiddenInput.value = 'Ready in 3 Days';
 }
 
 function handleDocumentEmailDispatch(e) {
@@ -914,14 +907,13 @@ function handleDocumentEmailDispatch(e) {
   const citation = document.getElementById('upload-citation') ? document.getElementById('upload-citation').value : 'APA 7';
   const sourcesCount = document.getElementById('upload-sources-count') ? parseInt(document.getElementById('upload-sources-count').value) || 0 : 0;
   const pages = document.getElementById('upload-pages') ? Math.max(1, parseInt(document.getElementById('upload-pages').value) || 1) : 1;
-  const deadlineDatetime = document.getElementById('upload-deadline-datetime') ? document.getElementById('upload-deadline-datetime').value : '';
-  const deadline = document.getElementById('upload-deadline') ? document.getElementById('upload-deadline').value.trim() : 'Ready in 3 Days';
+  const dayReady = document.getElementById('upload-day-ready') ? document.getElementById('upload-day-ready').value : 'In 3 Days (Standard)';
   const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
   const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
 
   let ratePerPage = 15.00;
   if (level === 'High School') ratePerPage = 12.00;
-  else if (level === 'Master\'s') ratePerPage = 18.00;
+  else if (level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
   else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
   const priceAmount = pages * ratePerPage;
 
@@ -930,6 +922,7 @@ function handleDocumentEmailDispatch(e) {
   const fileName = uploadedFileMeta ? uploadedFileMeta.name : 'Assignment_Brief_Requirements.pdf';
   const fileSize = uploadedFileMeta ? uploadedFileMeta.size : '1.4 MB';
   const fileType = uploadedFileMeta ? uploadedFileMeta.type : 'PDF Document';
+  const fileData = uploadedFileMeta ? uploadedFileMeta.data : '';
 
   fetch('/api/student/upload-document', {
     method: 'POST',
@@ -941,15 +934,17 @@ function handleDocumentEmailDispatch(e) {
       file_name: fileName,
       file_size: fileSize,
       file_type: fileType,
+      file_data: fileData,
       assignment_topic: topic,
       assignment_type: assignmentType,
       academic_subject: subject,
+      study_level: level,
       educational_level: level,
       citation_style: citation,
       sources_count: sourcesCount,
       pages: pages,
-      deadline_datetime: deadlineDatetime,
-      deadline: deadline,
+      day_ready: dayReady,
+      deadline: dayReady,
       instructions: instructions,
       price_amount: priceAmount
     })
@@ -970,10 +965,10 @@ function handleDocumentEmailDispatch(e) {
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.825rem; color: #334155; line-height: 1.6;">
               <div><strong>Type:</strong> ${assignmentType} • <strong>Subject:</strong> ${subject} (${level})</div>
               <div><strong>Length:</strong> ${pages} Pages (~${pages * 275} words) • <strong>Citation:</strong> ${citation} (${sourcesCount} sources)</div>
-              <div><strong>Guiding Tutor:</strong> ${res.tutor_name} • <strong>Deadline:</strong> ${deadline} • <strong>Est. Total:</strong> $${priceAmount.toFixed(2)}</div>
+              <div><strong>Guiding Tutor:</strong> ${res.tutor_name} • <strong>Target Day:</strong> ${dayReady} • <strong>Est. Total:</strong> $${priceAmount.toFixed(2)}</div>
             </div>
             <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">
-              <i class="fa-solid fa-paperclip"></i> Attached Brief: <strong>${fileName}</strong> (${fileSize})
+              <i class="fa-solid fa-paperclip"></i> Attached Document: <strong>${fileName}</strong> (${fileSize})
             </p>
 
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 0.825rem; color: #166534;">
@@ -1284,19 +1279,37 @@ function renderStudentDashboardOrders(orders) {
 
   tbody.innerHTML = orders.map(o => `
     <tr>
-      <td><strong>#${o.order_number}</strong></td>
+      <td>
+        <strong>#${o.order_number}</strong>
+        ${o.file_name ? `<div style="font-size: 0.72rem; color: #64748b;"><a href="/api/document/download?order=${o.order_number}" style="color: #2563eb; text-decoration: underline;" download><i class="fa-solid fa-paperclip"></i> Brief: ${o.file_name}</a></div>` : ''}
+        ${o.completed_file_name ? `<div style="margin-top: 3px;"><a href="/api/orders/download-completed?order=${o.order_number}" class="badge" style="background: #10b981; color: #fff; font-size: 0.7rem; padding: 2px 6px; text-decoration: none;" download><i class="fa-solid fa-download"></i> Done: ${o.completed_file_name}</a></div>` : ''}
+      </td>
       <td>${o.topic} (${o.subject || 'Academic'})</td>
       <td>${o.tutor_name}</td>
-      <td><span class="status-pill ${o.status.toLowerCase().includes('completed') ? 'completed' : o.status.toLowerCase().includes('review') ? 'review' : 'in_progress'}">${o.status} (${o.progress_percentage || 45}%)</span></td>
+      <td>
+        <span class="status-pill ${o.status.toLowerCase().includes('completed') ? 'completed' : o.status.toLowerCase().includes('review') ? 'review' : 'in_progress'}">
+          ${o.stage || o.status} (${o.progress_percentage || 45}%)
+        </span>
+        <div style="font-size: 0.72rem; color: #2563eb; font-weight: 600; margin-top: 2px;">
+          ${o.days_ready || o.day_ready || 'In 3 Days'}
+        </div>
+      </td>
       <td>
         <div style="font-size: 0.75rem; color: #059669; font-weight: 600;">
           <i class="fa-brands fa-whatsapp"></i> ${o.payment_status === 'payment_verified' ? 'Verified' : 'WhatsApp Facilitated'}
         </div>
       </td>
       <td>
-        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem;" onclick="closeModal('student-dashboard-modal'); loadOrderDetails('${o.order_number}'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });">
-          Inspect
-        </button>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem;" onclick="closeModal('student-dashboard-modal'); loadOrderDetails('${o.order_number}'); document.getElementById('order-tracker').scrollIntoView({ behavior: 'smooth' });">
+            Track
+          </button>
+          ${o.completed_file_name ? `
+            <a href="/api/orders/download-completed?order=${o.order_number}" class="btn" style="padding: 4px 8px; font-size: 0.72rem; background: #059669; color: #fff; text-decoration: none;" download>
+              <i class="fa-solid fa-download"></i> Download
+            </a>
+          ` : ''}
+        </div>
       </td>
     </tr>
   `).join('');
@@ -1377,18 +1390,32 @@ function renderAdminOrdersTable(orders) {
     <tr>
       <td>
         <strong style="color: #1e3a8a;">#${o.order_number}</strong>
-        ${o.file_name ? `<div style="font-size: 0.72rem; color: #64748b;"><i class="fa-solid fa-paperclip"></i> ${o.file_name}</div>` : ''}
+        ${o.has_uploaded_file || o.file_name ? `
+          <div style="margin-top: 4px;">
+            <a href="/api/document/download?order=${o.order_number}" class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" download>
+              <i class="fa-solid fa-download"></i> ${o.file_name || 'View Brief'}
+            </a>
+          </div>
+        ` : ''}
+        ${o.has_completed_file || o.completed_file_name ? `
+          <div style="margin-top: 4px;">
+            <a href="/api/orders/download-completed?order=${o.order_number}" class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; text-decoration: none; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 3px;" download>
+              <i class="fa-solid fa-check-circle"></i> Done: ${o.completed_file_name || 'Download Final'}
+            </a>
+          </div>
+        ` : ''}
       </td>
       <td>
         <strong>${o.student_name}</strong>
+        <div style="font-size: 0.72rem; color: #059669; font-weight: 600;">Level: ${o.study_level || o.academic_level || 'Undergraduate'}</div>
         <div style="font-size: 0.72rem; color: #64748b;">${o.student_email}</div>
       </td>
       <td>
         <span class="badge badge-verified" style="font-size: 0.75rem;">${o.tutor_name}</span>
       </td>
-      <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      <td style="max-width: 200px;">
         <span style="font-weight: 600;">${o.topic}</span>
-        <div style="font-size: 0.72rem; color: #64748b;">${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}</div>
+        <div style="font-size: 0.72rem; color: #64748b;">${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'} • Target: ${o.day_ready || o.deadline || 'In 3 Days'}</div>
       </td>
       <td>
         <div>
@@ -1397,15 +1424,18 @@ function renderAdminOrdersTable(orders) {
           </span>
         </div>
         <div style="font-size: 0.72rem; color: #2563eb; font-weight: 700; margin-top: 3px;">
-          <i class="fa-solid fa-hourglass-half"></i> ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage || 45}%)
+          <i class="fa-solid fa-hourglass-half"></i> ${o.days_ready || o.day_ready || 'In 2-3 Days'} (${o.progress_percentage || 45}%)
         </div>
       </td>
       <td>
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-          <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;" onclick="openAdminUpdateStageModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}', '${(o.stage || o.status || 'Drafting in Progress with Specialist Tutor').replace(/'/g, "\\'")}', '${(o.days_ready || 'Ready in 2 Days').replace(/'/g, "\\'")}', ${o.progress_percentage || 50}, '${(o.admin_notes || '').replace(/'/g, "\\'")}', ${o.turnitin_ai_score || 0.0}, ${o.turnitin_similarity || 0.4}, '${o.payment_status || 'payment_verified'}')">
-            <i class="fa-solid fa-pen-to-square"></i> Set Stage & Timeline
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #059669; border-color: #059669; white-space: nowrap;" onclick="openAdminUploadCompletedModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.study_level || o.academic_level || 'Undergraduate').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}')" title="Upload Finished Assignment Back to Student">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Load Done Work
           </button>
-          <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${o.student_name}! ScholarVerge Super Admin update on Assignment #${o.order_number}: Current Stage is "${o.stage || o.status}". Delivery Timeline: ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage}% completed). Guiding Tutor: ${o.tutor_name}.`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.72rem; color: #16a34a;" title="Share Update to Student on WhatsApp">
+          <button class="btn btn-primary" style="padding: 3px 6px; font-size: 0.7rem; white-space: nowrap;" onclick="openAdminUpdateStageModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}', '${(o.stage || o.status || 'Drafting in Progress with Specialist Tutor').replace(/'/g, "\\'")}', '${(o.days_ready || 'Ready in 2 Days').replace(/'/g, "\\'")}', ${o.progress_percentage || 50}, '${(o.admin_notes || '').replace(/'/g, "\\'")}', ${o.turnitin_ai_score || 0.0}, ${o.turnitin_similarity || 0.4}, '${o.payment_status || 'payment_verified'}')">
+            <i class="fa-solid fa-pen-to-square"></i> Set Stage
+          </button>
+          <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${o.student_name}! ScholarVerge Super Admin update on Assignment #${o.order_number}: Current Stage is "${o.stage || o.status}". Delivery Timeline: ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage}% completed). Guiding Tutor: ${o.tutor_name}.`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;" title="Share Update to Student on WhatsApp">
             <i class="fa-brands fa-whatsapp"></i>
           </a>
         </div>
@@ -2554,14 +2584,39 @@ function loadOrderDetails(orderId) {
 
         container.innerHTML = `
           <div>
+            ${order.has_completed_file || order.completed_file_name ? `
+              <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 14px; padding: 20px; color: #ffffff; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.25);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                  <div>
+                    <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-size: 0.8rem; border: 1px solid rgba(52, 211, 153, 0.4); margin-bottom: 6px;">
+                      <i class="fa-solid fa-circle-check"></i> 100% Completed & Delivered
+                    </span>
+                    <h3 style="color: #ffffff; font-size: 1.25rem; margin: 4px 0;">Your Completed Assignment is Ready!</h3>
+                    <p style="color: #a7f3d0; font-size: 0.85rem; margin: 0;">
+                      <i class="fa-solid fa-file-lines"></i> File: <strong>${order.completed_file_name || 'Completed_Assignment.docx'}</strong> • Turnitin 0.0% AI Verified
+                    </p>
+                  </div>
+                  <a href="/api/orders/download-completed?order=${order.order_number}" class="btn" style="background: #10b981; color: #ffffff; font-weight: 700; font-size: 0.95rem; padding: 12px 24px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" download>
+                    <i class="fa-solid fa-download"></i> Download Completed Assignment
+                  </a>
+                </div>
+              </div>
+            ` : ''}
+
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
               <div>
                 <span class="badge badge-verified" style="margin-bottom: 6px; font-size: 0.85rem;">Tracking #${order.order_number}</span>
                 <h3 style="font-size: 1.3rem; color: var(--primary); margin: 4px 0 6px;">${order.topic}</h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted);">
-                  ${order.subject || 'Academic Research'} • ${order.academic_level || 'Undergraduate'} • ${order.pages || 3} Pages • ${order.citation_style || 'APA 7th'} • Deadline: ${order.deadline || 'In 3 Days'}
+                  ${order.subject || 'Academic Research'} • Level: <strong>${order.study_level || order.academic_level || 'Undergraduate'}</strong> • ${order.pages || 3} Pages • ${order.citation_style || 'APA 7th'} • Target: ${order.day_ready || order.days_ready || 'In 3 Days'}
                 </p>
-                ${order.file_name ? `<span style="font-size: 0.785rem; color: #64748b;"><i class="fa-solid fa-paperclip"></i> Attached Brief: <strong>${order.file_name}</strong></span>` : ''}
+                ${order.file_name ? `
+                  <div style="margin-top: 6px;">
+                    <a href="/api/document/download?order=${order.order_number}" class="btn btn-outline" style="font-size: 0.785rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px; color: #2563eb; text-decoration: none;" download>
+                      <i class="fa-solid fa-paperclip"></i> View/Download Uploaded Brief (${order.file_name})
+                    </a>
+                  </div>
+                ` : ''}
               </div>
               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                 <span class="status-pill ${isCompleted ? 'completed' : 'in_progress'}" style="font-size: 0.85rem; padding: 6px 14px;">
@@ -2858,6 +2913,107 @@ function handleAdminSubmitOrderStageUpdate(e) {
   .then(res => {
     if (res.success) {
       closeModal('admin-order-stage-modal');
+      showToast(res.message || `Order #${orderNum} stage updated!`);
+      loadAdminOverviewData();
+      if (res.whatsapp_student_url) {
+        window.open(res.whatsapp_student_url, '_blank');
+      }
+    } else {
+      showToast(res.error || 'Failed to update order stage.');
+    }
+  })
+  .catch(() => {
+    showToast('Failed to update stage.');
+  });
+}
+
+/* ==========================================================================
+   Super Admin Upload Completed Assignment Back to Student
+   ========================================================================== */
+let adminCompletedFileMeta = { name: '', size: '', type: '', data: '' };
+
+function openAdminUploadCompletedModal(orderNum, studentName, studyLevel, topic, tutorName) {
+  document.getElementById('admin-complete-order-num').value = orderNum;
+  document.getElementById('admin-complete-header-order-ref').textContent = `Order #${orderNum}`;
+  document.getElementById('admin-complete-student-name').textContent = studentName;
+  document.getElementById('admin-complete-study-level').textContent = studyLevel || 'Undergraduate';
+  document.getElementById('admin-complete-topic').textContent = topic;
+  document.getElementById('admin-complete-meta').textContent = `Tutor: ${tutorName}`;
+  document.getElementById('admin-completed-file-label').textContent = 'Click to browse completed file from this device';
+  document.getElementById('admin-completed-file-size').textContent = 'Accepts any file format from mobile or desktop';
+
+  adminCompletedFileMeta = { name: '', size: '', type: '', data: '' };
+  openModal('admin-upload-completed-modal');
+}
+
+function handleAdminCompletedFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const sizeFormatted = file.size > 1024 * 1024 
+    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
+    : `${(file.size / 1024).toFixed(1)} KB`;
+
+  adminCompletedFileMeta = {
+    name: file.name,
+    size: sizeFormatted,
+    type: file.type || 'Document File',
+    data: ''
+  };
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    adminCompletedFileMeta.data = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  document.getElementById('admin-completed-file-label').textContent = `Selected: ${file.name}`;
+  document.getElementById('admin-completed-file-size').textContent = `Size: ${sizeFormatted} • Ready to upload`;
+  showToast(`Selected completed file: ${file.name} (${sizeFormatted})`);
+}
+
+function handleAdminSubmitCompletedWork(e) {
+  if (e) e.preventDefault();
+  const orderNum = document.getElementById('admin-complete-order-num').value.trim();
+  const turnitinAi = parseFloat(document.getElementById('admin-complete-turnitin-ai').value) || 0.0;
+  const turnitinSim = parseFloat(document.getElementById('admin-complete-turnitin-sim').value) || 0.2;
+  const notes = document.getElementById('admin-complete-notes').value.trim();
+
+  if (!adminCompletedFileMeta.data && !adminCompletedFileMeta.name) {
+    showToast('Please select a completed assignment file to upload.');
+    return;
+  }
+
+  fetch('/api/admin/orders/upload-completed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order_number: orderNum,
+      completed_file_name: adminCompletedFileMeta.name,
+      completed_file_size: adminCompletedFileMeta.size,
+      completed_file_data: adminCompletedFileMeta.data,
+      admin_notes: notes || 'Your completed assignment is ready for download! Verified 100% human-crafted with 0.0% AI.',
+      turnitin_ai_score: turnitinAi,
+      turnitin_similarity: turnitinSim
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      closeModal('admin-upload-completed-modal');
+      showToast(res.message || `Completed assignment loaded for Order #${orderNum}!`);
+      loadAdminOverviewData();
+      if (res.whatsapp_student_url) {
+        window.open(res.whatsapp_student_url, '_blank');
+      }
+    } else {
+      showToast(res.error || 'Failed to upload completed assignment.');
+    }
+  })
+  .catch(() => {
+    showToast('Error uploading completed work.');
+  });
+}
       showToast(res.message);
       loadAdminOverviewData();
       if (res.whatsapp_student_url) {

@@ -16,15 +16,18 @@ import sqlite3
 import hashlib
 import secrets
 import urllib.parse
+import base64
 from datetime import datetime
 
 PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.path.join(BASE_DIR, "database")
 DB_PATH = os.path.join(DB_DIR, "scholarverge.db")
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 
-# Ensure database directory exists
+# Ensure database and uploads directory exist
 os.makedirs(DB_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 def hash_password(password: str) -> str:
     """Secure SHA-256 password hashing with custom cryptographic salt"""
@@ -155,9 +158,17 @@ def init_db():
         ("admin_notes", "TEXT DEFAULT 'Tutor assigned and initial rubric review active'"),
         ("file_name", "TEXT"),
         ("file_size", "TEXT"),
+        ("file_type", "TEXT"),
+        ("file_data", "TEXT"),
         ("assignment_type", "TEXT DEFAULT 'Essay'"),
+        ("study_level", "TEXT DEFAULT 'Undergraduate'"),
+        ("day_ready", "TEXT DEFAULT 'In 3 Days'"),
         ("sources_count", "INTEGER DEFAULT 0"),
         ("deadline_datetime", "TEXT"),
+        ("completed_file_name", "TEXT"),
+        ("completed_file_data", "TEXT"),
+        ("completed_file_size", "TEXT"),
+        ("completed_at", "TEXT"),
         ("updated_at", "TEXT")
     ]:
         try:
@@ -196,9 +207,12 @@ def init_db():
         file_name TEXT NOT NULL,
         file_size TEXT NOT NULL,
         file_type TEXT NOT NULL,
+        file_data TEXT,
         assignment_topic TEXT NOT NULL,
         instructions TEXT,
         citation_style TEXT DEFAULT 'APA 7th',
+        study_level TEXT DEFAULT 'Undergraduate',
+        day_ready TEXT DEFAULT 'In 3 Days',
         deadline TEXT,
         target_email TEXT DEFAULT 'scholarverge@gmail.com',
         status TEXT DEFAULT 'dispatched_to_email',
@@ -208,7 +222,10 @@ def init_db():
 
     for col, col_def in [
         ("tracking_number", "TEXT"),
-        ("tutor_name", "TEXT DEFAULT 'Sophia Mitchell'")
+        ("tutor_name", "TEXT DEFAULT 'Sophia Mitchell'"),
+        ("file_data", "TEXT"),
+        ("study_level", "TEXT DEFAULT 'Undergraduate'"),
+        ("day_ready", "TEXT DEFAULT 'In 3 Days'")
     ]:
         try:
             cursor.execute(f"ALTER TABLE document_uploads ADD COLUMN {col} {col_def}")
@@ -522,7 +539,84 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     self.send_json_response(404, {"success": False, "error": "Invalid or expired invitation code."})
 
-            # 9. Real-Time Order & Assignment Live Tracking
+            # 9. Download Student Uploaded Assignment Brief Document
+            elif path.startswith("/api/document/download"):
+                query_params = path.split("?")
+                order_num = ""
+                if len(query_params) > 1:
+                    params = dict(qp.split("=") for qp in query_params[1].split("&") if "=" in qp)
+                    order_num = urllib.parse.unquote(params.get("order", params.get("code", params.get("upload_id", "")))).strip().upper().replace("#", "")
+
+                cursor.execute("SELECT file_name, file_data FROM orders WHERE UPPER(order_number) = ? OR UPPER(student_id) = ?", (order_num, order_num))
+                row = cursor.fetchone()
+                if not row or not row["file_data"]:
+                    cursor.execute("SELECT file_name, file_data FROM document_uploads WHERE UPPER(upload_id) = ? OR UPPER(tracking_number) = ?", (order_num, order_num))
+                    row = cursor.fetchone()
+
+                if row and row["file_data"]:
+                    file_name = row["file_name"] or f"assignment_{order_num}.pdf"
+                    file_data_str = row["file_data"]
+                    if "," in file_data_str:
+                        file_data_str = file_data_str.split(",", 1)[1]
+                    try:
+                        raw_bytes = base64.b64decode(file_data_str)
+                    except Exception:
+                        raw_bytes = file_data_str.encode("utf-8")
+
+                    content_type = "application/octet-stream"
+                    if file_name.lower().endswith(".pdf"): content_type = "application/pdf"
+                    elif file_name.lower().endswith((".docx", ".doc")): content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    elif file_name.lower().endswith((".xlsx", ".xls")): content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    elif file_name.lower().endswith((".pptx", ".ppt")): content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    elif file_name.lower().endswith(".txt"): content_type = "text/plain"
+                    elif file_name.lower().endswith(".png"): content_type = "image/png"
+                    elif file_name.lower().endswith((".jpg", ".jpeg")): content_type = "image/jpeg"
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Disposition", f'attachment; filename="{urllib.parse.quote(file_name)}"')
+                    self.send_header("Content-Length", str(len(raw_bytes)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(raw_bytes)
+                    return
+                else:
+                    self.send_json_response(404, {"success": False, "error": "Document file data not available for this assignment."})
+                    return
+
+            # 10. Download Completed Assignment Done by Specialist Tutor
+            elif path.startswith("/api/orders/download-completed"):
+                query_params = path.split("?")
+                order_num = ""
+                if len(query_params) > 1:
+                    params = dict(qp.split("=") for qp in query_params[1].split("&") if "=" in qp)
+                    order_num = urllib.parse.unquote(params.get("order", params.get("code", ""))).strip().upper().replace("#", "")
+
+                cursor.execute("SELECT completed_file_name, completed_file_data, tutor_name, topic FROM orders WHERE UPPER(order_number) = ? OR UPPER(student_id) = ?", (order_num, order_num))
+                row = cursor.fetchone()
+                if row and row["completed_file_data"]:
+                    file_name = row["completed_file_name"] or f"Completed_Assignment_{order_num}.docx"
+                    file_data_str = row["completed_file_data"]
+                    if "," in file_data_str:
+                        file_data_str = file_data_str.split(",", 1)[1]
+                    try:
+                        raw_bytes = base64.b64decode(file_data_str)
+                    except Exception:
+                        raw_bytes = file_data_str.encode("utf-8")
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/octet-stream")
+                    self.send_header("Content-Disposition", f'attachment; filename="{urllib.parse.quote(file_name)}"')
+                    self.send_header("Content-Length", str(len(raw_bytes)))
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(raw_bytes)
+                    return
+                else:
+                    self.send_json_response(404, {"success": False, "error": "Completed assignment file has not yet been loaded by the academic team."})
+                    return
+
+            # 11. Real-Time Order & Assignment Live Tracking
             elif path.startswith("/api/orders/track"):
                 query_params = path.split("?")
                 code = ""
@@ -551,18 +645,26 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                     pct = int(order_data.get("progress_percentage") or 45)
                     stage_text = order_data.get("stage") or order_data.get("status") or "Drafting in Progress with Specialist Tutor"
-                    days_text = order_data.get("days_ready") or "Assessing Timeline (~2-3 Days)"
+                    days_text = order_data.get("days_ready") or order_data.get("day_ready") or "Ready in 3 Days (Standard)"
 
                     steps = [
                         {"name": "Assignment Brief & Rubric Received", "time": "Initial Milestone", "done": pct >= 15},
-                        {"name": "Research Curation & Outline Approved", "time": "Milestone 2", "done": pct >= 35},
+                        {"name": "Reviewed by Admin & Assigned to Specialist Tutor", "time": "Milestone 2", "done": pct >= 35},
                         {"name": f"Drafting in Progress with Tutor ({order_data['tutor_name']})", "time": "Milestone 3", "done": pct >= 60},
                         {"name": "Turnitin 0.0% AI & Quality Audit", "time": "Milestone 4", "done": pct >= 85},
-                        {"name": "Completed & Verified for Download", "time": "Final Delivery", "done": pct >= 100}
+                        {"name": "Completed & Delivered (Ready for Download)", "time": "Final Delivery", "done": pct >= 100}
                     ]
                     order_data["steps"] = steps
                     order_data["stage"] = stage_text
                     order_data["days_ready"] = days_text
+                    order_data["has_uploaded_file"] = bool(order_data.get("file_name"))
+                    order_data["download_uploaded_url"] = f"/api/document/download?order={order_data['order_number']}" if order_data.get("file_name") else None
+                    order_data["has_completed_file"] = bool(order_data.get("completed_file_name"))
+                    order_data["download_completed_url"] = f"/api/orders/download-completed?order={order_data['order_number']}" if order_data.get("completed_file_name") else None
+
+                    # Strip large payload binaries
+                    if "file_data" in order_data: del order_data["file_data"]
+                    if "completed_file_data" in order_data: del order_data["completed_file_data"]
 
                     self.send_json_response(200, {"success": True, "order": order_data})
                 else:
@@ -571,7 +673,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                         "error": f"Tracking ID #{code} not found. Please verify your number or message the Super Admin on WhatsApp."
                     })
 
-            # 10. Super Admin Overview (Strictly Real Operational Metrics - Funds/Gross Volume Removed)
+            # 12. Super Admin Overview (Strictly Real Operational Metrics - Funds/Gross Volume Removed)
             elif path == "/api/admin/overview":
                 cursor.execute("SELECT COUNT(*) FROM orders")
                 total_orders = cursor.fetchone()[0]
@@ -595,7 +697,16 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 flagged_students = cursor.fetchone()[0]
 
                 cursor.execute("SELECT * FROM orders ORDER BY id DESC")
-                orders_list = [dict(r) for r in cursor.fetchall()]
+                raw_orders = [dict(r) for r in cursor.fetchall()]
+                orders_list = []
+                for o in raw_orders:
+                    o["has_uploaded_file"] = bool(o.get("file_name"))
+                    o["download_url"] = f"/api/document/download?order={o['order_number']}" if o.get("file_name") else None
+                    o["has_completed_file"] = bool(o.get("completed_file_name"))
+                    o["download_completed_url"] = f"/api/orders/download-completed?order={o['order_number']}" if o.get("completed_file_name") else None
+                    if "file_data" in o: del o["file_data"]
+                    if "completed_file_data" in o: del o["completed_file_data"]
+                    orders_list.append(o)
 
                 cursor.execute("SELECT student_id, full_name, email, university, academic_level, major_field, preferred_citation, total_orders, status, created_at FROM students ORDER BY id DESC")
                 students_list = [dict(r) for r in cursor.fetchall()]
@@ -606,8 +717,10 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("SELECT * FROM bookings ORDER BY id DESC")
                 bookings_list = [dict(r) for r in cursor.fetchall()]
 
-                cursor.execute("SELECT * FROM document_uploads ORDER BY id DESC")
+                cursor.execute("SELECT upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at FROM document_uploads ORDER BY id DESC")
                 uploads_list = [dict(r) for r in cursor.fetchall()]
+                for u in uploads_list:
+                    u["download_url"] = f"/api/document/download?order={u.get('tracking_number') or u.get('upload_id')}"
 
                 cursor.execute("SELECT * FROM invitations ORDER BY id DESC")
                 invitations_list = [dict(r) for r in cursor.fetchall()]
@@ -1243,15 +1356,18 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 file_name = data.get("file_name", "Assignment_Brief.pdf")
                 file_size = data.get("file_size", "1.2 MB")
                 file_type = data.get("file_type", "PDF Document")
+                file_data = data.get("file_data", "")
                 topic = data.get("assignment_topic", "Academic Assignment Brief")
                 assignment_type = data.get("assignment_type", "Essay").strip()
                 academic_subject = data.get("academic_subject", "Academic Research").strip()
-                educational_level = data.get("educational_level", "Undergraduate").strip()
+                study_level = data.get("study_level", data.get("educational_level", "Undergraduate")).strip()
+                educational_level = study_level
                 citation = data.get("citation_style", "APA 7").strip()
                 sources_count = int(data.get("sources_count", 0))
                 pages = int(data.get("pages", 1))
+                day_ready = data.get("day_ready", data.get("deadline", "In 3 Days")).strip()
+                deadline = day_ready
                 deadline_datetime = data.get("deadline_datetime", "")
-                deadline = data.get("deadline", "In 3 Days").strip()
                 instructions = data.get("instructions", "").strip()
                 price_amount = float(data.get("price_amount", pages * 15.00))
 
@@ -1263,26 +1379,26 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 student_id = stu_row["student_id"] if stu_row else f"SV-STU-{secrets.randbelow(9000) + 1000}"
 
                 cursor.execute("""
-                INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, assignment_topic, instructions, citation_style, deadline, target_email, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scholarverge@gmail.com', 'dispatched_to_email', datetime('now'))
-                """, (tracking_number, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, topic, instructions, citation, deadline))
+                INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scholarverge@gmail.com', 'dispatched_to_email', datetime('now'))
+                """, (tracking_number, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, topic, instructions, citation, study_level, day_ready, deadline))
 
                 # Insert into orders table as a live tracked assignment
-                initial_stage = "Document Received & Assigned to Tutor"
-                initial_days = "Assessing Timeline (Est. ~2-3 Days)"
-                initial_notes = f"Assignment brief ({assignment_type} • {academic_subject}) received and queued for {tutor_name} review."
+                initial_stage = "Document Received & Reviewed by Admin"
+                initial_days = f"Ready {day_ready}" if not day_ready.lower().startswith("in ") and not day_ready.lower().startswith("ready") else day_ready
+                initial_notes = f"Assignment brief ({assignment_type} • {academic_subject} • {study_level}) received. Admin reviewed and queued for {tutor_name}."
 
                 cursor.execute("""
-                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, stage, days_ready, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, admin_notes, file_name, file_size, assignment_type, sources_count, deadline_datetime, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 20, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (tracking_number, student_id, student_name, student_email, tutor_name, topic, academic_subject, educational_level, pages, citation, deadline, initial_stage, initial_stage, initial_days, price_amount, initial_notes, file_name, file_size, assignment_type, sources_count, deadline_datetime))
+                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, study_level, pages, citation_style, day_ready, deadline, status, stage, days_ready, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, admin_notes, file_name, file_size, file_data, assignment_type, sources_count, deadline_datetime, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 20, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (tracking_number, student_id, student_name, student_email, tutor_name, topic, academic_subject, educational_level, study_level, pages, citation, day_ready, deadline, initial_stage, initial_stage, initial_days, price_amount, initial_notes, file_name, file_size, file_data, assignment_type, sources_count, deadline_datetime))
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('DOCUMENT_UPLOAD_TRACKED', ?, ?, datetime('now'))", (student_email, f"Assignment Brief #{tracking_number} ({topic} - {assignment_type}) uploaded for {tutor_name}"))
                 conn.commit()
 
                 # Generate direct WhatsApp sharing URL to Super Admin
-                wa_msg = f"Hello Super Admin! I have submitted my assignment brief under Tracking #{tracking_number} guided by Tutor {tutor_name}.\n\n📋 *Assignment Details:*\n• *Topic:* {topic}\n• *Type:* {assignment_type}\n• *Subject:* {academic_subject}\n• *Level:* {educational_level}\n• *Length:* {pages} Pages (~{pages * 275} words)\n• *Citation:* {citation} ({sources_count} sources)\n• *Deadline:* {deadline}\n• *File:* {file_name}\n\nPlease confirm my task stage and delivery timeline."
+                wa_msg = f"Hello Super Admin! I have submitted my assignment brief under Tracking #{tracking_number} guided by Tutor {tutor_name}.\n\n📋 *Assignment Details:*\n• *Topic:* {topic}\n• *Type:* {assignment_type}\n• *Subject:* {academic_subject}\n• *Level of Study:* {study_level}\n• *Length:* {pages} Pages (~{pages * 275} words)\n• *Citation:* {citation} ({sources_count} sources)\n• *Day to be Ready:* {day_ready}\n• *File:* {file_name} ({file_size})\n\nPlease confirm my task stage and delivery timeline."
                 wa_share_url = f"https://wa.me/16677757597?text={urllib.parse.quote(wa_msg)}"
 
                 mailto_subject = f"Assignment Brief #{tracking_number} - {student_name}"
@@ -1292,10 +1408,10 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     f"Topic: {topic}\n"
                     f"Type: {assignment_type}\n"
                     f"Subject: {academic_subject}\n"
-                    f"Level: {educational_level}\n"
+                    f"Level of Study: {study_level}\n"
                     f"Length: {pages} Pages\n"
                     f"Citation: {citation} ({sources_count} sources)\n"
-                    f"Deadline: {deadline}\n"
+                    f"Day to be Ready: {day_ready}\n"
                     f"Student: {student_name} ({student_email})\n\n"
                     f"Instructions / Notes:\n{instructions}"
                 )
@@ -1396,6 +1512,48 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     "stage": stage,
                     "days_ready": days_ready,
                     "progress_percentage": progress,
+                    "whatsapp_student_url": wa_url
+                })
+
+            # 18. Super Admin Upload Completed Assignment Back to Student
+            elif path == "/api/admin/orders/upload-completed":
+                order_num = data.get("order_number", "").strip().upper().replace("#", "")
+                completed_file_name = data.get("completed_file_name", "Completed_Assignment.docx").strip()
+                completed_file_data = data.get("completed_file_data", "")
+                completed_file_size = data.get("completed_file_size", "1.5 MB").strip()
+                admin_notes = data.get("admin_notes", "Your completed assignment has been verified 100% human-crafted and is ready for download!").strip()
+                turnitin_ai = float(data.get("turnitin_ai_score", 0.0))
+                turnitin_sim = float(data.get("turnitin_similarity", 0.2))
+
+                if not order_num or not completed_file_data:
+                    self.send_json_response(400, {"success": False, "error": "Order number and completed file data are required."})
+                    return
+
+                cursor.execute("SELECT * FROM orders WHERE UPPER(order_number) = ?", (order_num,))
+                order_row = cursor.fetchone()
+                if not order_row:
+                    self.send_json_response(404, {"success": False, "error": f"Order #{order_num} not found."})
+                    return
+
+                cursor.execute("""
+                UPDATE orders 
+                SET status = 'completed', stage = 'Completed & Ready for Download', days_ready = 'Ready & Delivered Now', progress_percentage = 100, completed_file_name = ?, completed_file_data = ?, completed_file_size = ?, completed_at = datetime('now'), admin_notes = ?, turnitin_ai_score = ?, turnitin_similarity = ?, updated_at = datetime('now')
+                WHERE UPPER(order_number) = ?
+                """, (completed_file_name, completed_file_data, completed_file_size, admin_notes, turnitin_ai, turnitin_sim, order_num))
+
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_UPLOAD_COMPLETED_WORK', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Uploaded completed assignment ({completed_file_name}) for order #{order_num}",))
+                conn.commit()
+
+                stu_name = order_row["student_name"]
+                tutor_name = order_row["tutor_name"]
+                wa_text = f"Hello {stu_name}! Great news! Your assignment (#{order_num}) has been completed by Tutor {tutor_name} and is now ready for download on ScholarVerge!%0D%0A• Completed File: {completed_file_name}%0D%0A• Originality: 0.0% AI Verified%0D%0A• Status: 100% Completed & Delivered"
+                wa_url = f"https://wa.me/?text={wa_text}"
+
+                self.send_json_response(200, {
+                    "success": True,
+                    "message": f"Completed assignment '{completed_file_name}' loaded successfully to student's portal for Order #{order_num}!",
+                    "order_number": order_num,
+                    "completed_file_name": completed_file_name,
                     "whatsapp_student_url": wa_url
                 })
 
