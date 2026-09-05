@@ -293,6 +293,31 @@ function checkPasswordStrength(pw) {
 }
 
 /* ==========================================================================
+   Demo Credentials Quick-Fill Helpers & Smart Auth Routing
+   ========================================================================== */
+function fillStudentDemoCredentials() {
+  switchAuthTab('login');
+  const emailInput = document.getElementById('login-email');
+  const pwInput = document.getElementById('login-password');
+  if (emailInput && pwInput) {
+    emailInput.value = 'jordan.m@university.edu';
+    pwInput.value = 'Scholar2026!';
+    showToast('Loaded Student Demo: jordan.m@university.edu');
+  }
+}
+
+function fillAdminDemoCredentials() {
+  switchAuthTab('admin');
+  const adminEmail = document.getElementById('admin-login-email');
+  const adminPw = document.getElementById('admin-login-password');
+  if (adminEmail && adminPw) {
+    adminEmail.value = 'scholarverge@gmail.com';
+    adminPw.value = 'Lovato20';
+    showToast('Loaded Super Admin: scholarverge@gmail.com / Lovato20');
+  }
+}
+
+/* ==========================================================================
    Multi-Tenant Student Authentication Handlers (API Connected)
    ========================================================================== */
 function handleStudentLogin(e) {
@@ -313,15 +338,20 @@ function handleStudentLogin(e) {
   .then(r => r.json())
   .then(res => {
     if (res.success) {
+      const userRole = (res.user && res.user.role === 'superadmin') ? 'superadmin' : 'student';
       saveSession({
         isLoggedIn: true,
-        role: 'student',
+        role: userRole,
         token: res.session_token,
         user: res.user
       });
       closeModal('auth-modal');
-      showToast(res.message || `Welcome back, ${res.user.full_name}!`);
-      openStudentDashboard();
+      showToast(res.message || `Welcome back, ${res.user.full_name || 'Scholar'}!`);
+      if (userRole === 'superadmin') {
+        openSuperAdminPortal();
+      } else {
+        openStudentDashboard();
+      }
     } else {
       showToast(res.error || 'Invalid login credentials.');
     }

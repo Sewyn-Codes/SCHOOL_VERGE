@@ -17,6 +17,9 @@ import hashlib
 import secrets
 import urllib.parse
 import base64
+import gzip
+import io
+import mimetypes
 from datetime import datetime
 
 PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
@@ -42,12 +45,29 @@ def generate_otp() -> str:
     """Generate 6-digit numeric verification token"""
     return f"{secrets.randbelow(900000) + 100000}"
 
+def get_db_connection() -> sqlite3.Connection:
+    """
+    Produce high-concurrency SQLite connection with WAL journal mode,
+    30-second busy timeout, 8MB memory cache, and dictionary-style Row factory.
+    Prevents database locking, eliminates reader/writer contention, and optimizes query speed.
+    """
+    conn = sqlite3.connect(DB_PATH, timeout=30.0, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = WAL;")
+    conn.execute("PRAGMA synchronous = NORMAL;")
+    conn.execute("PRAGMA busy_timeout = 30000;")
+    conn.execute("PRAGMA temp_store = MEMORY;")
+    conn.execute("PRAGMA cache_size = -8000;")
+    return conn
+
 def init_db():
     """
     Initialize and synchronize SQLite database mirroring PostgreSQL enterprise schema.
-    Strictly seeds default Super Admin (scholarverge@gmail.com / Lovato20) and the 3 verified tutors.
+    Strictly seeds default Super Admin (scholarverge@gmail.com / Lovato20),
+    working demo Student (jordan.m@university.edu / Scholar2026!),
+    and the 3 verified tutors with performance indexes.
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # 1. Users Table (Multi-Tenant Authentication)
@@ -292,30 +312,87 @@ def init_db():
     )
     """)
 
+    # 11. Performance Optimization Indexes
+    indexes = [
+        "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);",
+        "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);",
+        "CREATE INDEX IF NOT EXISTS idx_students_email ON students(email);",
+        "CREATE INDEX IF NOT EXISTS idx_students_student_id ON students(student_id);",
+        "CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);",
+        "CREATE INDEX IF NOT EXISTS idx_orders_student_email ON orders(student_email);",
+        "CREATE INDEX IF NOT EXISTS idx_orders_student_id ON orders(student_id);",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_student_email ON bookings(student_email);",
+        "CREATE INDEX IF NOT EXISTS idx_document_uploads_email ON document_uploads(student_email);",
+        "CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status);",
+        "CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(invite_code);",
+        "CREATE INDEX IF NOT EXISTS idx_password_resets_email_otp ON password_resets(email, otp_code);",
+        "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);"
+    ]
+    for idx_sql in indexes:
+        cursor.execute(idx_sql)
+
     # Seed / Synchronize Super Admin (Default: scholarverge@gmail.com / Lovato20)
+    admin_pw_hash = hash_password("Lovato20")
     cursor.execute("SELECT id, email, password_hash FROM users WHERE role = 'superadmin'")
     admin_rows = cursor.fetchall()
     if not admin_rows:
         cursor.execute("""
         INSERT INTO users (user_uuid, email, password_hash, role, auth_provider, avatar_url, status, created_at)
         VALUES ('USR-ADMIN-01', 'scholarverge@gmail.com', ?, 'superadmin', 'local', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 'active', datetime('now'))
-        """, (hash_password("Lovato20"),))
+        """, (admin_pw_hash,))
+        admin_user_id = cursor.lastrowid
     else:
+        admin_user_id = admin_rows[0][0]
         for row in admin_rows:
             if row[1] == 'admin@scholarverge.com':
-                cursor.execute("UPDATE users SET email = 'scholarverge@gmail.com', password_hash = ? WHERE id = ?", (hash_password("Lovato20"), row[0]))
+                cursor.execute("UPDATE users SET email = 'scholarverge@gmail.com', password_hash = ? WHERE id = ?", (admin_pw_hash, row[0]))
             elif row[1] == 'scholarverge@gmail.com':
-                cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password("Lovato20"), row[0]))
+                cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (admin_pw_hash, row[0]))
 
-    # Synchronize Exactly 3 Real Tutors in Requested Order
-    cursor.execute("DELETE FROM tutors")
-    cursor.execute("""
-    INSERT INTO tutors (tutor_id, full_name, title, degree, subjects, whatsapp_number, direct_email, rating, total_reviews, active_load, status, avatar_url)
-    VALUES 
-    ('TUT-01', 'Oliver Harrison', 'Lead Quantitative Analyst & Economic Modeling Specialist', 'Ph.D. in Econometrics & Applied Statistics', 'Business, Economics, Finance, Mathematics, Statistics', '+16677757597', 'scholarverge@gmail.com', 4.97, 1280, 12, 'available', 'assets/images/tutors/oliver-harrison.jpg'),
-    ('TUT-02', 'Claire Bennett', 'Senior Academic Tutor & Legal Scholar', 'Master’s Degree in English Literature & IT Law', 'English, Information Technology, History, Law', '+16677757597', 'scholarverge@gmail.com', 4.99, 1420, 8, 'available', 'assets/images/tutors/claire-bennett.jpg'),
-    ('TUT-03', 'Sophia Mitchell', 'Clinical Healthcare Consultant & Psychology Fellow', 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology', 'Nursing, Healthcare, Psychology', '+16677757597', 'scholarverge@gmail.com', 4.99, 1650, 15, 'available', 'assets/images/tutors/sophia-mitchell.jpg')
-    """)
+    # Seed / Synchronize Default Working Student (jordan.m@university.edu / Scholar2026!)
+    student_pw_hash = hash_password("Scholar2026!")
+    cursor.execute("SELECT id FROM users WHERE email = 'jordan.m@university.edu'")
+    u_row = cursor.fetchone()
+    if not u_row:
+        cursor.execute("""
+        INSERT INTO users (user_uuid, email, password_hash, role, auth_provider, avatar_url, status, created_at)
+        VALUES ('USR-STU-8820', 'jordan.m@university.edu', ?, 'student', 'local', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 'active', datetime('now'))
+        """, (student_pw_hash,))
+        student_user_id = cursor.lastrowid
+    else:
+        student_user_id = u_row[0]
+        cursor.execute("UPDATE users SET password_hash = ?, status = 'active', role = 'student' WHERE email = 'jordan.m@university.edu'", (student_pw_hash,))
+
+    cursor.execute("SELECT id FROM students WHERE email = 'jordan.m@university.edu'")
+    s_row = cursor.fetchone()
+    if not s_row:
+        cursor.execute("""
+        INSERT INTO students (student_id, user_id, full_name, email, university, academic_level, major_field, preferred_citation, target_gpa, current_gpa, whatsapp_number, avatar_url, total_orders, status, created_at, updated_at)
+        VALUES ('SV-STU-8820', ?, 'Jordan Miller', 'jordan.m@university.edu', 'Oxford University', 'Master’s Degree', 'Econometrics & Comparative Law', 'APA 7th', 3.90, 3.78, '+16677757597', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 3, 'active', datetime('now'), datetime('now'))
+        """, (student_user_id,))
+    else:
+        cursor.execute("UPDATE students SET status = 'active', user_id = ? WHERE email = 'jordan.m@university.edu'", (student_user_id,))
+
+    # Ensure admin has a corresponding student record as well so student dashboard never 404s
+    cursor.execute("SELECT id FROM students WHERE email = 'scholarverge@gmail.com'")
+    if not cursor.fetchone():
+        cursor.execute("""
+        INSERT INTO students (student_id, user_id, full_name, email, university, academic_level, major_field, preferred_citation, target_gpa, current_gpa, whatsapp_number, avatar_url, total_orders, status, created_at, updated_at)
+        VALUES ('SV-ADM-01', ?, 'Academic Operations Lead', 'scholarverge@gmail.com', 'ScholarVerge Academic Administration', 'Doctoral / Ph.D.', 'Academic Operations & Research', 'APA 7th', 4.00, 4.00, '+16677757597', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 0, 'active', datetime('now'), datetime('now'))
+        """, (admin_user_id,))
+
+    # Synchronize Exactly 3 Real Tutors in Requested Order (without wiping auto-increment each restart)
+    cursor.execute("SELECT COUNT(*) FROM tutors")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("""
+        INSERT INTO tutors (tutor_id, full_name, title, degree, subjects, whatsapp_number, direct_email, rating, total_reviews, active_load, status, avatar_url)
+        VALUES 
+        ('TUT-01', 'Oliver Harrison', 'Lead Quantitative Analyst & Economic Modeling Specialist', 'Ph.D. in Econometrics & Applied Statistics', 'Business, Economics, Finance, Mathematics, Statistics', '+16677757597', 'scholarverge@gmail.com', 4.97, 1280, 12, 'available', 'assets/images/tutors/oliver-harrison.jpg'),
+        ('TUT-02', 'Claire Bennett', 'Senior Academic Tutor & Legal Scholar', 'Master’s Degree in English Literature & IT Law', 'English, Information Technology, History, Law', '+16677757597', 'scholarverge@gmail.com', 4.99, 1420, 8, 'available', 'assets/images/tutors/claire-bennett.jpg'),
+        ('TUT-03', 'Sophia Mitchell', 'Clinical Healthcare Consultant & Psychology Fellow', 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology', 'Nursing, Healthcare, Psychology', '+16677757597', 'scholarverge@gmail.com', 4.99, 1650, 15, 'available', 'assets/images/tutors/sophia-mitchell.jpg')
+        """)
+    else:
+        cursor.execute("UPDATE tutors SET whatsapp_number = '+16677757597', direct_email = 'scholarverge@gmail.com', status = 'available'")
 
     # Seed Initial Clean Verified Reviews (Linked to Real Tutors)
     cursor.execute("SELECT COUNT(*) FROM reviews")
@@ -334,8 +411,8 @@ def init_db():
         cursor.execute("""
         INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, stage, days_ready, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, admin_notes, file_name, file_size, created_at)
         VALUES 
-        ('SV-84920', 'SV-STU-101', 'Elena Rostova', 'elena.r@ox.ac.uk', 'Sophia Mitchell', 'Telehealth in Rural Palliative Care PICOT Systematic Review', 'Nursing & Healthcare', 'Master’s Degree', 8, 'APA 7th', 'In 2 Days', 'Drafting in Progress with Specialist Tutor', 'Drafting in Progress with Specialist Tutor', 'Ready in 2 days (Sep 3, 2026)', 65, 120.00, 'offline_whatsapp', 'payment_verified', 0.0, 0.4, 'Tutor Dr. Sophia Mitchell has finished the PRISMA systematic literature search and is drafting synthesis section 3.', 'Telehealth_Geriatric_Care_PICOT.docx', '1.8 MB', datetime('now', '-2 days')),
-        ('SV-77219', 'SV-STU-102', 'Marcus Vance', 'm.vance@yale.edu', 'Oliver Harrison', 'Quantitative Econometric Models & ESG Valuation Analysis', 'Economics & Finance', 'Doctoral / Ph.D.', 12, 'Harvard', 'Tomorrow', 'Turnitin 0% AI & Senior Quality Audit', 'Turnitin 0% AI & Senior Quality Audit', 'Ready in 18 hours (Tomorrow)', 85, 180.00, 'offline_whatsapp', 'payment_verified', 0.0, 0.2, 'Oliver Harrison verified R statistical regressions; final formatting and Turnitin originality audit underway.', 'Econometric_ESG_Valuation_Model.pdf', '2.4 MB', datetime('now', '-3 days')),
+        ('SV-84920', 'SV-STU-8820', 'Jordan Miller', 'jordan.m@university.edu', 'Sophia Mitchell', 'Telehealth in Rural Palliative Care PICOT Systematic Review', 'Nursing & Healthcare', 'Master’s Degree', 8, 'APA 7th', 'In 2 Days', 'Drafting in Progress with Specialist Tutor', 'Drafting in Progress with Specialist Tutor', 'Ready in 2 days (Sep 3, 2026)', 65, 120.00, 'offline_whatsapp', 'payment_verified', 0.0, 0.4, 'Tutor Dr. Sophia Mitchell has finished the PRISMA systematic literature search and is drafting synthesis section 3.', 'Telehealth_Geriatric_Care_PICOT.docx', '1.8 MB', datetime('now', '-2 days')),
+        ('SV-77219', 'SV-STU-8820', 'Jordan Miller', 'jordan.m@university.edu', 'Oliver Harrison', 'Quantitative Econometric Models & ESG Valuation Analysis', 'Economics & Finance', 'Doctoral / Ph.D.', 12, 'Harvard', 'Tomorrow', 'Turnitin 0% AI & Senior Quality Audit', 'Turnitin 0% AI & Senior Quality Audit', 'Ready in 18 hours (Tomorrow)', 85, 180.00, 'offline_whatsapp', 'payment_verified', 0.0, 0.2, 'Oliver Harrison verified R statistical regressions; final formatting and Turnitin originality audit underway.', 'Econometric_ESG_Valuation_Model.pdf', '2.4 MB', datetime('now', '-3 days')),
         ('SV-99104', 'SV-STU-103', 'Chloe St. Pierre', 'chloe.sp@mcgill.ca', 'Claire Bennett', 'Comparative Privacy Law & AI Surveillance Jurisprudence', 'Law & Technology', 'Master’s Degree', 10, 'OSCOLA', 'Completed', 'Completed & Ready for Student Download', 'Completed & Ready for Student Download', 'Completed & Delivered', 100, 150.00, 'offline_whatsapp', 'payment_verified', 0.0, 0.3, 'Final legal memorandum reviewed by Claire Bennett. 0% AI Turnitin digital receipt generated.', 'Comparative_Jurisprudence_Brief.pdf', '3.1 MB', datetime('now', '-5 days'))
         """)
 
@@ -355,6 +432,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
     Super Admin Dynamic Credentials Management, Student Profile CRUD, Student Flagging,
     1-on-1 Consultation Bookings, Direct Document Email Dispatches, and Verified Reviews.
     """
+    protocol_version = "HTTP/1.1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
@@ -378,6 +456,34 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_HEAD()
 
+    def serve_file_with_compression(self, file_path, content_type, cache_control="no-cache"):
+        try:
+            with open(file_path, "rb") as f:
+                content = f.read()
+            accept_encoding = self.headers.get("Accept-Encoding", "")
+            is_text = any(t in content_type for t in ["text", "javascript", "json", "svg", "html"])
+            if "gzip" in accept_encoding and is_text and len(content) > 512:
+                compressed = gzip.compress(content)
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Content-Length", str(len(compressed)))
+                self.send_header("Vary", "Accept-Encoding")
+                self.send_header("Cache-Control", cache_control)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(compressed)
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Cache-Control", cache_control)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(content)
+        except Exception as e:
+            self.send_error(500, f"Error reading file: {str(e)}")
+
     def do_GET(self):
         if self.path in ["/health", "/healthz"]:
             self.send_json_response(200, {
@@ -389,9 +495,32 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/api/"):
             self.handle_api_get(self.path)
         else:
-            if self.path in ["", "/"]:
-                self.path = "/index.html"
-            super().do_GET()
+            clean_path = self.path.split("?")[0].lstrip("/")
+            if clean_path in ["", "index.html"]:
+                file_path = os.path.join(BASE_DIR, "index.html")
+                self.serve_file_with_compression(file_path, "text/html; charset=utf-8", cache_control="no-cache")
+            else:
+                file_path = os.path.join(BASE_DIR, clean_path)
+                if os.path.exists(file_path) and os.path.isfile(file_path):
+                    ext = os.path.splitext(file_path)[1].lower()
+                    mime_types = {
+                        ".css": "text/css; charset=utf-8",
+                        ".js": "application/javascript; charset=utf-8",
+                        ".json": "application/json; charset=utf-8",
+                        ".html": "text/html; charset=utf-8",
+                        ".svg": "image/svg+xml",
+                        ".png": "image/png",
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                        ".webp": "image/webp",
+                        ".woff2": "font/woff2",
+                        ".ttf": "font/ttf"
+                    }
+                    mime_type = mime_types.get(ext, "application/octet-stream")
+                    cache = "public, max-age=86400" if ext in [".css", ".js", ".jpg", ".jpeg", ".png", ".webp", ".woff2", ".ttf"] else "no-cache"
+                    self.serve_file_with_compression(file_path, mime_type, cache_control=cache)
+                else:
+                    self.serve_file_with_compression(os.path.join(BASE_DIR, "index.html"), "text/html; charset=utf-8", cache_control="no-cache")
 
     def do_POST(self):
         if self.path.startswith("/api/"):
@@ -406,8 +535,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Endpoint not found")
 
     def handle_api_get(self, path):
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         try:
@@ -796,8 +924,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
 
     def handle_api_post(self, path, data):
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         try:
@@ -867,7 +994,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     }
                 })
 
-            # 2. Student Login
+            # 2. Student & Admin Universal Login
             elif path == "/api/auth/login":
                 email = data.get("email", "").strip().lower()
                 password = data.get("password", "").strip()
@@ -875,12 +1002,37 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
                 user = cursor.fetchone()
 
+                # Fallback check for admin alias
+                if not user and email in ("scholarverge@gmail.com", "admin@scholarverge.com"):
+                    cursor.execute("SELECT * FROM users WHERE role = 'superadmin' ORDER BY id ASC LIMIT 1")
+                    user = cursor.fetchone()
+
                 if not user or user["password_hash"] != hash_password(password):
                     self.send_json_response(401, {"success": False, "error": "Invalid email or password. Please verify your credentials."})
                     return
 
                 if user["status"] == "suspended":
                     self.send_json_response(403, {"success": False, "error": "Your account has been suspended by administration. Please contact support."})
+                    return
+
+                # If the authenticated user is Super Admin, return superadmin structure
+                if user["role"] == "superadmin":
+                    cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('SUPERADMIN_LOGIN', ?, 'Super Admin Login Approved via standard login', datetime('now'))", (user["email"],))
+                    conn.commit()
+                    session_token = generate_token()
+                    self.send_json_response(200, {
+                        "success": True,
+                        "message": "Super Admin Master Access Granted!",
+                        "session_token": session_token,
+                        "role": "superadmin",
+                        "user": {
+                            "email": user["email"],
+                            "role": "superadmin",
+                            "full_name": "Academic Operations Lead",
+                            "title": "System Administrator & Academic Director",
+                            "avatar_url": user["avatar_url"] or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+                        }
+                    })
                     return
 
                 cursor.execute("SELECT * FROM students WHERE email = ?", (email,))
@@ -908,6 +1060,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     "success": True,
                     "message": f"Welcome back, {student_dict.get('full_name')}!",
                     "session_token": session_token,
+                    "role": "student",
                     "user": student_dict
                 })
 
@@ -1043,11 +1196,17 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("SELECT * FROM users WHERE email = ? AND role = 'superadmin'", (admin_email,))
                 admin_user = cursor.fetchone()
 
+                # Fallback to check superadmin if using admin alias
+                if not admin_user and admin_email in ("admin@scholarverge.com", "scholarverge@gmail.com"):
+                    cursor.execute("SELECT * FROM users WHERE role = 'superadmin' ORDER BY id ASC LIMIT 1")
+                    admin_user = cursor.fetchone()
+
                 if not admin_user or admin_user["password_hash"] != hash_password(passcode):
                     self.send_json_response(401, {"success": False, "error": "Invalid Super Admin master credentials. Access denied."})
                     return
 
-                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('SUPERADMIN_LOGIN', ?, 'Super Admin Login Approved', datetime('now'))", (admin_email,))
+                actual_email = admin_user["email"]
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('SUPERADMIN_LOGIN', ?, 'Super Admin Login Approved', datetime('now'))", (actual_email,))
                 conn.commit()
 
                 admin_token = generate_token()
@@ -1055,12 +1214,13 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     "success": True,
                     "message": "Super Admin Master Access Granted!",
                     "session_token": admin_token,
+                    "role": "superadmin",
                     "user": {
-                        "email": admin_email,
+                        "email": actual_email,
                         "role": "superadmin",
                         "full_name": "Academic Operations Lead",
                         "title": "System Administrator & Academic Director",
-                        "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+                        "avatar_url": admin_user["avatar_url"] or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
                     }
                 })
 
@@ -1567,14 +1727,27 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
     def send_json_response(self, status_code, data):
         response_bytes = json.dumps(data, indent=2).encode('utf-8')
+        accept_encoding = ""
+        if hasattr(self, "headers") and self.headers:
+            accept_encoding = self.headers.get("Accept-Encoding", "")
         self.send_response(status_code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(response_bytes)))
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.end_headers()
-        self.wfile.write(response_bytes)
+
+        if "gzip" in accept_encoding and len(response_bytes) > 256:
+            compressed = gzip.compress(response_bytes)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(compressed)))
+            self.send_header("Vary", "Accept-Encoding")
+            self.end_headers()
+            self.wfile.write(compressed)
+        else:
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(response_bytes)))
+            self.end_headers()
+            self.wfile.write(response_bytes)
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -1587,150 +1760,87 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
+class WSGIHandlerAdapter(ScholarVergeAPIHandler):
+    """
+    Production WSGI Adapter that routes WSGI/Gunicorn requests directly through the full
+    ScholarVergeAPIHandler logic, including gzip compression, multi-tenant DB,
+    and all API endpoints.
+    """
+    def __init__(self, environ, start_response):
+        self.environ = environ
+        self.start_response = start_response
+        self.headers_to_send = []
+        self.status_code = 200
+        self.status_text = "200 OK"
+        self.wfile = io.BytesIO()
+        self.headers = {}
+        for k, v in environ.items():
+            if k.startswith('HTTP_'):
+                hname = k[5:].replace('_', '-').title()
+                self.headers[hname] = v
+        if 'CONTENT_TYPE' in environ:
+            self.headers['Content-Type'] = environ['CONTENT_TYPE']
+        if 'CONTENT_LENGTH' in environ:
+            self.headers['Content-Length'] = environ['CONTENT_LENGTH']
+
+        path_info = environ.get('PATH_INFO', '/')
+        query_string = environ.get('QUERY_STRING', '')
+        self.path = f"{path_info}?{query_string}" if query_string else path_info
+        self.command = environ.get('REQUEST_METHOD', 'GET').upper()
+
+        request_body_size = 0
+        try:
+            request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+        except (ValueError, TypeError):
+            request_body_size = 0
+        self.rfile = io.BytesIO(environ['wsgi.input'].read(request_body_size) if request_body_size > 0 else b"")
+
+    def send_response(self, code, message=None):
+        self.status_code = code
+        status_map = {
+            200: "200 OK", 201: "201 Created", 400: "400 Bad Request",
+            401: "401 Unauthorized", 403: "403 Forbidden", 404: "404 Not Found",
+            409: "409 Conflict", 500: "500 Internal Server Error"
+        }
+        msg = message if message else "Status"
+        self.status_text = status_map.get(code, f"{code} {msg}")
+
+    def send_header(self, keyword, value):
+        self.headers_to_send.append((keyword, str(value)))
+
+    def end_headers(self):
+        pass
+
+    def send_error(self, code, message=None, explain=None):
+        self.send_response(code, message)
+        err_body = json.dumps({"success": False, "error": message or f"HTTP {code}"}).encode('utf-8')
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(err_body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(err_body)
+
+    def dispatch(self):
+        if self.command == 'OPTIONS':
+            self.do_OPTIONS()
+        elif self.command == 'GET':
+            self.do_GET()
+        elif self.command == 'POST':
+            self.do_POST()
+        elif self.command == 'HEAD':
+            self.do_HEAD()
+        else:
+            self.send_error(405, "Method Not Allowed")
+        self.start_response(self.status_text, self.headers_to_send)
+        return [self.wfile.getvalue()]
+
 # Standard WSGI Application Adapter for Gunicorn / uWSGI cloud deployments
 def app(environ, start_response):
     """
     Standard WSGI callable for cloud platforms running Gunicorn (e.g. gunicorn server:app).
     """
-    import io
-    import mimetypes
-
-    path = environ.get('PATH_INFO', '/')
-    method = environ.get('REQUEST_METHOD', 'GET').upper()
-
-    if path in ['/health', '/healthz']:
-        res = json.dumps({
-            "status": "healthy",
-            "service": "ScholarVerge Production Cloud Server",
-            "timestamp": datetime.utcnow().isoformat()
-        }).encode('utf-8')
-        start_response('200 OK', [
-            ('Content-Type', 'application/json'),
-            ('Content-Length', str(len(res))),
-            ('Access-Control-Allow-Origin', '*')
-        ])
-        return [res]
-
-    if method == 'OPTIONS':
-        start_response('200 OK', [
-            ('Access-Control-Allow-Origin', '*'),
-            ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-            ('Content-Length', '0')
-        ])
-        return [b'']
-
-    # Static Assets Handler
-    if not path.startswith('/api/'):
-        file_rel = 'index.html' if path in ['', '/'] else path.lstrip('/')
-        file_path = os.path.join(BASE_DIR, file_rel)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = 'application/octet-stream'
-            with open(file_path, 'rb') as f:
-                content = f.read()
-            start_response('200 OK', [
-                ('Content-Type', mime_type),
-                ('Content-Length', str(len(content))),
-                ('Access-Control-Allow-Origin', '*')
-            ])
-            return [content]
-        else:
-            # Fallback to index.html for Single Page App
-            index_path = os.path.join(BASE_DIR, 'index.html')
-            with open(index_path, 'rb') as f:
-                content = f.read()
-            start_response('200 OK', [
-                ('Content-Type', 'text/html'),
-                ('Content-Length', str(len(content))),
-                ('Access-Control-Allow-Origin', '*')
-            ])
-            return [content]
-
-    # Handle REST API via Handler instance
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    try:
-        if method == 'GET':
-            # Run GET endpoint logic
-            if path == '/api/tutors':
-                cursor.execute("SELECT * FROM tutors ORDER BY id ASC")
-                tutors = [dict(r) for r in cursor.fetchall()]
-                res_body = json.dumps({"success": True, "tutors": tutors}).encode('utf-8')
-                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                return [res_body]
-            elif path.startswith('/api/orders/track'):
-                query_string = environ.get('QUERY_STRING', '')
-                params = dict(urllib.parse.parse_qsl(query_string))
-                code = params.get('code', params.get('order_number', '')).strip().upper().replace('#', '')
-                cursor.execute("SELECT * FROM orders WHERE UPPER(order_number) = ? OR UPPER(student_id) = ? ORDER BY id DESC LIMIT 1", (code, code))
-                row = cursor.fetchone()
-                if row:
-                    order_data = dict(row)
-                    cursor.execute("SELECT avatar_url FROM tutors WHERE full_name = ? LIMIT 1", (order_data["tutor_name"],))
-                    t_row = cursor.fetchone()
-                    order_data["tutor_avatar"] = t_row["avatar_url"] if t_row else "assets/images/tutors/sophia-mitchell.jpg"
-                    pct = int(order_data.get("progress_percentage") or 45)
-                    steps = [
-                        {"name": "Assignment Brief & Rubric Received", "time": "Initial Milestone", "done": pct >= 15},
-                        {"name": "Research Curation & Outline Approved", "time": "Milestone 2", "done": pct >= 35},
-                        {"name": f"Drafting in Progress with Tutor ({order_data['tutor_name']})", "time": "Milestone 3", "done": pct >= 60},
-                        {"name": "Turnitin 0.0% AI & Quality Audit", "time": "Milestone 4", "done": pct >= 85},
-                        {"name": "Completed & Verified for Download", "time": "Final Delivery", "done": pct >= 100}
-                    ]
-                    order_data["steps"] = steps
-                    res_body = json.dumps({"success": True, "order": order_data}).encode('utf-8')
-                    start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                    return [res_body]
-                else:
-                    res_body = json.dumps({"success": False, "error": f"Tracking ID #{code} not found."}).encode('utf-8')
-                    start_response('404 Not Found', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                    return [res_body]
-            else:
-                # Default API handler route dispatch
-                res_body = json.dumps({"status": "healthy", "service": "ScholarVerge Production Server"}).encode('utf-8')
-                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                return [res_body]
-        elif method == 'POST':
-            try:
-                request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-            except (ValueError):
-                request_body_size = 0
-            request_body = environ['wsgi.input'].read(request_body_size).decode('utf-8') if request_body_size > 0 else "{}"
-            try:
-                data = json.loads(request_body) if request_body else {}
-            except json.JSONDecodeError:
-                data = {}
-
-            if path == '/api/auth/login':
-                email = data.get('email', '').strip().lower()
-                password = data.get('password', '')
-                cursor.execute("SELECT * FROM users WHERE email = ? AND role = 'student'", (email,))
-                user = cursor.fetchone()
-                if user and user['password_hash'] == hash_password(password):
-                    cursor.execute("SELECT * FROM students WHERE email = ?", (email,))
-                    stu = cursor.fetchone()
-                    token = generate_token()
-                    res_body = json.dumps({
-                        "success": True,
-                        "session_token": token,
-                        "user": dict(stu) if stu else dict(user)
-                    }).encode('utf-8')
-                    start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                    return [res_body]
-                else:
-                    res_body = json.dumps({"success": False, "error": "Invalid student email or password."}).encode('utf-8')
-                    start_response('401 Unauthorized', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                    return [res_body]
-            else:
-                res_body = json.dumps({"success": True, "message": "Operation processed."}).encode('utf-8')
-                start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-                return [res_body]
-    finally:
-        conn.close()
+    adapter = WSGIHandlerAdapter(environ, start_response)
+    return adapter.dispatch()
 
 if __name__ == "__main__":
     server_address = ("0.0.0.0", PORT)

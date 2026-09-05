@@ -75,6 +75,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+  <!-- Google Fonts Outfit & Plus Jakarta Sans -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" />
 
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -1350,6 +1352,22 @@
       <div class="auth-body-content">
         <!-- 1. Student Sign In Tab -->
         <div id="auth-pane-login">
+          <!-- Instant Working Demo Credentials Banner -->
+          <div class="demo-credentials-banner" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 214, 160, 0.08)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);"><i class="fa-solid fa-key" style="color: var(--accent-blue);"></i> Instant Verified Demo Accounts</span>
+              <span class="badge badge-trust" style="font-size: 0.65rem; padding: 2px 6px;">1-Click Login</span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; background: #ffffff;" onclick="fillStudentDemoCredentials()">
+                <i class="fa-solid fa-graduation-cap" style="color: var(--accent-blue);"></i> Fill Student (jordan.m / Scholar2026!)
+              </button>
+              <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; background: #ffffff;" onclick="fillAdminDemoCredentials()">
+                <i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Fill Admin (scholarverge@gmail.com / Lovato20)
+              </button>
+            </div>
+          </div>
+
           <form onsubmit="handleStudentLogin(event)">
             <div class="calc-form-group">
               <label class="calc-label">Registered Student Email</label>
@@ -1381,7 +1399,7 @@
 
         <!-- 2. Create Student Account Tab -->
         <div id="auth-pane-register" style="display: none;">
-          <form onsubmit="handleStudentRegister(event)">
+          <form id="register-form" onsubmit="handleStudentRegister(event)">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="calc-form-group">
                 <label class="calc-label">Full Name</label>
@@ -1465,6 +1483,13 @@
               <strong style="font-size: 0.9rem; display: block;">Master Administrator Control Center</strong>
               <span style="font-size: 0.72rem; color: #cbd5e1;">Super Admin Master Credentials Authentication</span>
             </div>
+          </div>
+
+          <!-- Quick Fill Button for Admin -->
+          <div style="margin-bottom: 14px; text-align: right;">
+            <button type="button" class="btn btn-outline" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 6px; background: #ffffff;" onclick="fillAdminDemoCredentials()">
+              <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Auto-Fill Super Admin (scholarverge@gmail.com / Lovato20)
+            </button>
           </div>
 
           <form onsubmit="handleSuperAdminLogin(event)">
