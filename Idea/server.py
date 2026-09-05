@@ -312,7 +312,22 @@ def init_db():
     )
     """)
 
-    # 11. Performance Optimization Indexes
+    # 11. Notifications Table (Live Dual-Dashboard Alerts)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipient_role TEXT NOT NULL,
+        recipient_email TEXT,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT NOT NULL,
+        reference_id TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT
+    )
+    """)
+
+    # 12. Performance Optimization Indexes
     indexes = [
         "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);",
         "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);",
@@ -323,6 +338,7 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_orders_student_id ON orders(student_id);",
         "CREATE INDEX IF NOT EXISTS idx_bookings_student_email ON bookings(student_email);",
         "CREATE INDEX IF NOT EXISTS idx_document_uploads_email ON document_uploads(student_email);",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_recip ON notifications(recipient_role, recipient_email);",
         "CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status);",
         "CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(invite_code);",
         "CREATE INDEX IF NOT EXISTS idx_password_resets_email_otp ON password_resets(email, otp_code);",
@@ -634,6 +650,33 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 uploads = [dict(r) for r in cursor.fetchall()]
                 self.send_json_response(200, {"success": True, "uploads": uploads})
 
+            # Live Notifications API (Dual Dashboards)
+            elif path.startswith("/api/notifications"):
+                parsed_url = urllib.parse.urlparse(self.path)
+                params = urllib.parse.parse_qs(parsed_url.query)
+                role = params.get("role", ["admin"])[0].strip().lower()
+                email = params.get("email", [""])[0].strip().lower()
+
+                if role == "student" and email:
+                    cursor.execute("""
+                        SELECT * FROM notifications 
+                        WHERE recipient_role = 'student' AND (recipient_email = ? OR recipient_email IS NULL)
+                        ORDER BY id DESC LIMIT 50
+                    """, (email,))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM notifications 
+                        WHERE recipient_role = 'admin'
+                        ORDER BY id DESC LIMIT 50
+                    """)
+                notifs = [dict(r) for r in cursor.fetchall()]
+                unread_count = sum(1 for n in notifs if not n.get("is_read"))
+                self.send_json_response(200, {
+                    "success": True, 
+                    "notifications": notifs,
+                    "unread_count": unread_count
+                })
+
             # 7. Admin Invitations List
             elif path == "/api/admin/invitations/list":
                 cursor.execute("SELECT * FROM invitations ORDER BY id DESC")
@@ -845,7 +888,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("SELECT * FROM bookings ORDER BY id DESC")
                 bookings_list = [dict(r) for r in cursor.fetchall()]
 
-                cursor.execute("SELECT upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at FROM document_uploads ORDER BY id DESC")
+                cursor.execute("SELECT id, upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at FROM document_uploads ORDER BY id DESC")
                 uploads_list = [dict(r) for r in cursor.fetchall()]
                 for u in uploads_list:
                     u["download_url"] = f"/api/document/download?order={u.get('tracking_number') or u.get('upload_id')}"
@@ -1412,6 +1455,13 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment coordinated via WhatsApp"))
+
+                # Trigger Live Notification for Super Admin
+                cursor.execute("""
+                INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
+                VALUES ('admin', NULL, ?, ?, 'order_created', ?, 0, datetime('now'))
+                """, (f"New Order Placed (#{order_num})", f"Student {student_name} ({student_email}) placed order #{order_num} for '{topic}' ({pages} pages, Tutor: {tutor_name})", order_num))
+
                 conn.commit()
 
                 # Build WhatsApp payment link
@@ -1555,6 +1605,13 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('DOCUMENT_UPLOAD_TRACKED', ?, ?, datetime('now'))", (student_email, f"Assignment Brief #{tracking_number} ({topic} - {assignment_type}) uploaded for {tutor_name}"))
+
+                # Trigger Live Notification for Super Admin
+                cursor.execute("""
+                INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
+                VALUES ('admin', NULL, ?, ?, 'doc_uploaded', ?, 0, datetime('now'))
+                """, (f"New Document Uploaded (#{tracking_number})", f"{student_name} ({student_email}) uploaded brief '{file_name}' ({file_size}) for: {topic}", tracking_number))
+
                 conn.commit()
 
                 # Generate direct WhatsApp sharing URL to Super Admin
@@ -1659,6 +1716,14 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 """, (stage, stage, days_ready, progress, notes_to_set, tutor_to_set, turnitin_ai, turnitin_sim, payment_status, order_num))
 
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_ORDER_STAGE_UPDATE', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Task #{order_num} updated to stage '{stage}' (Timeline: {days_ready}, Progress: {progress}%)",))
+
+                # Trigger Live Notification for Student if Completed
+                if "complete" in stage.lower() or "deliver" in stage.lower() or progress == 100:
+                    cursor.execute("""
+                    INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
+                    VALUES ('student', ?, ?, ?, 'assignment_completed', ?, 0, datetime('now'))
+                    """, (order_row["student_email"], f"Assignment #{order_num} Completed!", f"Great news! Your assignment #{order_num} for '{order_row['topic']}' has been completed and verified (0% AI Turnitin Guarantee).", order_num))
+
                 conn.commit()
 
                 stu_name = order_row["student_name"]
@@ -1702,6 +1767,13 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 """, (completed_file_name, completed_file_data, completed_file_size, admin_notes, turnitin_ai, turnitin_sim, order_num))
 
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_UPLOAD_COMPLETED_WORK', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Uploaded completed assignment ({completed_file_name}) for order #{order_num}",))
+
+                # Trigger Live Notification for Student with download ready alert
+                cursor.execute("""
+                INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
+                VALUES ('student', ?, ?, ?, 'assignment_completed', ?, 0, datetime('now'))
+                """, (order_row["student_email"], f"Assignment #{order_num} Completed & Ready for Download!", f"Tutor {order_row['tutor_name']} has completed your paper '{completed_file_name}' for Order #{order_num}. Download it now from your Academic Hub!", order_num))
+
                 conn.commit()
 
                 stu_name = order_row["student_name"]
@@ -1716,6 +1788,100 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     "completed_file_name": completed_file_name,
                     "whatsapp_student_url": wa_url
                 })
+
+            # 19. Super Admin Delete Order (CRUD)
+            elif path == "/api/admin/orders/delete":
+                order_num = data.get("order_number", "").strip().upper().replace("#", "")
+                if not order_num:
+                    self.send_json_response(400, {"success": False, "error": "Order number is required."})
+                    return
+                cursor.execute("DELETE FROM orders WHERE UPPER(order_number) = ?", (order_num,))
+                cursor.execute("DELETE FROM document_uploads WHERE UPPER(tracking_number) = ? OR UPPER(upload_id) = ?", (order_num, order_num))
+                cursor.execute("DELETE FROM notifications WHERE reference_id = ?", (order_num,))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_DELETE_ORDER', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Deleted order #{order_num}",))
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": f"Order #{order_num} deleted successfully."})
+
+            # 20. Super Admin Delete Booking (CRUD)
+            elif path == "/api/admin/bookings/delete":
+                booking_id = data.get("booking_id", "").strip().upper().replace("#", "")
+                if not booking_id:
+                    self.send_json_response(400, {"success": False, "error": "Booking ID is required."})
+                    return
+                cursor.execute("DELETE FROM bookings WHERE UPPER(booking_id) = ?", (booking_id,))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_DELETE_BOOKING', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Deleted booking #{booking_id}",))
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": f"Booking #{booking_id} deleted successfully."})
+
+            # 21. Super Admin Delete Uploaded Document (CRUD)
+            elif path == "/api/admin/uploads/delete":
+                upload_id = str(data.get("upload_id", data.get("id", ""))).strip()
+                if not upload_id:
+                    self.send_json_response(400, {"success": False, "error": "Upload ID is required."})
+                    return
+                cursor.execute("DELETE FROM document_uploads WHERE upload_id = ? OR tracking_number = ? OR id = ?", (upload_id, upload_id, upload_id))
+                cursor.execute("DELETE FROM notifications WHERE reference_id = ?", (upload_id,))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_DELETE_UPLOAD', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Deleted document upload #{upload_id}",))
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": f"Upload #{upload_id} deleted successfully."})
+
+            # 22. Super Admin Delete Student (CRUD)
+            elif path == "/api/admin/students/delete":
+                email = data.get("email", "").strip().lower()
+                if not email:
+                    self.send_json_response(400, {"success": False, "error": "Student email is required."})
+                    return
+                cursor.execute("SELECT role FROM users WHERE LOWER(email) = ?", (email,))
+                user_row = cursor.fetchone()
+                if user_row and user_row["role"] == "superadmin":
+                    self.send_json_response(403, {"success": False, "error": "Cannot delete Super Admin account."})
+                    return
+                cursor.execute("DELETE FROM students WHERE LOWER(email) = ?", (email,))
+                cursor.execute("DELETE FROM users WHERE LOWER(email) = ? AND role = 'student'", (email,))
+                cursor.execute("DELETE FROM orders WHERE LOWER(student_email) = ?", (email,))
+                cursor.execute("DELETE FROM bookings WHERE LOWER(student_email) = ?", (email,))
+                cursor.execute("DELETE FROM document_uploads WHERE LOWER(student_email) = ?", (email,))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_DELETE_STUDENT', 'scholarverge@gmail.com', ?, datetime('now'))", (f"Deleted student {email} and associated records",))
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": f"Student {email} and related records deleted successfully."})
+
+            # 23. Super Admin Purge Test / Dummy Data
+            elif path == "/api/admin/purge-test-data":
+                cursor.execute("DELETE FROM orders WHERE order_number LIKE 'TEST-%' OR topic LIKE '%Test%' OR topic LIKE '%Dummy%'")
+                cursor.execute("DELETE FROM bookings WHERE booking_id LIKE 'TEST-%' OR student_name LIKE '%Test%'")
+                cursor.execute("DELETE FROM document_uploads WHERE upload_id LIKE 'TEST-%' OR assignment_topic LIKE '%Test%'")
+                cursor.execute("DELETE FROM notifications WHERE message LIKE '%Test%'")
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ADMIN_PURGE_TEST_DATA', 'scholarverge@gmail.com', 'Purged test and dummy records', datetime('now'))")
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": "All test and dummy records purged successfully."})
+
+            # 24. Mark Notifications as Read
+            elif path == "/api/notifications/read":
+                notif_id = data.get("id")
+                role = data.get("role", "admin").strip().lower()
+                email = data.get("email", "").strip().lower()
+                if notif_id:
+                    cursor.execute("UPDATE notifications SET is_read = 1 WHERE id = ?", (notif_id,))
+                elif role == "student" and email:
+                    cursor.execute("UPDATE notifications SET is_read = 1 WHERE recipient_role = 'student' AND (recipient_email = ? OR recipient_email IS NULL)", (email,))
+                else:
+                    cursor.execute("UPDATE notifications SET is_read = 1 WHERE recipient_role = 'admin'")
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": "Notifications marked as read."})
+
+            # 25. Clear / Delete Notifications
+            elif path == "/api/notifications/delete" or path == "/api/notifications/clear":
+                notif_id = data.get("id")
+                role = data.get("role", "admin").strip().lower()
+                email = data.get("email", "").strip().lower()
+                if notif_id:
+                    cursor.execute("DELETE FROM notifications WHERE id = ?", (notif_id,))
+                elif role == "student" and email:
+                    cursor.execute("DELETE FROM notifications WHERE recipient_role = 'student' AND (recipient_email = ? OR recipient_email IS NULL)", (email,))
+                else:
+                    cursor.execute("DELETE FROM notifications WHERE recipient_role = 'admin'")
+                conn.commit()
+                self.send_json_response(200, {"success": True, "message": "Notifications cleared successfully."})
 
             else:
                 self.send_json_response(404, {"success": False, "error": f"POST Endpoint {path} not found"})

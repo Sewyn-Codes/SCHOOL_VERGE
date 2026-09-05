@@ -1,13 +1,12 @@
 /**
  * ScholarVerge.com - Official Interactive Application Engine
  * Featuring Multi-Tenant Student Accounts, Google OAuth, Student Invitation Link Generator,
- * Dynamic Super Admin Credentials Management (Default: scholarverge@gmail.com / Lovato20,
- * full credential rotation and old credentials blocking),
+ * Dynamic Super Admin Credentials Management (Secure Authenticated Server-side DB),
  * Strict Real Data Analytics (Zero Dummy/Revenue Stats in Admin),
  * Student Profile Full CRUD & Flagging Control,
  * Real Specialist Tutors (Oliver Harrison, Claire Bennett, Sophia Mitchell),
  * 1-on-1 Consultation Bookings with WhatsApp Admin Meetup Coordination,
- * and Direct Document Email Dispatches to scholarverge@gmail.com.
+ * and Direct Document Email Dispatches.
  */
 
 // Application Global Multi-Tenant Authentication State (Clean Guest-First Default)
@@ -307,15 +306,9 @@ function fillStudentDemoCredentials() {
 }
 
 function fillAdminDemoCredentials() {
-  switchAuthTab('admin');
-  const adminEmail = document.getElementById('admin-login-email');
-  const adminPw = document.getElementById('admin-login-password');
-  if (adminEmail && adminPw) {
-    adminEmail.value = 'scholarverge@gmail.com';
-    adminPw.value = 'Lovato20';
-    showToast('Loaded Super Admin: scholarverge@gmail.com / Lovato20');
-  }
+  // Admin credentials are confidential and securely entered manually
 }
+
 
 /* ==========================================================================
    Multi-Tenant Student Authentication Handlers (API Connected)
@@ -781,7 +774,7 @@ function switchActivityTab(tab) {
   const tabs = ['booking', 'upload', 'review', 'tools'];
   const titles = {
     booking: '1-on-1 Consultations, Live Review & Rubric Defense',
-    upload: 'Direct Assignment Dispatch to scholarverge@gmail.com',
+    upload: 'Direct Assignment Dispatch & Rubric Submission',
     review: 'Post-Delivery Grade Feedback & Verified Review',
     tools: 'Academic Citation Generator & GPA Forecaster'
   };
@@ -854,7 +847,7 @@ function handleBookingSubmit(e) {
             <h4 style="font-size: 1rem; color: var(--primary); margin-bottom: 4px;">${b.session_type}</h4>
             <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Tutor: <strong>${b.tutor_name}</strong> • Platform: <strong>${b.platform}</strong></p>
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 0.825rem; color: #92400e;">
-              <i class="fa-brands fa-whatsapp"></i> Click below to message Admin on WhatsApp (+1 667 775 7597) to receive your official meeting room link.
+              <i class="fa-brands fa-whatsapp"></i> Click below to message Admin on WhatsApp to receive your official meeting room link.
             </div>
             <div style="display: flex; gap: 8px;">
               <a href="${b.whatsapp_admin_url}" target="_blank" class="btn btn-whatsapp" style="flex: 1; font-size: 0.85rem; padding: 10px 14px;">
@@ -873,9 +866,9 @@ function handleBookingSubmit(e) {
   });
 }
 
-/* Activity 2: Direct Document & Rubric Email Dispatch */
+/* Activity 2: Direct Document & Rubric Dispatch */
 function handleRealFileChange(e) {
-  const file = e.target.files[0];
+  const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
   if (!file) return;
 
   const sizeFormatted = file.size > 1024 * 1024 
@@ -889,18 +882,108 @@ function handleRealFileChange(e) {
     data: ''
   };
 
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    uploadedFileMeta.data = evt.target.result;
-  };
-  reader.readAsDataURL(file);
+  if (typeof FileReader !== 'undefined' && file instanceof Blob) {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      if (uploadedFileMeta) uploadedFileMeta.data = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
-  const label = document.getElementById('file-dropzone-label');
-  const sub = document.getElementById('file-dropzone-sub');
-  if (label) label.textContent = `Attached: ${file.name} (${sizeFormatted})`;
-  if (sub) sub.textContent = `Universal format ready for dispatch`;
+  const dropzone = document.getElementById('file-dropzone-container');
+  const preview = document.getElementById('file-selected-preview');
+  const nameEl = document.getElementById('file-selected-name');
+  const sizeEl = document.getElementById('file-selected-size');
+  const submitWrap = document.getElementById('upload-submit-container');
+  const hintEl = document.getElementById('upload-no-file-hint');
+
+  if (dropzone) dropzone.style.display = 'none';
+  if (preview) {
+    preview.style.display = 'flex';
+    if (nameEl) nameEl.textContent = file.name;
+    if (sizeEl) sizeEl.textContent = `${sizeFormatted} • Ready to send`;
+  }
+  if (submitWrap) submitWrap.style.display = 'block';
+  if (hintEl) hintEl.style.display = 'none';
+
+  showToast(`Attached file: ${file.name} (${sizeFormatted})`);
+}
+
+function clearUploadedFile(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  uploadedFileMeta = null;
+  const picker = document.getElementById('real-file-picker');
+  if (picker) picker.value = '';
+
+  const dropzone = document.getElementById('file-dropzone-container');
+  const preview = document.getElementById('file-selected-preview');
+  const submitWrap = document.getElementById('upload-submit-container');
+  const hintEl = document.getElementById('upload-no-file-hint');
+
+  if (preview) preview.style.display = 'none';
+  if (dropzone) dropzone.style.display = 'block';
+  if (submitWrap) submitWrap.style.display = 'none';
+  if (hintEl) hintEl.style.display = 'block';
+}
+
+/* Modal 4: File Upload & Attachment Logic */
+let orderUploadedFileMeta = null;
+
+function handleOrderFileChange(e) {
+  const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+  if (!file) return;
+
+  const sizeFormatted = file.size > 1024 * 1024 
+    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
+    : `${(file.size / 1024).toFixed(1)} KB`;
+
+  orderUploadedFileMeta = {
+    name: file.name,
+    size: sizeFormatted,
+    type: file.type || 'Document File',
+    data: ''
+  };
+
+  if (typeof FileReader !== 'undefined' && file instanceof Blob) {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      if (orderUploadedFileMeta) orderUploadedFileMeta.data = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const dropzone = document.getElementById('order-file-dropzone');
+  const preview = document.getElementById('order-file-preview');
+  const nameEl = document.getElementById('order-preview-filename');
+  const sizeEl = document.getElementById('order-preview-filesize');
+
+  if (dropzone) dropzone.style.display = 'none';
+  if (preview) {
+    preview.style.display = 'flex';
+    if (nameEl) nameEl.textContent = file.name;
+    if (sizeEl) sizeEl.textContent = `${sizeFormatted} • Attached`;
+  }
 
   showToast(`Attached ${file.name} (${sizeFormatted})!`);
+}
+
+function clearOrderFile(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  orderUploadedFileMeta = null;
+  const picker = document.getElementById('order-file-picker');
+  if (picker) picker.value = '';
+
+  const dropzone = document.getElementById('order-file-dropzone');
+  const preview = document.getElementById('order-file-preview');
+
+  if (preview) preview.style.display = 'none';
+  if (dropzone) dropzone.style.display = 'block';
 }
 
 function updateBriefPricePreview() {
@@ -930,6 +1013,11 @@ function handleDocumentEmailDispatch(e) {
     return;
   }
 
+  if (!uploadedFileMeta || !uploadedFileMeta.name || !uploadedFileMeta.data) {
+    showToast('Please select or upload a document file from your device first.');
+    return;
+  }
+
   const topic = document.getElementById('upload-topic').value.trim();
   const assignmentType = document.getElementById('upload-assignment-type') ? document.getElementById('upload-assignment-type').value : 'Essay';
   const subject = document.getElementById('upload-subject') ? document.getElementById('upload-subject').value : 'Academic Research';
@@ -949,10 +1037,10 @@ function handleDocumentEmailDispatch(e) {
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
-  const fileName = uploadedFileMeta ? uploadedFileMeta.name : 'Assignment_Brief_Requirements.pdf';
-  const fileSize = uploadedFileMeta ? uploadedFileMeta.size : '1.4 MB';
-  const fileType = uploadedFileMeta ? uploadedFileMeta.type : 'PDF Document';
-  const fileData = uploadedFileMeta ? uploadedFileMeta.data : '';
+  const fileName = uploadedFileMeta.name;
+  const fileSize = uploadedFileMeta.size;
+  const fileType = uploadedFileMeta.type;
+  const fileData = uploadedFileMeta.data;
 
   fetch('/api/student/upload-document', {
     method: 'POST',
@@ -1021,7 +1109,7 @@ function handleDocumentEmailDispatch(e) {
     }
   })
   .catch(() => {
-    showToast(`Documents dispatched to scholarverge@gmail.com!`);
+    showToast(`Assignment brief dispatched to Academic Desk!`);
   });
 }
 
@@ -1289,6 +1377,10 @@ function openStudentDashboard() {
       renderStudentDashboardOrders([]);
     });
 
+  if (u.email) {
+    fetchStudentNotifications(u.email);
+  }
+
   openModal('student-dashboard-modal');
 }
 
@@ -1356,6 +1448,7 @@ function openSuperAdminPortal() {
   }
 
   loadAdminOverviewData();
+  fetchAdminNotifications();
   openModal('super-admin-modal');
 }
 
@@ -1370,9 +1463,13 @@ function loadAdminOverviewData() {
         renderAdminInvitesTable(data.invitations || []);
         renderAdminStudentsTable(data.students || []);
         renderAdminTutorsGrid(data.tutors || []);
+        renderAdminUploadsTable(data.uploads || []);
+        const uploadsBadge = document.getElementById('admin-tab-uploads-count');
+        if (uploadsBadge) uploadsBadge.textContent = (data.uploads || []).length;
       }
     })
     .catch(() => {});
+  fetchAdminNotifications();
 }
 
 function renderAdminStats(metrics) {
@@ -1396,7 +1493,7 @@ function switchAdminTab(tabName) {
     }
   });
 
-  const panes = ['orders', 'bookings', 'invites', 'students', 'tutors', 'security', 'database'];
+  const panes = ['orders', 'uploads', 'bookings', 'invites', 'students', 'tutors', 'security', 'database'];
   panes.forEach(p => {
     const el = document.getElementById(`admin-pane-${p}`);
     if (el) el.style.display = p === tabName ? 'block' : 'none';
@@ -1468,6 +1565,9 @@ function renderAdminOrdersTable(orders) {
           <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${o.student_name}! ScholarVerge Super Admin update on Assignment #${o.order_number}: Current Stage is "${o.stage || o.status}". Delivery Timeline: ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage}% completed). Guiding Tutor: ${o.tutor_name}.`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;" title="Share Update to Student on WhatsApp">
             <i class="fa-brands fa-whatsapp"></i>
           </a>
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteOrder('${o.order_number}')" title="Delete Order">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
         </div>
       </td>
     </tr>
@@ -1499,9 +1599,14 @@ function renderAdminBookingsTable(bookings) {
         </div>
       </td>
       <td>
-        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;" onclick="openAdminSetMeetingLinkModal('${b.booking_id}', '${b.student_name.replace(/'/g, "\\'")}', '${b.tutor_name.replace(/'/g, "\\'")}', '${b.session_type.replace(/'/g, "\\'")}', '${b.scheduled_date}', '${b.scheduled_time}', '${b.platform}')">
-          <i class="fa-solid fa-video"></i> Set Link & Share
-        </button>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;" onclick="openAdminSetMeetingLinkModal('${b.booking_id}', '${b.student_name.replace(/'/g, "\\'")}', '${b.tutor_name.replace(/'/g, "\\'")}', '${b.session_type.replace(/'/g, "\\'")}', '${b.scheduled_date}', '${b.scheduled_time}', '${b.platform}')">
+            <i class="fa-solid fa-video"></i> Set Link
+          </button>
+          <button class="btn btn-outline" style="padding: 4px 6px; font-size: 0.72rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteBooking('${b.booking_id}')" title="Delete Consultation Booking">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -1579,11 +1684,56 @@ function renderAdminStudentsTable(students) {
             <a href="https://wa.me/16677757597?text=Hello%20${encodeURIComponent(s.full_name)}%2C%20from%20ScholarVerge%20Super%20Admin" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
               <i class="fa-brands fa-whatsapp"></i>
             </a>
+            ${s.role !== 'superadmin' && s.email !== 'scholarverge@gmail.com' ? `
+              <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteStudent('${s.email}')" title="Delete Student Account">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            ` : ''}
           </div>
         </td>
       </tr>
     `;
   }).join('');
+}
+
+function renderAdminUploadsTable(uploads) {
+  const tbody = document.getElementById('admin-uploads-tbody');
+  if (!tbody) return;
+
+  if (!uploads || uploads.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">No document briefs or rubric files uploaded yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = uploads.map(u => `
+    <tr>
+      <td><strong>#${u.upload_id || u.id}</strong></td>
+      <td>
+        <span style="font-weight: 600; color: #1e3a8a;">${u.student_email}</span>
+      </td>
+      <td>
+        <span class="badge badge-trust">${u.tracking_number || u.order_number || 'Direct Upload'}</span>
+      </td>
+      <td>
+        <div style="font-weight: 500; color: #334155; word-break: break-all;">
+          <i class="fa-solid fa-file-lines" style="color: #2563eb; margin-right: 5px;"></i>${u.file_name || u.original_filename || 'Uploaded Document'}
+        </div>
+      </td>
+      <td style="font-size: 0.75rem; color: #64748b; white-space: nowrap;">
+        ${(u.created_at || u.uploaded_at || '').replace('T', ' ').substring(0, 16) || 'Recently'}
+      </td>
+      <td>
+        <div style="display: flex; gap: 4px;">
+          <a href="/api/document/download?order=${encodeURIComponent(u.tracking_number || u.upload_id || '')}" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #2563eb; text-decoration: none;" download title="Download Student Brief">
+            <i class="fa-solid fa-download"></i>
+          </a>
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteUpload('${u.upload_id || u.id}')" title="Delete Uploaded Brief">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function renderAdminTutorsGrid(tutors) {
@@ -1612,6 +1762,258 @@ function renderAdminTutorsGrid(tutors) {
       </div>
     </div>
   `).join('');
+}
+
+/* ==========================================================================
+   Super Admin CRUD Deletion & Purge Operations
+   ========================================================================== */
+function adminDeleteOrder(orderNum) {
+  if (!confirm(`Are you sure you want to delete Order #${orderNum}? This action cannot be undone.`)) return;
+
+  fetch('/api/admin/orders/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_number: orderNum })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || `Order #${orderNum} deleted successfully!`);
+        loadAdminOverviewData();
+      } else {
+        showToast(data.message || 'Error deleting order', 'error');
+      }
+    })
+    .catch(() => showToast('Network error deleting order', 'error'));
+}
+
+function adminDeleteBooking(bookingId) {
+  if (!confirm(`Are you sure you want to delete Consultation Booking #${bookingId}?`)) return;
+
+  fetch('/api/admin/bookings/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ booking_id: bookingId })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || `Booking #${bookingId} deleted.`);
+        loadAdminOverviewData();
+      } else {
+        showToast(data.message || 'Error deleting booking', 'error');
+      }
+    })
+    .catch(() => showToast('Network error deleting booking', 'error'));
+}
+
+function adminDeleteUpload(uploadId) {
+  if (!confirm(`Are you sure you want to delete Upload #${uploadId}?`)) return;
+
+  fetch('/api/admin/uploads/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ upload_id: uploadId })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || `Uploaded brief #${uploadId} deleted.`);
+        loadAdminOverviewData();
+      } else {
+        showToast(data.message || 'Error deleting upload', 'error');
+      }
+    })
+    .catch(() => showToast('Network error deleting upload', 'error'));
+}
+
+function adminDeleteStudent(email) {
+  if (!confirm(`Are you sure you want to permanently delete student account ${email}?`)) return;
+
+  fetch('/api/admin/students/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || `Student ${email} deleted.`);
+        loadAdminOverviewData();
+      } else {
+        showToast(data.message || 'Error deleting student', 'error');
+      }
+    })
+    .catch(() => showToast('Network error deleting student', 'error'));
+}
+
+function adminPurgeTestData() {
+  if (!confirm('CAUTION: Are you sure you want to purge all test and dummy data (orders, uploads, bookings)? Active core seed accounts will be preserved.')) return;
+
+  fetch('/api/admin/purge-test-data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || 'All test & dummy data purged successfully!');
+        loadAdminOverviewData();
+        fetchDatabaseHealth();
+      } else {
+        showToast(data.message || 'Error purging data', 'error');
+      }
+    })
+    .catch(() => showToast('Network error during purge', 'error'));
+}
+
+/* ==========================================================================
+   Live Notifications System: Admin Operations & Student Dashboard Alerts
+   ========================================================================== */
+function fetchAdminNotifications() {
+  const badge = document.getElementById('admin-notif-badge');
+  const list = document.getElementById('admin-notif-list');
+  if (!badge || !list) return;
+
+  fetch('/api/notifications?role=admin')
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const unreadCount = data.unread_count || 0;
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        const notifs = data.notifications || [];
+        if (notifs.length === 0) {
+          list.innerHTML = `<div style="font-size: 0.8rem; color: #78350f; padding: 8px 0; text-align: center;">No new operational alerts.</div>`;
+          return;
+        }
+
+        list.innerHTML = notifs.map(n => `
+          <div style="background: ${n.is_read ? '#fef3c7' : '#ffffff'}; border: 1px solid ${n.is_read ? '#fde68a' : '#f59e0b'}; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid ${n.type === 'doc_uploaded' ? 'fa-file-arrow-up' : 'fa-bell'}" style="color: #d97706;"></i>
+                ${n.title}
+                ${!n.is_read ? '<span class="badge" style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 1px 5px;">NEW</span>' : ''}
+              </div>
+              <div style="font-size: 0.78rem; color: #78350f; margin-top: 2px;">
+                ${n.message}
+              </div>
+              <div style="font-size: 0.7rem; color: #a16207; margin-top: 2px;">
+                ${n.created_at ? n.created_at.split('T')[0] + ' ' + (n.created_at.split('T')[1] || '').substring(0, 5) : 'Just now'}
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              ${n.link ? `
+                <a href="${n.link}" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; color: #2563eb; text-decoration: none;" download>
+                  <i class="fa-solid fa-download"></i> View File
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+    })
+    .catch(() => {});
+}
+
+function toggleAdminNotificationPanel() {
+  const panel = document.getElementById('admin-notif-panel');
+  if (!panel) return;
+  const isHidden = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    fetchAdminNotifications();
+  }
+}
+
+function adminMarkAllNotificationsRead() {
+  fetch('/api/notifications/read', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'admin' })
+  })
+    .then(r => r.json())
+    .then(() => {
+      showToast('All notifications marked as read.');
+      fetchAdminNotifications();
+    });
+}
+
+function adminClearNotifications() {
+  if (!confirm('Clear all operational notifications?')) return;
+  fetch('/api/notifications/clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'admin' })
+  })
+    .then(r => r.json())
+    .then(() => {
+      showToast('Notifications cleared.');
+      fetchAdminNotifications();
+    });
+}
+
+function fetchStudentNotifications(studentEmail) {
+  const container = document.getElementById('student-notif-container');
+  if (!container || !studentEmail) return;
+
+  fetch(`/api/notifications?role=student&email=${encodeURIComponent(studentEmail)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.notifications && data.notifications.length > 0) {
+        const unreadNotifs = data.notifications.filter(n => !n.is_read);
+        if (unreadNotifs.length === 0) {
+          container.style.display = 'none';
+          return;
+        }
+
+        container.style.display = 'block';
+        container.innerHTML = unreadNotifs.map(n => `
+          <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div>
+                <strong style="color: #065f46; font-size: 0.88rem; display: block;">${n.title}</strong>
+                <span style="color: #047857; font-size: 0.8rem;">${n.message}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${n.link ? `
+                <a href="${n.link}" class="btn btn-primary" style="padding: 5px 12px; font-size: 0.78rem; background: #059669; border-color: #059669; text-decoration: none;" download>
+                  <i class="fa-solid fa-download"></i> Download Completed Assignment
+                </a>
+              ` : ''}
+              <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; color: #047857; border-color: #a7f3d0;" onclick="markStudentNotificationRead(${n.id}, '${encodeURIComponent(studentEmail)}')">
+                <i class="fa-solid fa-check"></i> Dismiss
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        container.style.display = 'none';
+      }
+    })
+    .catch(() => {
+      container.style.display = 'none';
+    });
+}
+
+function markStudentNotificationRead(notifId, studentEmail) {
+  fetch('/api/notifications/read', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: notifId, role: 'student', email: decodeURIComponent(studentEmail) })
+  }).then(() => {
+    fetchStudentNotifications(decodeURIComponent(studentEmail));
+  });
 }
 
 function adminQuickAdvanceOrder(orderNum) {
@@ -1821,16 +2223,16 @@ function copyCitationTemplate(format) {
 const commandItems = [
   { title: 'Student Activities Hub', sub: '1-on-1 booking, doc email dispatch, verified reviews & tools', action: () => { openStudentActivitiesModal('booking'); } },
   { title: 'Book 1-on-1 Consultation', sub: 'Schedule live thesis or rubric session with tutor', action: () => { openStudentActivitiesModal('booking'); } },
-  { title: 'Dispatch Document to Email', sub: 'Send assignment brief to scholarverge@gmail.com', action: () => { openStudentActivitiesModal('upload'); } },
+  { title: 'Dispatch Document to Academic Team', sub: 'Upload assignment brief and rubric files', action: () => { openStudentActivitiesModal('upload'); } },
   { title: 'Academic Citation Generator', sub: 'Create formatted APA 7, MLA 9, Harvard citations', action: () => { openStudentActivitiesModal('tools'); } },
   { title: 'Sign In / Register Account', sub: 'Student login, registration & password recovery', action: () => { openAuthModal('login'); } },
   { title: 'Student Academic Dashboard', sub: 'View active assignments, GPA progress & downloads', action: () => { openStudentDashboard(); } },
-  { title: 'Super Admin Control Center', sub: 'Master management for orders, students, tutors & PostgreSQL', action: () => { openSuperAdminPortal(); } },
+  { title: 'Super Admin Control Center', sub: 'Master management for orders, students, tutors & database', action: () => { openSuperAdminPortal(); } },
   { title: 'Oliver Harrison', sub: 'Tutor • Business, Economics, Finance, Math & Stats', action: () => { openOrderModalWithTutor('Oliver Harrison'); } },
   { title: 'Claire Bennett', sub: 'Tutor • English, IT, History, Law & Humanities', action: () => { openOrderModalWithTutor('Claire Bennett'); } },
   { title: 'Sophia Mitchell', sub: 'Tutor • Nursing, Healthcare & Psychology', action: () => { openOrderModalWithTutor('Sophia Mitchell'); } },
-  { title: 'WhatsApp Direct Support (+1 667 775 7597)', sub: 'Chat instantly on WhatsApp with academic coordinator', action: () => { openWhatsApp(); } },
-  { title: 'Email Support (scholarverge@gmail.com)', sub: 'Send assignment brief directly via email', action: () => { window.location.href = 'mailto:scholarverge@gmail.com'; } },
+  { title: 'WhatsApp Direct Support', sub: 'Chat instantly on WhatsApp with academic coordinator', action: () => { openWhatsApp(); } },
+  { title: 'Email Academic Support', sub: 'Send assignment brief directly via email', action: () => { window.location.href = 'mailto:scholarverge@gmail.com'; } },
   { title: 'Price Calculator', sub: 'Estimate paper cost with deadline & level', action: () => { document.getElementById('hero-calculator').scrollIntoView({ behavior: 'smooth' }); } }
 ];
 
@@ -1983,28 +2385,6 @@ function renderTutors() {
               <span class="stat-val">${tutor.stats.turnitinClearScore}</span>
               <span class="stat-lbl">Originality Score</span>
             </div>
-          </div>
-
-          <div class="tutor-contact-actions">
-            <a href="https://wa.me/16677757597?text=Hello%20ScholarVerge!%20I%20would%20like%20to%20work%20with%20${encodeURIComponent(tutor.name)}%20on%20my%20assignment." target="_blank" class="tutor-contact-btn wa" title="Chat with ${tutor.name} on WhatsApp" aria-label="WhatsApp ${tutor.name}">
-              <div class="tutor-contact-icon">
-                <i class="fa-brands fa-whatsapp"></i>
-              </div>
-              <div class="tutor-contact-details">
-                <span class="tutor-contact-title">WhatsApp</span>
-                <span class="tutor-contact-sub"><i class="fa-solid fa-circle"></i> Online</span>
-              </div>
-            </a>
-
-            <a href="mailto:scholarverge@gmail.com?subject=Assignment%20Inquiry%20for%20${encodeURIComponent(tutor.name)}" class="tutor-contact-btn mail" title="Email assignment brief for ${tutor.name}" aria-label="Email ${tutor.name}">
-              <div class="tutor-contact-icon">
-                <i class="fa-solid fa-envelope"></i>
-              </div>
-              <div class="tutor-contact-details">
-                <span class="tutor-contact-title">Email</span>
-                <span class="tutor-contact-sub">Direct Inquiry</span>
-              </div>
-            </a>
           </div>
 
           <div class="tutor-actions">
@@ -2273,6 +2653,43 @@ function initModals() {
       if (overlay) overlay.classList.remove('active');
     });
   });
+
+  initFileDropzones();
+}
+
+function initFileDropzones() {
+  const attachZoneEvents = (zoneId, handleFn) => {
+    const zone = document.getElementById(zoneId);
+    if (!zone) return;
+
+    ['dragenter', 'dragover'].forEach(name => {
+      zone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add('file-drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      zone.addEventListener(name, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.remove('file-drag-over');
+      }, false);
+    });
+
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.remove('file-drag-over');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFn({ dataTransfer: e.dataTransfer });
+      }
+    }, false);
+  };
+
+  attachZoneEvents('file-dropzone-container', handleRealFileChange);
+  attachZoneEvents('order-file-dropzone', handleOrderFileChange);
 }
 
 function openModal(modalId) {
@@ -2294,6 +2711,17 @@ function closeModal(modalId) {
    ========================================================================== */
 let orderWizardStep = 1;
 
+function ensureDefaultOrderDeadline() {
+  const dtInput = document.getElementById('order-deadline-datetime');
+  if (dtInput && !dtInput.value) {
+    const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    d.setMinutes(0, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    dtInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  syncOrderDeadlineString();
+}
+
 function openOrderModalWithTutor(tutorName) {
   closeSidebar();
   const tutorSelect = document.getElementById('order-tutor-select');
@@ -2305,6 +2733,7 @@ function openOrderModalWithTutor(tutorName) {
       }
     }
   }
+  ensureDefaultOrderDeadline();
   orderWizardStep = 1;
   updateOrderWizardUI();
   openModal('order-paper-modal');
@@ -2316,6 +2745,7 @@ function openOrderModalWithSubject(subjectName) {
   if (topicInput) {
     topicInput.value = `${subjectName} Assignment`;
   }
+  ensureDefaultOrderDeadline();
   orderWizardStep = 1;
   updateOrderWizardUI();
   openModal('order-paper-modal');
@@ -2343,39 +2773,46 @@ function prevOrderStep() {
 }
 
 function syncOrderDeadlineString() {
-  const daysEl = document.getElementById('order-deadline-days');
-  const hoursEl = document.getElementById('order-deadline-hours');
   const dtInput = document.getElementById('order-deadline-datetime');
   const hiddenInput = document.getElementById('order-deadline-modal');
-  
-  const days = daysEl ? parseInt(daysEl.value) || 0 : 3;
-  const hours = hoursEl ? parseInt(hoursEl.value) || 0 : 0;
-  
-  let str = '';
-  if (days > 0 && hours > 0) {
-    str = `${days} ${days === 1 ? 'Day' : 'Days'}, ${hours} ${hours === 1 ? 'Hour' : 'Hours'}`;
-  } else if (days > 0) {
-    str = `${days} ${days === 1 ? 'Day' : 'Days'}`;
-  } else if (hours > 0) {
-    str = `${hours} ${hours === 1 ? 'Hour' : 'Hours'}`;
-  } else {
-    str = 'Flexible Timeline';
-  }
-
   if (dtInput && dtInput.value) {
-    const formattedDate = new Date(dtInput.value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    str += ` (Due: ${formattedDate})`;
+    const d = new Date(dtInput.value);
+    if (!isNaN(d.getTime())) {
+      const formatted = d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      if (hiddenInput) hiddenInput.value = formatted;
+      return;
+    }
   }
-
-  if (hiddenInput) hiddenInput.value = str;
+  if (hiddenInput) hiddenInput.value = 'Flexible Target Timeline';
 }
 
 function syncUploadDeadlineString() {
-  const daysEl = document.getElementById('upload-deadline-days');
-  const hoursEl = document.getElementById('upload-deadline-hours');
   const dtInput = document.getElementById('upload-deadline-datetime');
   const hiddenInput = document.getElementById('upload-deadline');
   
+  if (dtInput && dtInput.value) {
+    const d = new Date(dtInput.value);
+    if (!isNaN(d.getTime())) {
+      const formatted = d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      if (hiddenInput) hiddenInput.value = formatted;
+      return;
+    }
+  }
+
+  const daysEl = document.getElementById('upload-deadline-days');
+  const hoursEl = document.getElementById('upload-deadline-hours');
   const days = daysEl ? parseInt(daysEl.value) || 0 : 3;
   const hours = hoursEl ? parseInt(hoursEl.value) || 0 : 0;
   
@@ -2388,11 +2825,6 @@ function syncUploadDeadlineString() {
     str = `${hours} ${hours === 1 ? 'Hour' : 'Hours'}`;
   } else {
     str = 'Flexible Timeline';
-  }
-
-  if (dtInput && dtInput.value) {
-    const formattedDate = new Date(dtInput.value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    str += ` (Due: ${formattedDate})`;
   }
 
   if (hiddenInput) hiddenInput.value = str;
@@ -2417,18 +2849,19 @@ function updateOrderWizardUI() {
   }
 
   if (orderWizardStep === 4) {
+    syncOrderDeadlineString();
     const topic = document.getElementById('order-topic').value || 'Academic Research Essay';
     const pages = parseInt(document.getElementById('order-pages').value) || 3;
     const level = document.getElementById('order-level').value || 'Undergraduate';
     const citation = document.getElementById('order-citation') ? document.getElementById('order-citation').value : 'APA 7th Edition';
     const sources = document.getElementById('order-sources-count') ? document.getElementById('order-sources-count').value : '5';
-    const writingStyle = document.getElementById('order-writing-style') ? document.getElementById('order-writing-style').value : 'Standard Academic & Scholarly';
-    const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : '3 Days';
+    const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
     const tutorSelect = document.getElementById('order-tutor-select');
     const tutor = tutorSelect.options[tutorSelect.selectedIndex].text;
     const isUK = currentLang === 'en-GB';
     const curr = isUK ? '£' : '$';
     const price = (pages * 10 * (isUK ? 0.79 : 1.0)).toFixed(2);
+    const fileAttachedStr = orderUploadedFileMeta ? `${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : 'None (Optional brief)';
     
     const summaryEl = document.getElementById('order-summary-box');
     if (summaryEl) {
@@ -2438,8 +2871,8 @@ function updateOrderWizardUI() {
           <p style="margin-bottom: 6px;"><strong>Academic Level:</strong> ${level}</p>
           <p style="margin-bottom: 6px;"><strong>Length:</strong> ${pages} Pages (~${pages * 275} words @ $10.00/page)</p>
           <p style="margin-bottom: 6px;"><strong>Citation & Style:</strong> ${citation} • ${sources} Minimum Sources</p>
-          <p style="margin-bottom: 6px;"><strong>Writing Tone & Methodology:</strong> ${writingStyle}</p>
-          <p style="margin-bottom: 6px;"><strong>Specified Deadline:</strong> <span style="color: #2563eb; font-weight: 700;">${deadline}</span></p>
+          <p style="margin-bottom: 6px;"><strong>Target Date & Time:</strong> <span style="color: #2563eb; font-weight: 700;">${deadline}</span></p>
+          <p style="margin-bottom: 6px;"><strong>Attached Materials:</strong> <span style="color: #475569;">${fileAttachedStr}</span></p>
           <p style="margin-bottom: 6px;"><strong>Assigned Specialist Tutor:</strong> ${tutor}</p>
           <p style="margin-bottom: 6px;"><strong>Turnitin & Anti-AI Verification:</strong> <span style="color: #059669; font-weight: 700;">Included Free (0% AI Certificate)</span></p>
           <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Estimated Total:</strong> <span style="color: #2563eb; font-weight: 800; font-size: 1.25rem;">${curr}${price}</span> <span style="font-size: 0.75rem; color: #64748b;">($10.00 / page)</span></p>
@@ -2451,6 +2884,7 @@ function updateOrderWizardUI() {
 
 function submitAcademicOrder(e) {
   if (e) e.preventDefault();
+  syncOrderDeadlineString();
   const randomId = `SV-${Math.floor(10000 + Math.random() * 90000)}`;
   const topic = document.getElementById('order-topic').value || 'Academic Research Paper';
   const tutorSelect = document.getElementById('order-tutor-select');
@@ -2459,21 +2893,20 @@ function submitAcademicOrder(e) {
   const level = document.getElementById('order-level').value;
   const citation = document.getElementById('order-citation') ? document.getElementById('order-citation').value : 'APA 7th Edition';
   const sourcesCount = document.getElementById('order-sources-count') ? document.getElementById('order-sources-count').value : '5';
-  const writingStyle = document.getElementById('order-writing-style') ? document.getElementById('order-writing-style').value : 'Standard Academic';
   const prompt = document.getElementById('order-prompt') ? document.getElementById('order-prompt').value : '';
-  const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : '3 Days';
+  const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
   const priceAmount = pages * 10.00;
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
+  const attachedFileText = orderUploadedFileMeta ? `\n• Attached File: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : '';
 
   const waMsg = `Hello ScholarVerge Admin! I have submitted Order #${randomId} for "${topic}".
 • Length: ${pages} Pages ($${priceAmount.toFixed(2)} @ $10/page)
 • Academic Level: ${level}
 • Tutor: ${tutorName}
 • Citation Style: ${citation} (${sourcesCount} sources)
-• Writing Style: ${writingStyle}
-• Specified Deadline: ${deadline}
+• Target Deadline: ${deadline}${attachedFileText}
 Please guide me on completing the payment.`;
   const waUrl = `https://wa.me/16677757597?text=${encodeURIComponent(waMsg)}`;
 
@@ -2488,7 +2921,7 @@ Please guide me on completing the payment.`;
       academic_level: level,
       pages: pages,
       citation_style: `${citation} (${sourcesCount} sources)`,
-      writing_style: writingStyle,
+      writing_style: 'Standard Academic',
       prompt: prompt,
       deadline: deadline,
       price_amount: priceAmount
@@ -2697,7 +3130,7 @@ function loadOrderDetails(orderId) {
             <div style="margin-top: 24px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; padding: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
               <div>
                 <strong style="color: #1e40af; font-size: 0.95rem; display: block;">Instant WhatsApp Coordinator Assistance</strong>
-                <span style="font-size: 0.8rem; color: #334155;">Coordinate directly with Super Admin on WhatsApp (+1 667 775 7597) for revisions or updates.</span>
+                <span style="font-size: 0.8rem; color: #334155;">Coordinate directly with Super Admin on WhatsApp for revisions or updates.</span>
               </div>
               <div style="display: flex; gap: 8px;">
                 <a href="https://wa.me/16677757597?text=Hello%20Super%20Admin!%20I%20am%20tracking%20my%20assignment%20(%23${order.order_number})%20guided%20by%20${encodeURIComponent(order.tutor_name)}.%20Current%20Stage%3A%20${encodeURIComponent(order.stage)}.%20Delivery%3A%20${encodeURIComponent(order.days_ready)}." target="_blank" class="btn btn-whatsapp" style="font-size: 0.82rem;">
@@ -3088,7 +3521,7 @@ function sendSupportChat() {
   body.scrollTop = body.scrollHeight;
 
   setTimeout(() => {
-    let reply = `Thank you for reaching out to ScholarVerge! You can reach our senior team directly on WhatsApp (+1 667 775 7597) or via email at scholarverge@gmail.com.`;
+    let reply = `Thank you for reaching out to ScholarVerge! You can reach our senior academic team directly via the WhatsApp icon or Email icon on screen for immediate assistance.`;
     body.innerHTML += `
       <div class="chat-msg tutor" style="margin-bottom: 8px;">
         <div style="font-size: 0.7rem; opacity: 0.8;">Academic Operations Lead</div>
@@ -3147,7 +3580,7 @@ const liveTickerFeed = [
   { title: "<strong>Elena R. (Oxford)</strong> grade confirmed: <strong>A+ Distinction</strong>", sub: "26 mins ago • Clinical Healthcare Systematic Review", action: () => { document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' }); } },
   { title: "<strong>Claire Bennett</strong> completed <strong>4-page Legal Memorandum</strong>", sub: "38 mins ago • OSCOLA & IT Case Law Citations", action: () => openOrderModalWithTutor('Claire Bennett') },
   { title: "<strong>Oliver Harrison</strong> verified <strong>R Econometric Proofs</strong>", sub: "45 mins ago • Corporate Finance & Stata Modeling", action: () => openOrderModalWithTutor('Oliver Harrison') },
-  { title: "<strong>Chloe S. (McGill)</strong> dispatched brief to <strong>scholarverge@gmail.com</strong>", sub: "1 hour ago • Comparative Literature Review", action: () => openStudentActivitiesModal('upload') }
+  { title: "<strong>Chloe S. (McGill)</strong> dispatched brief to <strong>Academic Desk</strong>", sub: "1 hour ago • Comparative Literature Review", action: () => openStudentActivitiesModal('upload') }
 ];
 
 function initLiveActivityTicker() {

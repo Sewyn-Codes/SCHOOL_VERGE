@@ -4006,3 +4006,11 @@ img {
     font-size: 0.7rem !important;
   }
 }
+
+/* Drag and Drop Active Feedback */
+.file-drag-over {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+  transform: scale(1.01);
+}
+
