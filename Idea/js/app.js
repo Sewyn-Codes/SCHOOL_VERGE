@@ -996,9 +996,10 @@ function updateBriefPricePreview() {
   const level = levelSelect ? levelSelect.value : 'Undergraduate';
 
   let ratePerPage = 15.00;
-  if (level === 'High School') ratePerPage = 12.00;
-  else if (level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
-  else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
+  if (level === 'Highschool' || level === 'High School') ratePerPage = 12.00;
+  else if (level === 'College' || level === 'Bachelors' || level === 'Undergraduate') ratePerPage = 15.00;
+  else if (level === 'Masters' || level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
+  else if (level === 'Doctorate' || level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
 
   const total = pages * ratePerPage;
   if (priceDisplay) priceDisplay.textContent = `$${total.toFixed(2)}`;
@@ -1013,15 +1014,30 @@ function handleDocumentEmailDispatch(e) {
     return;
   }
 
-  if (!uploadedFileMeta || !uploadedFileMeta.name || !uploadedFileMeta.data) {
-    showToast('Please select or upload a document file from your device first.');
-    return;
+  // Ensure file is attached: check uploadedFileMeta or real-file-picker
+  if (!uploadedFileMeta || !uploadedFileMeta.name) {
+    const picker = document.getElementById('real-file-picker');
+    if (picker && picker.files && picker.files[0]) {
+      const file = picker.files[0];
+      const sizeFormatted = file.size > 1024 * 1024 
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
+        : `${(file.size / 1024).toFixed(1)} KB`;
+      uploadedFileMeta = {
+        name: file.name,
+        size: sizeFormatted,
+        type: file.type || 'Document File',
+        data: ''
+      };
+    } else {
+      showToast('Please select or upload a document file from your device first.');
+      return;
+    }
   }
 
   const topic = document.getElementById('upload-topic').value.trim();
   const assignmentType = document.getElementById('upload-assignment-type') ? document.getElementById('upload-assignment-type').value : 'Essay';
   const subject = document.getElementById('upload-subject') ? document.getElementById('upload-subject').value : 'Academic Research';
-  const level = document.getElementById('upload-level') ? document.getElementById('upload-level').value : 'Undergraduate';
+  const level = document.getElementById('upload-level') ? document.getElementById('upload-level').value : 'Bachelors';
   const citation = document.getElementById('upload-citation') ? document.getElementById('upload-citation').value : 'APA 7';
   const sourcesCount = document.getElementById('upload-sources-count') ? parseInt(document.getElementById('upload-sources-count').value) || 0 : 0;
   const pages = document.getElementById('upload-pages') ? Math.max(1, parseInt(document.getElementById('upload-pages').value) || 1) : 1;
@@ -1030,17 +1046,18 @@ function handleDocumentEmailDispatch(e) {
   const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
 
   let ratePerPage = 15.00;
-  if (level === 'High School') ratePerPage = 12.00;
-  else if (level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
-  else if (level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
+  if (level === 'Highschool' || level === 'High School') ratePerPage = 12.00;
+  else if (level === 'College' || level === 'Bachelors' || level === 'Undergraduate') ratePerPage = 15.00;
+  else if (level === 'Masters' || level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
+  else if (level === 'Doctorate' || level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
   const priceAmount = pages * ratePerPage;
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
   const fileName = uploadedFileMeta.name;
   const fileSize = uploadedFileMeta.size;
-  const fileType = uploadedFileMeta.type;
-  const fileData = uploadedFileMeta.data;
+  const fileType = uploadedFileMeta.type || 'Document File';
+  const fileData = uploadedFileMeta.data || `data:${fileType};base64,`;
 
   fetch('/api/student/upload-document', {
     method: 'POST',
@@ -1194,6 +1211,9 @@ function generateLiveCitation() {
   let formatted = '';
   if (style === 'apa') {
     formatted = `${author} (${year}). ${title}. <em>${journal}</em>. ${doi}`;
+  } else if (style === 'apa6') {
+    const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//, '');
+    formatted = `${author} (${year}). ${title}. <em>${journal}</em>. doi:${cleanDoi}`;
   } else if (style === 'mla') {
     formatted = `${author}. "${title}." <em>${journal}</em>, ${year}, ${doi}.`;
   } else if (style === 'harvard') {
@@ -2202,6 +2222,8 @@ function copyCitationTemplate(format) {
   let template = '';
   if (format === 'apa') {
     template = `Author, A. A., & Author, B. B. (2025). Title of scholarly article. Journal of Academic Excellence, 14(2), 112–128. https://doi.org/10.xxxx/xxxx`;
+  } else if (format === 'apa6') {
+    template = `Author, A. A., & Author, B. B. (2025). Title of scholarly article. Journal of Academic Excellence, 14(2), 112–128. doi:10.xxxx/xxxx`;
   } else if (format === 'mla') {
     template = `Author, First. "Title of Scholarly Article." Journal of Academic Excellence, vol. 14, no. 2, 2025, pp. 112–128.`;
   } else if (format === 'harvard') {
@@ -2512,7 +2534,7 @@ function filterReviews(filter) {
    Dynamic Price Calculator
    ========================================================================== */
 let calcState = {
-  academicLevel: 'undergrad',
+  academicLevel: 'bachelors',
   deadline: '3days',
   pages: 3,
   serviceType: 'essay',
@@ -2522,8 +2544,11 @@ let calcState = {
 
 const levelRates = {
   highschool: 10.00,
+  college: 10.00,
+  bachelors: 10.00,
   undergrad: 10.00,
   masters: 10.00,
+  doctorate: 10.00,
   doctoral: 10.00
 };
 
@@ -2910,6 +2935,8 @@ function submitAcademicOrder(e) {
 Please guide me on completing the payment.`;
   const waUrl = `https://wa.me/16677757597?text=${encodeURIComponent(waMsg)}`;
 
+  const deadlineDatetimeVal = document.getElementById('order-deadline-datetime') ? document.getElementById('order-deadline-datetime').value : '';
+
   fetch('/api/orders/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2924,7 +2951,13 @@ Please guide me on completing the payment.`;
       writing_style: 'Standard Academic',
       prompt: prompt,
       deadline: deadline,
-      price_amount: priceAmount
+      deadline_datetime: deadlineDatetimeVal,
+      sources_count: parseInt(sourcesCount) || 0,
+      price_amount: priceAmount,
+      file_name: orderUploadedFileMeta ? orderUploadedFileMeta.name : null,
+      file_size: orderUploadedFileMeta ? orderUploadedFileMeta.size : null,
+      file_type: orderUploadedFileMeta ? orderUploadedFileMeta.type : null,
+      file_data: orderUploadedFileMeta ? (orderUploadedFileMeta.data || `data:${orderUploadedFileMeta.type || 'application/octet-stream'};base64,`) : null
     })
   })
   .then(r => r.json())

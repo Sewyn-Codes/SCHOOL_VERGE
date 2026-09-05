@@ -793,7 +793,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 code = ""
                 if len(query_params) > 1:
                     params = dict(qp.split("=") for qp in query_params[1].split("&") if "=" in qp)
-                    code = urllib.parse.unquote(params.get("code", params.get("order_number", params.get("tracking_number", "")))).strip().upper().replace("#", "")
+                    code = urllib.parse.unquote(params.get("code", params.get("id", params.get("order_number", params.get("tracking_number", ""))))).strip().upper().replace("#", "")
 
                 if not code:
                     self.send_json_response(400, {"success": False, "error": "Tracking number required."})
@@ -1448,19 +1448,35 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 stu_row = cursor.fetchone()
                 student_id = stu_row["student_id"] if stu_row else "SV-STU-8820"
 
+                file_name = data.get("file_name")
+                file_size = data.get("file_size")
+                file_type = data.get("file_type")
+                file_data = data.get("file_data")
+                sources_count = int(data.get("sources_count", 0)) if data.get("sources_count") else 0
+                deadline_datetime = data.get("deadline_datetime")
+                prompt = data.get("prompt", "")
+
                 cursor.execute("""
-                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting WhatsApp Payment Coordination', 25, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, datetime('now'))
-                """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount))
+                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting WhatsApp Payment Coordination', 25, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt))
+
+                if file_name:
+                    upload_id = f"DOC-{secrets.randbelow(90000) + 10000}"
+                    cursor.execute("""
+                    INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'attached_to_order', datetime('now'))
+                    """, (upload_id, order_num, student_email, student_name, tutor_name, file_name, file_size or 'Unknown', file_type or 'Document', file_data or '', topic, prompt, citation, academic_level, deadline, deadline))
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment coordinated via WhatsApp"))
 
                 # Trigger Live Notification for Super Admin
+                notif_file_note = f" [Attached: {file_name}]" if file_name else ""
                 cursor.execute("""
                 INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
                 VALUES ('admin', NULL, ?, ?, 'order_created', ?, 0, datetime('now'))
-                """, (f"New Order Placed (#{order_num})", f"Student {student_name} ({student_email}) placed order #{order_num} for '{topic}' ({pages} pages, Tutor: {tutor_name})", order_num))
+                """, (f"New Order Placed (#{order_num})", f"Student {student_name} ({student_email}) placed order #{order_num} for '{topic}' ({pages} pages, Tutor: {tutor_name}){notif_file_note}", order_num))
 
                 conn.commit()
 

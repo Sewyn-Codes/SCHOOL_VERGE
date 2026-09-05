@@ -695,10 +695,11 @@
           <div class="calc-form-group">
             <label class="calc-label">Academic Level</label>
             <select id="calc-academic-level" class="calc-select">
-              <option value="undergrad" selected>Undergraduate / College</option>
-              <option value="highschool">High School</option>
-              <option value="masters">Master’s Degree</option>
-              <option value="doctoral">Doctoral / Ph.D.</option>
+              <option value="highschool">Highschool</option>
+              <option value="college">College</option>
+              <option value="bachelors" selected>Bachelors</option>
+              <option value="masters">Masters</option>
+              <option value="doctorate">Doctorate</option>
             </select>
           </div>
 
@@ -1366,10 +1367,11 @@
               <div class="calc-form-group">
                 <label class="calc-label">Degree Level</label>
                 <select id="reg-level" class="calc-select">
-                  <option>Undergraduate</option>
-                  <option>High School</option>
-                  <option>Master’s Degree</option>
-                  <option>Doctoral / Ph.D.</option>
+                  <option value="Highschool">Highschool</option>
+                  <option value="College">College</option>
+                  <option value="Bachelors" selected>Bachelors</option>
+                  <option value="Masters">Masters</option>
+                  <option value="Doctorate">Doctorate</option>
                 </select>
               </div>
             </div>
@@ -1576,10 +1578,11 @@
             <div class="calc-form-group">
               <label class="calc-label">Academic Level</label>
               <select id="stu-level" class="calc-select">
-                <option>Undergraduate</option>
-                <option>High School</option>
-                <option>Master’s Degree</option>
-                <option>Doctoral / Ph.D.</option>
+                <option value="Highschool">Highschool</option>
+                <option value="College">College</option>
+                <option value="Bachelors" selected>Bachelors</option>
+                <option value="Masters">Masters</option>
+                <option value="Doctorate">Doctorate</option>
               </select>
             </div>
           </div>
@@ -1593,6 +1596,7 @@
               <label class="calc-label">Preferred Citation Style</label>
               <select id="stu-citation" class="calc-select">
                 <option>APA 7th Edition</option>
+                <option>APA 6th Edition</option>
                 <option>MLA 9th Edition</option>
                 <option>Harvard Style</option>
                 <option>Chicago / Turabian</option>
@@ -1893,6 +1897,7 @@
                     <label class="calc-label" style="font-weight: 600; color: #334155;">Citation Style</label>
                     <select id="upload-citation" class="calc-select">
                       <option value="APA 7" selected>APA 7</option>
+                      <option value="APA 6th Edition">APA 6th Edition</option>
                       <option value="MLA 9">MLA 9</option>
                       <option value="Harvard">Harvard</option>
                       <option value="Chicago / Turabian">Chicago / Turabian</option>
@@ -1932,11 +1937,11 @@
                   <div class="calc-form-group" style="margin-bottom: 14px;">
                     <label class="calc-label" style="font-weight: 600; color: #334155;">Educational Level</label>
                     <select id="upload-level" class="calc-select" onchange="updateBriefPricePreview()">
-                      <option value="Undergraduate" selected>Undergraduate</option>
-                      <option value="High School">High School</option>
+                      <option value="Highschool">Highschool</option>
                       <option value="College">College</option>
-                      <option value="Master's">Master's</option>
-                      <option value="Doctoral / Ph.D.">Doctoral / Ph.D.</option>
+                      <option value="Bachelors" selected>Bachelors</option>
+                      <option value="Masters">Masters</option>
+                      <option value="Doctorate">Doctorate</option>
                     </select>
                   </div>
 
@@ -2116,6 +2121,7 @@
                 <label class="calc-label">Citation Style</label>
                 <select id="tool-cit-style" class="calc-select" onchange="generateLiveCitation()">
                   <option value="apa">APA 7th Edition</option>
+                  <option value="apa6">APA 6th Edition</option>
                   <option value="mla">MLA 9th Edition</option>
                   <option value="harvard">Harvard Style</option>
                   <option value="chicago">Chicago / Turabian</option>
@@ -2378,10 +2384,11 @@
                 <div class="calc-form-group">
                   <label class="calc-label">Target Academic Level</label>
                   <select id="invite-academic-level" class="calc-select">
-                    <option>Undergraduate</option>
-                    <option>High School</option>
-                    <option>Master’s Degree</option>
-                    <option>Doctoral / Ph.D.</option>
+                    <option value="Highschool">Highschool</option>
+                    <option value="College">College</option>
+                    <option value="Bachelors" selected>Bachelors</option>
+                    <option value="Masters">Masters</option>
+                    <option value="Doctorate">Doctorate</option>
                   </select>
                 </div>
                 <div class="calc-form-group">
@@ -2787,10 +2794,11 @@
             <div class="calc-form-group">
               <label class="calc-label">Academic Level</label>
               <select id="order-level" class="calc-select">
-                <option>Undergraduate</option>
-                <option>High School</option>
-                <option>Master’s Degree</option>
-                <option>Doctoral / Ph.D.</option>
+                <option value="Highschool">Highschool</option>
+                <option value="College">College</option>
+                <option value="Bachelors" selected>Bachelors</option>
+                <option value="Masters">Masters</option>
+                <option value="Doctorate">Doctorate</option>
               </select>
             </div>
             <div class="calc-form-group">
@@ -2817,6 +2825,7 @@
               <label class="calc-label">Citation & Referencing Style</label>
               <select id="order-citation" class="calc-select">
                 <option value="APA 7th Edition">APA 7th Edition</option>
+                <option value="APA 6th Edition">APA 6th Edition</option>
                 <option value="MLA 9th Edition">MLA 9th Edition</option>
                 <option value="Harvard Style">Harvard Referencing</option>
                 <option value="Chicago 17th / Turabian">Chicago 17th / Turabian</option>
