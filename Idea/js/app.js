@@ -3044,23 +3044,6 @@ function handleAdminSubmitCompletedWork(e) {
     showToast('Error uploading completed work.');
   });
 }
-      showToast(res.message);
-      loadAdminOverviewData();
-      if (res.whatsapp_student_url) {
-        window.open(res.whatsapp_student_url, '_blank');
-      }
-      const trackerInput = document.getElementById('tracker-input');
-      if (trackerInput && trackerInput.value.toUpperCase().includes(orderNum)) {
-        loadOrderDetails(orderNum);
-      }
-    } else {
-      showToast(res.error || 'Failed to update order stage.');
-    }
-  })
-  .catch(() => {
-    showToast('Failed to update order stage.');
-  });
-}
 
 /* ==========================================================================
    Turnitin Modal & Chat Drawer
