@@ -185,6 +185,7 @@ def init_db():
         ("day_ready", "TEXT DEFAULT 'In 3 Days'"),
         ("sources_count", "INTEGER DEFAULT 0"),
         ("deadline_datetime", "TEXT"),
+        ("client_specifications", "TEXT"),
         ("completed_file_name", "TEXT"),
         ("completed_file_data", "TEXT"),
         ("completed_file_size", "TEXT"),
@@ -195,6 +196,11 @@ def init_db():
             cursor.execute(f"ALTER TABLE orders ADD COLUMN {col} {col_def}")
         except sqlite3.OperationalError:
             pass
+
+    try:
+        cursor.execute("UPDATE orders SET client_specifications = COALESCE(NULLIF(admin_notes, ''), topic, 'Standard academic requirements') WHERE client_specifications IS NULL OR client_specifications = ''")
+    except Exception:
+        pass
 
     # 5. 1-on-1 Consultation Bookings Table
     cursor.execute("""
@@ -875,6 +881,8 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     o["download_url"] = f"/api/document/download?order={o['order_number']}" if o.get("file_name") else None
                     o["has_completed_file"] = bool(o.get("completed_file_name"))
                     o["download_completed_url"] = f"/api/orders/download-completed?order={o['order_number']}" if o.get("completed_file_name") else None
+                    if not o.get("client_specifications"):
+                        o["client_specifications"] = o.get("admin_notes") or o.get("topic") or "Standard academic paper requirements"
                     if "file_data" in o: del o["file_data"]
                     if "completed_file_data" in o: del o["completed_file_data"]
                     orders_list.append(o)
@@ -1454,12 +1462,12 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 file_data = data.get("file_data")
                 sources_count = int(data.get("sources_count", 0)) if data.get("sources_count") else 0
                 deadline_datetime = data.get("deadline_datetime")
-                prompt = data.get("prompt", "")
+                client_specifications = data.get("client_specifications") or prompt or "Standard academic paper requirements"
 
                 cursor.execute("""
-                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting WhatsApp Payment Coordination', 25, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt))
+                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, client_specifications, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting WhatsApp Payment Coordination', 25, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
 
                 if file_name:
                     upload_id = f"DOC-{secrets.randbelow(90000) + 10000}"

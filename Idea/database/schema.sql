@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS orders (
     day_ready VARCHAR(100) DEFAULT 'In 3 Days',
     sources_count INTEGER DEFAULT 0,
     deadline_datetime VARCHAR(100),
+    client_specifications TEXT,
     completed_file_name VARCHAR(255),
     completed_file_data TEXT,
     completed_file_size VARCHAR(50),

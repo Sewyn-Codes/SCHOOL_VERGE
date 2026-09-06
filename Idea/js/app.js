@@ -1524,63 +1524,183 @@ function switchAdminTab(tabName) {
   }
 }
 
+let currentAdminOrdersCache = [];
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function openOrderSpecsModal(orderNum) {
+  const order = currentAdminOrdersCache.find(o => o.order_number === orderNum);
+  if (!order) return;
+
+  const titleEl = document.getElementById('admin-specs-modal-title');
+  const subEl = document.getElementById('admin-specs-modal-subtitle');
+  if (titleEl) titleEl.textContent = `Order #${order.order_number} Specifications`;
+  if (subEl) subEl.textContent = `Client: ${order.student_name} (${order.student_email})`;
+
+  const specsText = order.client_specifications || order.admin_notes || order.topic || 'Standard assignment brief and academic guidelines.';
+  const attachedFile = order.has_uploaded_file || order.file_name ? order.file_name : null;
+
+  const modalBody = document.getElementById('admin-specs-modal-body');
+  if (modalBody) {
+    modalBody.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Paper Topic / Assignment Title</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${escapeHtml(order.topic)}</div>
+          <div style="display: flex; gap: 14px; align-items: center; margin-top: 6px; font-size: 0.8rem; color: #475569; flex-wrap: wrap;">
+            <span><i class="fa-solid fa-graduation-cap" style="color: #2563eb;"></i> Level: <strong>${escapeHtml(order.study_level || order.academic_level || 'Undergraduate')}</strong></span>
+            <span><i class="fa-solid fa-chalkboard-user" style="color: #059669;"></i> Specialist Tutor: <strong>${escapeHtml(order.tutor_name)}</strong></span>
+          </div>
+        </div>
+
+        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.825rem; font-weight: 800; color: #166534; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-pen"></i> Client's Description of How Work Should Be Done:
+          </div>
+          <div style="font-size: 0.88rem; color: #1e293b; line-height: 1.55; white-space: pre-wrap; background: #ffffff; padding: 12px 14px; border-radius: 8px; border: 1px solid #dcfce7; max-height: 200px; overflow-y: auto;">
+            ${escapeHtml(specsText)}
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Page Count</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #1e3a8a;">${order.pages || 3} Pages</div>
+            <span style="font-size: 0.7rem; color: #64748b;">~${(order.pages || 3) * 275} words</span>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Citation Style</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #1e3a8a;">${escapeHtml(order.citation_style || 'APA 7th')}</div>
+            <span style="font-size: 0.7rem; color: #64748b;">${order.sources_count || 5} min. sources</span>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Target Deadline</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #b91c1c;">${escapeHtml(order.deadline_datetime || order.day_ready || order.deadline || 'In 3 Days')}</div>
+            <span style="font-size: 0.7rem; color: #059669;">Timeline Tracked</span>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Anti-AI Target</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #059669;">0.0% AI</div>
+            <span style="font-size: 0.7rem; color: #64748b;">Turnitin Pass</span>
+          </div>
+        </div>
+
+        ${attachedFile ? `
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #92400e;"><i class="fa-solid fa-paperclip"></i> Attached Assignment Brief / Rubric</div>
+              <div style="font-size: 0.825rem; font-weight: 600; color: #78350f;">${escapeHtml(attachedFile)} ${order.file_size ? `(${escapeHtml(order.file_size)})` : ''}</div>
+            </div>
+            <a href="/api/document/download?order=${order.order_number}" class="btn btn-outline" style="font-size: 0.75rem; padding: 6px 12px; color: #2563eb; border-color: #93c5fd;" download>
+              <i class="fa-solid fa-download"></i> Download Brief
+            </a>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  const waBtn = document.getElementById('admin-specs-modal-wa-btn');
+  if (waBtn) {
+    const waMsg = `Hello ${order.student_name}! ScholarVerge Super Admin here regarding Order #${order.order_number} ("${order.topic}"). Your specifications have been assigned to ${order.tutor_name}.`;
+    waBtn.href = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+  }
+
+  openModal('admin-order-specs-modal');
+}
+
 function renderAdminOrdersTable(orders) {
+  currentAdminOrdersCache = orders || [];
   const tbody = document.getElementById('admin-orders-tbody');
   if (!tbody) return;
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">No assignment orders recorded yet.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = orders.map(o => `
+  tbody.innerHTML = orders.map(o => {
+    const specsSummary = o.client_specifications || o.admin_notes || 'Standard academic guidelines & rubric requirements.';
+    return `
     <tr>
       <td>
         <strong style="color: #1e3a8a;">#${o.order_number}</strong>
         ${o.has_uploaded_file || o.file_name ? `
           <div style="margin-top: 4px;">
             <a href="/api/document/download?order=${o.order_number}" class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" download>
-              <i class="fa-solid fa-download"></i> ${o.file_name || 'View Brief'}
+              <i class="fa-solid fa-download"></i> ${escapeHtml(o.file_name || 'View Brief')}
             </a>
           </div>
         ` : ''}
         ${o.has_completed_file || o.completed_file_name ? `
           <div style="margin-top: 4px;">
             <a href="/api/orders/download-completed?order=${o.order_number}" class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; text-decoration: none; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 3px;" download>
-              <i class="fa-solid fa-check-circle"></i> Done: ${o.completed_file_name || 'Download Final'}
+              <i class="fa-solid fa-check-circle"></i> Done: ${escapeHtml(o.completed_file_name || 'Download Final')}
             </a>
           </div>
         ` : ''}
       </td>
       <td>
-        <strong>${o.student_name}</strong>
-        <div style="font-size: 0.72rem; color: #059669; font-weight: 600;">Level: ${o.study_level || o.academic_level || 'Undergraduate'}</div>
-        <div style="font-size: 0.72rem; color: #64748b;">${o.student_email}</div>
+        <strong>${escapeHtml(o.student_name)}</strong>
+        <div style="font-size: 0.72rem; color: #059669; font-weight: 600;">Level: ${escapeHtml(o.study_level || o.academic_level || 'Undergraduate')}</div>
+        <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(o.student_email)}</div>
       </td>
       <td>
-        <span class="badge badge-verified" style="font-size: 0.75rem;">${o.tutor_name}</span>
+        <span class="badge badge-verified" style="font-size: 0.75rem;">${escapeHtml(o.tutor_name)}</span>
       </td>
-      <td style="max-width: 200px;">
-        <span style="font-weight: 600;">${o.topic}</span>
-        <div style="font-size: 0.72rem; color: #64748b;">${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'} • Target: ${o.day_ready || o.deadline || 'In 3 Days'}</div>
+      <td style="max-width: 320px; min-width: 250px;">
+        <div class="admin-spec-summary-card">
+          <div class="admin-spec-topic-title">${escapeHtml(o.topic || 'Academic Paper')}</div>
+          
+          <div class="admin-spec-desc-box" title="Client Description of Work to be Done">
+            <i class="fa-solid fa-quote-left" style="color: #2563eb; margin-right: 4px; font-size: 0.7rem;"></i>
+            <strong>Specs:</strong> ${escapeHtml(specsSummary)}
+          </div>
+
+          <div class="admin-spec-chips-row">
+            <span class="admin-spec-chip"><i class="fa-solid fa-graduation-cap"></i> ${escapeHtml(o.study_level || o.academic_level || 'Undergrad')}</span>
+            <span class="admin-spec-chip"><i class="fa-solid fa-file-lines"></i> ${o.pages || 3} Pgs (~${(o.pages || 3) * 275}w)</span>
+            <span class="admin-spec-chip"><i class="fa-solid fa-book-bookmark"></i> ${escapeHtml(o.citation_style || 'APA 7th')}</span>
+            <span class="admin-spec-chip deadline"><i class="fa-solid fa-clock"></i> ${escapeHtml(o.deadline_datetime || o.day_ready || o.deadline || 'In 3 Days')}</span>
+            ${o.has_uploaded_file || o.file_name ? `<span class="admin-spec-chip file"><i class="fa-solid fa-paperclip"></i> ${escapeHtml(o.file_name || 'Brief Attached')}</span>` : ''}
+          </div>
+
+          <button type="button" class="admin-spec-view-full-btn" onclick="openOrderSpecsModal('${o.order_number}')" title="Inspect Complete Client Specifications">
+            <i class="fa-solid fa-circle-info"></i> Full Specifications
+          </button>
+        </div>
       </td>
       <td>
         <div>
           <span class="status-pill ${(o.stage || o.status).toLowerCase().includes('completed') ? 'completed' : 'in_progress'}" style="font-size: 0.72rem;">
-            ${o.stage || o.status}
+            ${escapeHtml(o.stage || o.status)}
           </span>
         </div>
         <div style="font-size: 0.72rem; color: #2563eb; font-weight: 700; margin-top: 3px;">
-          <i class="fa-solid fa-hourglass-half"></i> ${o.days_ready || o.day_ready || 'In 2-3 Days'} (${o.progress_percentage || 45}%)
+          <i class="fa-solid fa-hourglass-half"></i> ${escapeHtml(o.days_ready || o.day_ready || 'In 2-3 Days')} (${o.progress_percentage || 45}%)
         </div>
       </td>
       <td>
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #2563eb; border-color: #93c5fd; white-space: nowrap;" onclick="openOrderSpecsModal('${o.order_number}')" title="View Client Specifications">
+            <i class="fa-solid fa-clipboard-list"></i> Specs
+          </button>
           <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #059669; border-color: #059669; white-space: nowrap;" onclick="openAdminUploadCompletedModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.study_level || o.academic_level || 'Undergraduate').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}')" title="Upload Finished Assignment Back to Student">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Load Done Work
+            <i class="fa-solid fa-cloud-arrow-up"></i> Load Done
           </button>
           <button class="btn btn-primary" style="padding: 3px 6px; font-size: 0.7rem; white-space: nowrap;" onclick="openAdminUpdateStageModal('${o.order_number}', '${(o.student_name || 'Student').replace(/'/g, "\\'")}', '${(o.tutor_name || 'Sophia Mitchell').replace(/'/g, "\\'")}', '${(o.topic || 'Assignment').replace(/'/g, "\\'")}', '${o.pages || 3} Pgs • ${o.citation_style || 'APA 7th'}', '${(o.stage || o.status || 'Drafting in Progress with Specialist Tutor').replace(/'/g, "\\'")}', '${(o.days_ready || 'Ready in 2 Days').replace(/'/g, "\\'")}', ${o.progress_percentage || 50}, '${(o.admin_notes || '').replace(/'/g, "\\'")}', ${o.turnitin_ai_score || 0.0}, ${o.turnitin_similarity || 0.4}, '${o.payment_status || 'payment_verified'}')">
-            <i class="fa-solid fa-pen-to-square"></i> Set Stage
+            <i class="fa-solid fa-pen-to-square"></i> Stage
           </button>
           <a href="https://wa.me/?text=${encodeURIComponent(`Hello ${o.student_name}! ScholarVerge Super Admin update on Assignment #${o.order_number}: Current Stage is "${o.stage || o.status}". Delivery Timeline: ${o.days_ready || 'In 2-3 Days'} (${o.progress_percentage}% completed). Guiding Tutor: ${o.tutor_name}.`)}" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;" title="Share Update to Student on WhatsApp">
             <i class="fa-brands fa-whatsapp"></i>
@@ -1591,7 +1711,8 @@ function renderAdminOrdersTable(orders) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderAdminBookingsTable(bookings) {
@@ -2950,6 +3071,7 @@ Please guide me on completing the payment.`;
       citation_style: `${citation} (${sourcesCount} sources)`,
       writing_style: 'Standard Academic',
       prompt: prompt,
+      client_specifications: prompt,
       deadline: deadline,
       deadline_datetime: deadlineDatetimeVal,
       sources_count: parseInt(sourcesCount) || 0,
@@ -3332,6 +3454,13 @@ function openAdminUpdateStageModal(orderNum, studentName, tutorName, topic, meta
   document.getElementById('admin-stage-notes').value = notes || '';
   document.getElementById('admin-stage-ai-score').value = turnitinAi || 0.0;
   document.getElementById('admin-stage-payment').value = paymentStatus || 'payment_verified';
+
+  const clientSpecsEl = document.getElementById('admin-stage-client-specs');
+  if (clientSpecsEl) {
+    const cachedOrder = currentAdminOrdersCache.find(o => o.order_number === orderNum);
+    const specsText = cachedOrder ? (cachedOrder.client_specifications || cachedOrder.admin_notes || cachedOrder.topic) : (notes || 'Standard academic paper guidelines.');
+    clientSpecsEl.textContent = specsText;
+  }
 
   openModal('admin-order-stage-modal');
 }

@@ -368,8 +368,14 @@
         </button>
 
 
+        <!-- WhatsApp Quick Action -->
+        <a href="https://wa.me/16677757597" target="_blank" class="nav-whatsapp-btn" title="Chat on WhatsApp" onclick="openWhatsApp(); return false;">
+          <i class="fa-brands fa-whatsapp"></i>
+          <span class="nav-wa-text">WhatsApp</span>
+        </a>
+
         <!-- CTA: Write My Paper -->
-        <button class="btn btn-primary" onclick="openOrderModalWithTutor('')">
+        <button class="btn btn-primary nav-write-btn" onclick="openOrderModalWithTutor('')">
           <i class="fa-solid fa-pen-nib"></i>
           <span data-i18n="writeMyPaper">Write My Paper</span>
         </button>
@@ -682,74 +688,88 @@
           </div>
         </div>
 
-        <!-- Hero Right: Interactive Quick Price Calculator -->
-        <div class="calc-card" id="hero-calculator">
-          <div class="calc-header">
-            <div>
-              <h3 style="margin-bottom: 2px;">Calculate Your Paper</h3>
-              <span style="font-size: 0.8125rem; color: var(--text-muted);">$10 / page transparent pricing • Zero hidden fees</span>
+        <!-- Hero Right: Interactive Quick Price Calculator with Highlighted Action Bar -->
+        <div class="hero-calc-wrapper">
+          <!-- Highlighted Area: Write My Paper and WhatsApp Icon -->
+          <div class="hero-calc-cta-bar" id="hero-calc-cta-bar">
+            <button class="btn btn-primary hero-highlight-write-btn" onclick="openOrderModalWithTutor('')" title="Submit Assignment Requirements">
+              <i class="fa-solid fa-pen-nib"></i>
+              <span data-i18n="writeMyPaper">Write My Paper</span>
+            </button>
+            <button class="btn btn-whatsapp hero-highlight-whatsapp-btn" onclick="openWhatsApp()" title="Direct WhatsApp Support & Coordination">
+              <i class="fa-brands fa-whatsapp"></i>
+              <span>WhatsApp Us</span>
+            </button>
+          </div>
+
+          <div class="calc-card" id="hero-calculator">
+            <div class="calc-header">
+              <div>
+                <h3 style="margin-bottom: 2px;">Calculate Your Paper</h3>
+                <span style="font-size: 0.8125rem; color: var(--text-muted);">$10 / page transparent pricing • Zero hidden fees</span>
+              </div>
+              <span class="calc-discount-badge"><i class="fa-solid fa-tag"></i> 20% OFF FIRST ORDER</span>
             </div>
-            <span class="calc-discount-badge"><i class="fa-solid fa-tag"></i> 20% OFF FIRST ORDER</span>
-          </div>
 
-          <div class="calc-form-group">
-            <label class="calc-label">Academic Level</label>
-            <select id="calc-academic-level" class="calc-select">
-              <option value="highschool">Highschool</option>
-              <option value="college">College</option>
-              <option value="bachelors" selected>Bachelors</option>
-              <option value="masters">Masters</option>
-              <option value="doctorate">Doctorate</option>
-            </select>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="calc-form-group">
-              <label class="calc-label">Deadline Urgency</label>
-              <select id="calc-deadline" class="calc-select">
-                <option value="3hrs">⚡ 3 Hours</option>
-                <option value="6hrs">⚡ 6 Hours</option>
-                <option value="12hrs">12 Hours</option>
-                <option value="24hrs">24 Hours</option>
-                <option value="2days">2 Days</option>
-                <option value="3days" selected>3 Days</option>
-                <option value="7days">7 Days</option>
-                <option value="14days">14 Days</option>
+              <label class="calc-label">Academic Level</label>
+              <select id="calc-academic-level" class="calc-select">
+                <option value="highschool">Highschool</option>
+                <option value="college">College</option>
+                <option value="bachelors" selected>Bachelors</option>
+                <option value="masters">Masters</option>
+                <option value="doctorate">Doctorate</option>
               </select>
             </div>
 
-            <div class="calc-form-group">
-              <label class="calc-label">Number of Pages ($10/Page)</label>
-              <div class="calc-counter">
-                <button class="counter-btn" id="calc-page-minus" aria-label="Decrease Pages">-</button>
-                <div>
-                  <div class="counter-value" id="calc-page-count">3 Pages</div>
-                  <div class="counter-sub" id="calc-word-count">~825 words</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label">Deadline Urgency</label>
+                <select id="calc-deadline" class="calc-select">
+                  <option value="3hrs">⚡ 3 Hours</option>
+                  <option value="6hrs">⚡ 6 Hours</option>
+                  <option value="12hrs">12 Hours</option>
+                  <option value="24hrs">24 Hours</option>
+                  <option value="2days">2 Days</option>
+                  <option value="3days" selected>3 Days</option>
+                  <option value="7days">7 Days</option>
+                  <option value="14days">14 Days</option>
+                </select>
+              </div>
+
+              <div class="calc-form-group">
+                <label class="calc-label">Number of Pages ($10/Page)</label>
+                <div class="calc-counter">
+                  <button class="counter-btn" id="calc-page-minus" aria-label="Decrease Pages">-</button>
+                  <div>
+                    <div class="counter-value" id="calc-page-count">3 Pages</div>
+                    <div class="counter-sub" id="calc-word-count">~825 words</div>
+                  </div>
+                  <button class="counter-btn" id="calc-page-plus" aria-label="Increase Pages">+</button>
                 </div>
-                <button class="counter-btn" id="calc-page-plus" aria-label="Increase Pages">+</button>
               </div>
             </div>
-          </div>
 
-          <div class="calc-form-group">
-            <label class="calc-label">Promo Code</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="calc-promo-input" class="calc-input" placeholder="Enter SCHOLAR20" value="SCHOLAR20" style="" />
-              <button class="btn btn-outline" id="calc-promo-apply" style="padding: 0 16px; font-size: 0.85rem;">Apply</button>
-            </div>
-          </div>
-
-          <div class="calc-price-box">
-            <div class="price-details">
-              <span class="price-label">Estimated Total Price ($10/page)</span>
-              <div>
-                <span class="price-total" id="calc-price-total">$24.00</span>
-                <span class="price-old" id="calc-price-old">$30.00</span>
+            <div class="calc-form-group">
+              <label class="calc-label">Promo Code</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="calc-promo-input" class="calc-input" placeholder="Enter SCHOLAR20" value="SCHOLAR20" style="" />
+                <button class="btn btn-outline" id="calc-promo-apply" style="padding: 0 16px; font-size: 0.85rem;">Apply</button>
               </div>
             </div>
-            <button class="btn btn-accent" onclick="openOrderModalWithTutor('')">
-              <i class="fa-solid fa-arrow-right"></i> Order Now
-            </button>
+
+            <div class="calc-price-box">
+              <div class="price-details">
+                <span class="price-label">Estimated Total Price ($10/page)</span>
+                <div>
+                  <span class="price-total" id="calc-price-total">$24.00</span>
+                  <span class="price-old" id="calc-price-old">$30.00</span>
+                </div>
+              </div>
+              <button class="btn btn-accent" onclick="openOrderModalWithTutor('')">
+                <i class="fa-solid fa-arrow-right"></i> Order Now
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2282,7 +2302,7 @@
                   <th>Order Ref</th>
                   <th>Student</th>
                   <th>Tutor</th>
-                  <th>Topic</th>
+                  <th>Client Paper Specifications & Instructions</th>
                   <th>Status & Progress</th>
                   <th>Admin Actions</th>
                 </tr>
@@ -2604,13 +2624,23 @@
           <input type="hidden" id="admin-stage-order-num" />
 
           <!-- Student & Task Brief Info Box -->
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
               <span style="font-size: 0.85rem; color: #334155;">Student: <strong id="admin-stage-student-name">Elena Rostova</strong></span>
               <span style="font-size: 0.785rem; color: #64748b;" id="admin-stage-created-at">Created 2 days ago</span>
             </div>
             <div style="font-size: 0.85rem; color: #0f172a; font-weight: 600; margin-bottom: 4px;" id="admin-stage-topic">Telehealth PICOT Systematic Review</div>
             <div style="font-size: 0.785rem; color: #64748b;" id="admin-stage-meta">8 Pages • APA 7th • Nursing & Healthcare</div>
+          </div>
+
+          <!-- Client Paper Specifications Review Card -->
+          <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+            <div style="font-size: 0.785rem; font-weight: 700; color: #166534; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-clipboard-list"></i> Client's Paper Specifications & Requirements:
+            </div>
+            <div id="admin-stage-client-specs" style="font-size: 0.825rem; color: #1e293b; line-height: 1.45; white-space: pre-wrap; max-height: 110px; overflow-y: auto; background: #ffffff; padding: 8px 10px; border-radius: 8px; border: 1px solid #dcfce7;">
+              Loading client requirements...
+            </div>
           </div>
 
           <!-- Stage Selector -->
@@ -2752,6 +2782,36 @@
             <i class="fa-solid fa-upload"></i> Load Completed Work to Student Portal & WhatsApp
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3E: Admin View Full Client Paper Specifications Modal -->
+  <div class="modal-overlay" id="admin-order-specs-modal">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #070d1e 0%, #1e3a8a 100%); color: #ffffff;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+            <i class="fa-solid fa-file-invoice"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: #ffffff; font-size: 1.15rem;" id="admin-specs-modal-title">Client Paper Specifications</h3>
+            <span style="font-size: 0.72rem; color: #94a3b8;" id="admin-specs-modal-subtitle">Full student brief and instructions summary</span>
+          </div>
+        </div>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('admin-order-specs-modal')" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
+      </div>
+      <div class="modal-body" id="admin-specs-modal-body" style="padding: 22px;">
+        <!-- Rendered dynamically via openOrderSpecsModal -->
+      </div>
+      <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <span style="font-size: 0.75rem; color: #64748b;"><i class="fa-solid fa-shield-halved" style="color: #059669;"></i> Verified Academic Record</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('admin-order-specs-modal')">Close</button>
+          <a href="#" id="admin-specs-modal-wa-btn" target="_blank" class="btn btn-whatsapp" style="text-decoration: none;">
+            <i class="fa-brands fa-whatsapp"></i> Chat with Client
+          </a>
+        </div>
       </div>
     </div>
   </div>

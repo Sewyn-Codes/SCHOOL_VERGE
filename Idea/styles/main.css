@@ -1117,6 +1117,98 @@ img {
 }
 
 /* ==========================================================================
+   Highlighted Action Bar (Above Calculator: Write My Paper & WhatsApp Icon)
+   ========================================================================== */
+.hero-calc-wrapper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.hero-calc-cta-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.hero-highlight-write-btn {
+  flex: 1.2;
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b132b 0%, #1c2541 60%, #2563eb 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(11, 19, 43, 0.22);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.hero-highlight-write-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #1c2541 0%, #2563eb 100%);
+  color: #ffffff;
+}
+
+.hero-highlight-whatsapp-btn {
+  flex: 1;
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.28);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.hero-highlight-whatsapp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.45);
+  color: #ffffff;
+}
+
+.nav-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(37, 211, 102, 0.12);
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  color: #128c7e;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.nav-whatsapp-btn:hover {
+  background: #25d366;
+  color: #ffffff;
+  border-color: #25d366;
+  transform: translateY(-1px);
+}
+
+.nav-whatsapp-btn i {
+  font-size: 1rem;
+  color: #25d366;
+}
+
+.nav-whatsapp-btn:hover i {
+  color: #ffffff;
+}
+
+/* ==========================================================================
    Interactive Price Calculator Card
    ========================================================================== */
 .calc-card {
@@ -2831,6 +2923,110 @@ img {
 }
 
 /* ==========================================================================
+   Admin Dashboard Client Paper Specifications Summary
+   ========================================================================== */
+.admin-spec-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-width: 360px;
+  min-width: 260px;
+  transition: var(--transition);
+}
+
+.admin-spec-summary-card:hover {
+  background: #ffffff;
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.admin-spec-topic-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.admin-spec-desc-box {
+  background: #f1f5f9;
+  border-left: 3px solid #2563eb;
+  padding: 6px 10px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.75rem;
+  color: #334155;
+  line-height: 1.4;
+  margin: 6px 0;
+  max-height: 65px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.admin-spec-desc-box::-webkit-scrollbar {
+  width: 4px;
+}
+.admin-spec-desc-box::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.admin-spec-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.admin-spec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #dbeafe;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-spec-chip.file {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.admin-spec-chip.deadline {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.admin-spec-view-full-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.admin-spec-view-full-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==========================================================================
    Multi-Tenant Authentication & Real-World Gate Styles
    ========================================================================== */
 .auth-modal-card {
@@ -3546,6 +3742,29 @@ img {
 .activities-tab-btn {
   flex-shrink: 0 !important;
   white-space: nowrap !important;
+}
+
+/* Laptop Screens Optimization (<= 1350px) */
+@media (max-width: 1350px) {
+  .nav-container {
+    gap: 8px;
+  }
+  .nav-links {
+    gap: 0;
+  }
+  .nav-link-btn {
+    padding: 6px 8px;
+    font-size: 0.8125rem;
+  }
+  .nav-actions {
+    gap: 6px;
+  }
+  .nav-search-btn .search-kbd {
+    display: none;
+  }
+  .nav-wa-text {
+    display: none;
+  }
 }
 
 /* Tablet Breakpoint (<= 1200px) */
