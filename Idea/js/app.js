@@ -2656,7 +2656,9 @@ function filterReviews(filter) {
    ========================================================================== */
 let calcState = {
   academicLevel: 'bachelors',
-  deadline: '3days',
+  deadlineDate: '',
+  deadlineTime: '23:59',
+  urgencyMultiplier: 1.0,
   pages: 3,
   serviceType: 'essay',
   hasPromo: false,
@@ -2686,13 +2688,15 @@ const deadlineMultipliers = {
 
 function initPriceCalculator() {
   const levelSelect = document.getElementById('calc-academic-level');
-  const deadlineSelect = document.getElementById('calc-deadline');
-  const serviceSelect = document.getElementById('calc-service');
+  const dateInput = document.getElementById('calc-deadline-date');
+  const timeInput = document.getElementById('calc-deadline-time');
+  const pagesInput = document.getElementById('calc-pages-input');
   const btnMinus = document.getElementById('calc-page-minus');
   const btnPlus = document.getElementById('calc-page-plus');
   const promoInput = document.getElementById('calc-promo-input');
   const promoBtn = document.getElementById('calc-promo-apply');
 
+  // Academic level
   if (levelSelect) {
     levelSelect.addEventListener('change', (e) => {
       calcState.academicLevel = e.target.value;
@@ -2700,36 +2704,88 @@ function initPriceCalculator() {
     });
   }
 
-  if (deadlineSelect) {
-    deadlineSelect.addEventListener('change', (e) => {
-      calcState.deadline = e.target.value;
+  // Setup deadline calendar (min = today)
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  if (dateInput) {
+    dateInput.min = todayStr;
+    if (!dateInput.value) {
+      // Default 3 days out, user has full manual control to change it
+      const defDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      dateInput.value = `${defDate.getFullYear()}-${pad(defDate.getMonth() + 1)}-${pad(defDate.getDate())}`;
+    }
+    calcState.deadlineDate = dateInput.value;
+
+    dateInput.addEventListener('change', (e) => {
+      calcState.deadlineDate = e.target.value;
+      updatePricingDisplay();
+    });
+    dateInput.addEventListener('input', (e) => {
+      calcState.deadlineDate = e.target.value;
       updatePricingDisplay();
     });
   }
 
-  if (serviceSelect) {
-    serviceSelect.addEventListener('change', (e) => {
-      calcState.serviceType = e.target.value;
+  // Setup deadline time
+  if (timeInput) {
+    if (!timeInput.value) timeInput.value = '23:59';
+    calcState.deadlineTime = timeInput.value;
+
+    timeInput.addEventListener('change', (e) => {
+      calcState.deadlineTime = e.target.value || '23:59';
+      updatePricingDisplay();
+    });
+    timeInput.addEventListener('input', (e) => {
+      calcState.deadlineTime = e.target.value || '23:59';
       updatePricingDisplay();
     });
   }
 
+  // Direct manual pages input
+  if (pagesInput) {
+    pagesInput.value = calcState.pages;
+    pagesInput.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (!isNaN(val) && val >= 1) {
+        calcState.pages = Math.min(500, val);
+        updatePricingDisplay();
+      }
+    });
+    pagesInput.addEventListener('change', (e) => {
+      let val = parseInt(e.target.value);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 500) val = 500;
+      calcState.pages = val;
+      pagesInput.value = val;
+      updatePricingDisplay();
+    });
+  }
+
+  // Minus stepper
   if (btnMinus) {
     btnMinus.addEventListener('click', () => {
       if (calcState.pages > 1) {
         calcState.pages--;
+        if (pagesInput) pagesInput.value = calcState.pages;
         updatePricingDisplay();
       }
     });
   }
 
+  // Plus stepper
   if (btnPlus) {
     btnPlus.addEventListener('click', () => {
-      calcState.pages++;
-      updatePricingDisplay();
+      if (calcState.pages < 500) {
+        calcState.pages++;
+        if (pagesInput) pagesInput.value = calcState.pages;
+        updatePricingDisplay();
+      }
     });
   }
 
+  // Promo code
   if (promoBtn && promoInput) {
     promoBtn.addEventListener('click', () => {
       const code = promoInput.value.trim().toUpperCase();
@@ -2749,13 +2805,56 @@ function initPriceCalculator() {
 }
 
 function updatePricingDisplay() {
-  const rate = levelRates[calcState.academicLevel] || 15.00;
-  const multiplier = deadlineMultipliers[calcState.deadline] || 1.0;
+  const rate = levelRates[calcState.academicLevel] || 10.00;
+  
+  // Calculate dynamic urgency multiplier from manually chosen date and time
+  let urgencyMultiplier = 1.0;
+  let turnaroundLabel = '3 Days (Standard $10.00/page)';
+
+  if (calcState.deadlineDate) {
+    const selectedDt = new Date(`${calcState.deadlineDate}T${calcState.deadlineTime || '23:59'}`);
+    const now = new Date();
+    const diffMs = selectedDt.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (diffHours <= 0) {
+      urgencyMultiplier = 2.2;
+      turnaroundLabel = '⚡ Urgent Same-Day Delivery';
+    } else if (diffHours <= 6) {
+      urgencyMultiplier = 2.0;
+      turnaroundLabel = `⚡ Urgent Same-Day (${Math.max(1, Math.round(diffHours))} Hours Left)`;
+    } else if (diffHours <= 12) {
+      urgencyMultiplier = 1.6;
+      turnaroundLabel = `⚡ 12-Hour Priority (${Math.round(diffHours)} Hours Left)`;
+    } else if (diffHours <= 24) {
+      urgencyMultiplier = 1.35;
+      turnaroundLabel = `24-Hour Express Delivery (~${Math.round(diffHours)} Hours)`;
+    } else if (diffHours <= 48) {
+      urgencyMultiplier = 1.15;
+      turnaroundLabel = `2 Days Priority (~${Math.max(1, Math.round(diffHours / 24))} Days)`;
+    } else if (diffHours <= 72) {
+      urgencyMultiplier = 1.05;
+      turnaroundLabel = `3 Days Delivery (~${Math.round(diffHours / 24)} Days)`;
+    } else {
+      urgencyMultiplier = 1.0;
+      const days = Math.round(diffHours / 24);
+      turnaroundLabel = `${days} Days Delivery (Standard $10.00/page)`;
+    }
+  }
+
+  calcState.urgencyMultiplier = urgencyMultiplier;
+
+  // Live turnaround badge update
+  const indicatorText = document.getElementById('calc-deadline-text');
+  if (indicatorText) {
+    indicatorText.innerHTML = `Manual Timeline: <strong>${turnaroundLabel}</strong>`;
+  }
+
   const isUK = currentLang === 'en-GB';
   const currencySymbol = isUK ? '£' : '$';
   const currencyMultiplier = isUK ? 0.79 : 1.0;
 
-  const baseTotal = (rate * multiplier * calcState.pages) * currencyMultiplier;
+  const baseTotal = (rate * urgencyMultiplier * calcState.pages) * currencyMultiplier;
   const discountedTotal = calcState.hasPromo ? baseTotal * (1 - calcState.promoDiscount) : baseTotal;
   const words = calcState.pages * 275;
 
@@ -2763,7 +2862,11 @@ function updatePricingDisplay() {
   const oldEl = document.getElementById('calc-price-old');
   const pageValEl = document.getElementById('calc-page-count');
   const wordValEl = document.getElementById('calc-word-count');
+  const pagesInput = document.getElementById('calc-pages-input');
 
+  if (pagesInput && parseInt(pagesInput.value) !== calcState.pages) {
+    pagesInput.value = calcState.pages;
+  }
   if (pageValEl) pageValEl.textContent = `${calcState.pages} ${calcState.pages === 1 ? 'Page' : 'Pages'}`;
   if (wordValEl) wordValEl.textContent = `~${words.toLocaleString()} words`;
 
@@ -2857,72 +2960,46 @@ function closeModal(modalId) {
    ========================================================================== */
 let orderWizardStep = 1;
 
-function ensureDefaultOrderDeadline() {
-  const dtInput = document.getElementById('order-deadline-datetime');
-  if (dtInput && !dtInput.value) {
-    const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-    d.setMinutes(0, 0, 0);
-    const pad = (n) => String(n).padStart(2, '0');
-    dtInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  syncOrderDeadlineString();
-}
-
-function openOrderModalWithTutor(tutorName) {
-  closeSidebar();
-  const tutorSelect = document.getElementById('order-tutor-select');
-  if (tutorSelect && tutorName) {
-    for (let i = 0; i < tutorSelect.options.length; i++) {
-      if (tutorSelect.options[i].text.includes(tutorName)) {
-        tutorSelect.selectedIndex = i;
-        break;
-      }
+function handleManualPageInput() {
+  const pagesInput = document.getElementById('order-pages');
+  if (pagesInput) {
+    let p = parseInt(pagesInput.value);
+    if (isNaN(p) || p < 1) p = 1;
+    if (p > 500) p = 500;
+    const badge = document.getElementById('order-pages-words-badge');
+    if (badge) {
+      const isUK = currentLang === 'en-GB';
+      const curr = isUK ? '£' : '$';
+      const price = (p * 10 * (isUK ? 0.79 : 1.0)).toFixed(2);
+      badge.textContent = `~${(p * 275).toLocaleString()} words (${curr}${price})`;
     }
   }
-  ensureDefaultOrderDeadline();
-  orderWizardStep = 1;
   updateOrderWizardUI();
-  openModal('order-paper-modal');
 }
 
-function openOrderModalWithSubject(subjectName) {
-  closeSidebar();
-  const topicInput = document.getElementById('order-topic');
-  if (topicInput) {
-    topicInput.value = `${subjectName} Assignment`;
-  }
-  ensureDefaultOrderDeadline();
-  orderWizardStep = 1;
-  updateOrderWizardUI();
-  openModal('order-paper-modal');
-}
-
-function nextOrderStep() {
-  if (orderWizardStep === 1) {
-    const topic = document.getElementById('order-topic').value.trim();
-    if (!topic) {
-      showToast('Please specify your assignment topic or subject.');
-      return;
-    }
-  }
-  if (orderWizardStep < 4) {
-    orderWizardStep++;
-    updateOrderWizardUI();
+function stepOrderPages(delta) {
+  const pagesInput = document.getElementById('order-pages');
+  if (pagesInput) {
+    let current = parseInt(pagesInput.value) || 1;
+    current = Math.max(1, Math.min(500, current + delta));
+    pagesInput.value = current;
+    handleManualPageInput();
   }
 }
 
-function prevOrderStep() {
-  if (orderWizardStep > 1) {
-    orderWizardStep--;
-    updateOrderWizardUI();
-  }
-}
+function syncOrderDeadlineDateTime() {
+  const dateInput = document.getElementById('order-deadline-date');
+  const timeInput = document.getElementById('order-deadline-time');
+  const dtHidden = document.getElementById('order-deadline-datetime');
+  const modalHidden = document.getElementById('order-deadline-modal');
 
-function syncOrderDeadlineString() {
-  const dtInput = document.getElementById('order-deadline-datetime');
-  const hiddenInput = document.getElementById('order-deadline-modal');
-  if (dtInput && dtInput.value) {
-    const d = new Date(dtInput.value);
+  const dateVal = dateInput ? dateInput.value : '';
+  const timeVal = timeInput ? timeInput.value || '23:59' : '23:59';
+
+  if (dateVal) {
+    const combined = `${dateVal}T${timeVal}`;
+    if (dtHidden) dtHidden.value = combined;
+    const d = new Date(combined);
     if (!isNaN(d.getTime())) {
       const formatted = d.toLocaleString('en-US', {
         month: 'short',
@@ -2931,11 +3008,40 @@ function syncOrderDeadlineString() {
         hour: 'numeric',
         minute: '2-digit'
       });
-      if (hiddenInput) hiddenInput.value = formatted;
+      if (modalHidden) modalHidden.value = formatted;
       return;
     }
   }
-  if (hiddenInput) hiddenInput.value = 'Flexible Target Timeline';
+  if (modalHidden) modalHidden.value = 'Flexible Target Timeline';
+}
+
+function syncOrderDeadlineString() {
+  syncOrderDeadlineDateTime();
+}
+
+function ensureDefaultOrderDeadline() {
+  const dateInput = document.getElementById('order-deadline-date');
+  const timeInput = document.getElementById('order-deadline-time');
+
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  if (dateInput) {
+    dateInput.min = todayStr;
+    if (!dateInput.value) {
+      if (calcState && calcState.deadlineDate) {
+        dateInput.value = calcState.deadlineDate;
+      } else {
+        const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        dateInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      }
+    }
+  }
+  if (timeInput && !timeInput.value) {
+    timeInput.value = (calcState && calcState.deadlineTime) ? calcState.deadlineTime : '23:59';
+  }
+  syncOrderDeadlineDateTime();
 }
 
 function syncUploadDeadlineString() {

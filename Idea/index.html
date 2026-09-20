@@ -711,43 +711,52 @@
               <span class="calc-discount-badge"><i class="fa-solid fa-tag"></i> 20% OFF FIRST ORDER</span>
             </div>
 
-            <div class="calc-form-group">
-              <label class="calc-label">Academic Level</label>
-              <select id="calc-academic-level" class="calc-select">
-                <option value="highschool">Highschool</option>
-                <option value="college">College</option>
-                <option value="bachelors" selected>Bachelors</option>
-                <option value="masters">Masters</option>
-                <option value="doctorate">Doctorate</option>
-              </select>
-            </div>
-
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
               <div class="calc-form-group">
-                <label class="calc-label">Deadline Urgency</label>
-                <select id="calc-deadline" class="calc-select">
-                  <option value="3hrs">⚡ 3 Hours</option>
-                  <option value="6hrs">⚡ 6 Hours</option>
-                  <option value="12hrs">12 Hours</option>
-                  <option value="24hrs">24 Hours</option>
-                  <option value="2days">2 Days</option>
-                  <option value="3days" selected>3 Days</option>
-                  <option value="7days">7 Days</option>
-                  <option value="14days">14 Days</option>
+                <label class="calc-label">Academic Level</label>
+                <select id="calc-academic-level" class="calc-select">
+                  <option value="highschool">Highschool</option>
+                  <option value="college">College</option>
+                  <option value="bachelors" selected>Bachelors</option>
+                  <option value="masters">Masters</option>
+                  <option value="doctorate">Doctorate</option>
                 </select>
               </div>
 
               <div class="calc-form-group">
                 <label class="calc-label">Number of Pages ($10/Page)</label>
                 <div class="calc-counter">
-                  <button class="counter-btn" id="calc-page-minus" aria-label="Decrease Pages">-</button>
-                  <div>
-                    <div class="counter-value" id="calc-page-count">3 Pages</div>
-                    <div class="counter-sub" id="calc-word-count">~825 words</div>
+                  <button type="button" class="counter-btn" id="calc-page-minus" aria-label="Decrease Pages">-</button>
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <input type="number" id="calc-pages-input" class="calc-manual-page-input" min="1" max="500" value="3" aria-label="Number of pages" />
+                    <span class="counter-sub" id="calc-word-count">~825 words</span>
                   </div>
-                  <button class="counter-btn" id="calc-page-plus" aria-label="Increase Pages">+</button>
+                  <button type="button" class="counter-btn" id="calc-page-plus" aria-label="Increase Pages">+</button>
                 </div>
               </div>
+            </div>
+
+            <!-- Manual Deadline Calendar & Manual Deadline Time -->
+            <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px;">
+              <div class="calc-form-group">
+                <label class="calc-label" style="display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-regular fa-calendar-days" style="color: #2563eb;"></i> Deadline Calendar
+                </label>
+                <input type="date" id="calc-deadline-date" class="calc-input" required />
+              </div>
+
+              <div class="calc-form-group">
+                <label class="calc-label" style="display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-regular fa-clock" style="color: #2563eb;"></i> Deadline Time
+                </label>
+                <input type="time" id="calc-deadline-time" class="calc-input" value="23:59" required />
+              </div>
+            </div>
+
+            <!-- Live Calculated Turnaround & Rate Indicator -->
+            <div id="calc-deadline-indicator" class="calc-deadline-status-badge">
+              <i class="fa-solid fa-clock-rotate-left" style="color: #2563eb;"></i>
+              <span id="calc-deadline-text">Manual Timeline: <strong>3 Days (Standard $10.00/page)</strong></span>
             </div>
 
             <div class="calc-form-group">
@@ -2862,21 +2871,15 @@
               </select>
             </div>
             <div class="calc-form-group">
-              <label class="calc-label">Page Count ($10 / Page)</label>
-              <select id="order-pages" class="calc-select" onchange="updateOrderWizardUI()">
-                <option value="1">1 Page ($10.00 • ~275 words)</option>
-                <option value="2">2 Pages ($20.00 • ~550 words)</option>
-                <option value="3" selected>3 Pages ($30.00 • ~825 words)</option>
-                <option value="4">4 Pages ($40.00 • ~1,100 words)</option>
-                <option value="5">5 Pages ($50.00 • ~1,375 words)</option>
-                <option value="6">6 Pages ($60.00 • ~1,650 words)</option>
-                <option value="8">8 Pages ($80.00 • ~2,200 words)</option>
-                <option value="10">10 Pages ($100.00 • ~2,750 words)</option>
-                <option value="12">12 Pages ($120.00 • ~3,300 words)</option>
-                <option value="15">15 Pages ($150.00 • ~4,125 words)</option>
-                <option value="20">20 Pages ($200.00 • ~5,500 words)</option>
-                <option value="30">30 Pages ($300.00 • ~8,250 words)</option>
-              </select>
+              <label class="calc-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Number of Pages ($10/Page)</span>
+                <span id="order-pages-words-badge" style="font-size: 0.78rem; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 8px; border-radius: 6px;">~825 words ($30.00)</span>
+              </label>
+              <div class="manual-page-input-wrap">
+                <button type="button" class="page-stepper-btn" onclick="stepOrderPages(-1)" aria-label="Decrease Pages"><i class="fa-solid fa-minus"></i></button>
+                <input type="number" id="order-pages" class="calc-input manual-page-input" min="1" max="500" value="3" placeholder="Enter pages (e.g. 5)" oninput="handleManualPageInput()" required />
+                <button type="button" class="page-stepper-btn" onclick="stepOrderPages(1)" aria-label="Increase Pages"><i class="fa-solid fa-plus"></i></button>
+              </div>
             </div>
           </div>
 
@@ -2903,14 +2906,23 @@
             </div>
           </div>
 
-          <!-- Target Date & Time (Only Exact Target Date & Time) -->
-          <div class="calc-form-group" style="margin-bottom: 16px;">
-            <label class="calc-label" style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #1e293b;">
-              <i class="fa-solid fa-calendar-check" style="color: #2563eb;"></i> Exact Target Date & Time
-            </label>
-            <input type="datetime-local" id="order-deadline-datetime" class="calc-input" style="font-size: 0.9rem; padding: 11px 14px;" onchange="syncOrderDeadlineString()" required />
-            <input type="hidden" id="order-deadline-modal" value="" />
+          <!-- Manual Deadline Calendar & Manual Deadline Time -->
+          <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; margin-bottom: 16px;">
+            <div class="calc-form-group">
+              <label class="calc-label" style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #1e293b;">
+                <i class="fa-regular fa-calendar-days" style="color: #2563eb;"></i> Deadline Calendar
+              </label>
+              <input type="date" id="order-deadline-date" class="calc-input" onchange="syncOrderDeadlineDateTime()" required />
+            </div>
+            <div class="calc-form-group">
+              <label class="calc-label" style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #1e293b;">
+                <i class="fa-regular fa-clock" style="color: #2563eb;"></i> Deadline Time
+              </label>
+              <input type="time" id="order-deadline-time" class="calc-input" value="23:59" onchange="syncOrderDeadlineDateTime()" required />
+            </div>
           </div>
+          <input type="hidden" id="order-deadline-datetime" value="" />
+          <input type="hidden" id="order-deadline-modal" value="" />
 
           <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="nextOrderStep()">
             Next: Instructions & Rubric <i class="fa-solid fa-arrow-right"></i>
