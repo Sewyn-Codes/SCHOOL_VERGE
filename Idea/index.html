@@ -81,7 +81,83 @@
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Custom Responsive & Performance-Optimized Stylesheet -->
-  <link rel="stylesheet" href="styles/main.css?v=15" />
+  <link rel="stylesheet" href="styles/main.css?v=20" />
+
+  <!-- Immediate Pre-Execution Definitions for Write My Paper CTA Button & Modal -->
+  <script>
+    window.openOrderModalWithTutor = function(tutorName) {
+      var modal = document.getElementById('order-paper-modal');
+      if (modal) {
+        modal.classList.add('active');
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.display = 'flex';
+      }
+      if (typeof orderWizardStep !== 'undefined') {
+        window.orderWizardStep = 1;
+      }
+      if (typeof ensureDefaultOrderDeadline === 'function') {
+        ensureDefaultOrderDeadline();
+      }
+      var tutorSelect = document.getElementById('order-tutor-select');
+      if (tutorSelect && tutorName) {
+        var t = tutorName.toLowerCase();
+        if (t.indexOf('claire') !== -1) tutorSelect.value = 'claire';
+        else if (t.indexOf('oliver') !== -1) tutorSelect.value = 'oliver';
+        else if (t.indexOf('sophia') !== -1) tutorSelect.value = 'sophia';
+        else tutorSelect.value = 'best-match';
+      }
+      if (typeof handleManualPageInput === 'function') {
+        handleManualPageInput();
+      } else if (typeof updateOrderWizardUI === 'function') {
+        updateOrderWizardUI();
+      }
+      var topic = document.getElementById('order-topic');
+      if (topic) {
+        setTimeout(function() { topic.focus(); }, 100);
+      }
+    };
+
+    window.openOrderModalWithSubject = function(subjectName) {
+      window.openOrderModalWithTutor('');
+      var topic = document.getElementById('order-topic');
+      if (topic && !topic.value) {
+        topic.value = subjectName ? subjectName + ' Academic Assignment' : '';
+      }
+      var tutorSelect = document.getElementById('order-tutor-select');
+      if (tutorSelect && subjectName) {
+        var s = subjectName.toLowerCase();
+        if (s.indexOf('nurs') !== -1 || s.indexOf('health') !== -1 || s.indexOf('psych') !== -1) tutorSelect.value = 'sophia';
+        else if (s.indexOf('business') !== -1 || s.indexOf('econ') !== -1 || s.indexOf('finance') !== -1 || s.indexOf('math') !== -1) tutorSelect.value = 'oliver';
+        else if (s.indexOf('law') !== -1 || s.indexOf('legal') !== -1 || s.indexOf('english') !== -1 || s.indexOf('it') !== -1) tutorSelect.value = 'claire';
+      }
+    };
+
+    window.nextOrderStep = function() {
+      if (typeof orderWizardStep === 'undefined') window.orderWizardStep = 1;
+      if (window.orderWizardStep === 1) {
+        var topic = document.getElementById('order-topic');
+        if (topic && !topic.value.trim()) {
+          if (typeof showToast === 'function') showToast('Please enter your paper topic or subject.');
+          else alert('Please enter your paper topic or subject.');
+          topic.focus();
+          return;
+        }
+      }
+      if (window.orderWizardStep < 4) {
+        window.orderWizardStep++;
+        if (typeof updateOrderWizardUI === 'function') updateOrderWizardUI();
+      }
+    };
+
+    window.prevOrderStep = function() {
+      if (typeof orderWizardStep === 'undefined') window.orderWizardStep = 1;
+      if (window.orderWizardStep > 1) {
+        window.orderWizardStep--;
+        if (typeof updateOrderWizardUI === 'function') updateOrderWizardUI();
+      }
+    };
+  </script>
 </head>
 <body>
 
@@ -3126,8 +3202,8 @@
   <div class="toast-container"></div>
 
   <!-- Application Scripts -->
-  <script src="js/i18n.js?v=15"></script>
-  <script src="js/tutors-data.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/i18n.js?v=20"></script>
+  <script src="js/tutors-data.js?v=20"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>
