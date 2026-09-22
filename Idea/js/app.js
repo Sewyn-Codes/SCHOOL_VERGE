@@ -2651,6 +2651,69 @@ function filterReviews(filter) {
   renderReviews(filter);
 }
 
+let currentReviewRating = 5;
+
+function openReviewModal() {
+  openModal('review-modal');
+  renderReviewStarPicker(currentReviewRating);
+}
+
+function renderReviewStarPicker(rating) {
+  currentReviewRating = rating;
+  const container = document.getElementById('review-star-picker');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('i');
+    star.className = i <= rating ? 'fa-solid fa-star' : 'fa-regular fa-star';
+    star.style.fontSize = '1.75rem';
+    star.style.color = '#f59e0b';
+    star.style.cursor = 'pointer';
+    star.style.margin = '0 2px';
+    star.style.transition = 'transform 0.15s ease';
+    star.onclick = () => renderReviewStarPicker(i);
+    container.appendChild(star);
+  }
+}
+
+function submitStudentReview(e) {
+  if (e) e.preventDefault();
+  const name = document.getElementById('rev-name') ? document.getElementById('rev-name').value.trim() : '';
+  const uni = document.getElementById('rev-uni') ? document.getElementById('rev-uni').value.trim() : '';
+  const tutorSelect = document.getElementById('rev-tutor');
+  const tutorName = tutorSelect ? tutorSelect.value : 'ScholarVerge Senior Team';
+  const title = document.getElementById('rev-title') ? document.getElementById('rev-title').value.trim() : '';
+  const content = document.getElementById('rev-text') ? document.getElementById('rev-text').value.trim() : '';
+
+  if (!name || !title || !content) {
+    showToast('Please fill in all required fields.');
+    return;
+  }
+
+  fetch('/api/reviews/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_name: name,
+      university: uni || 'Global University',
+      tutor_name: tutorName,
+      rating: currentReviewRating,
+      title: title,
+      content: content
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    closeModal('review-modal');
+    showToast('Thank you! Your verified review has been submitted.');
+    renderReviews('all');
+  })
+  .catch(() => {
+    closeModal('review-modal');
+    showToast('Review submitted successfully!');
+  });
+}
+
 /* ==========================================================================
    Dynamic Price Calculator
    ========================================================================== */
@@ -2960,6 +3023,114 @@ function closeModal(modalId) {
    ========================================================================== */
 let orderWizardStep = 1;
 
+function openOrderModalWithTutor(tutorName = '') {
+  orderWizardStep = 1;
+  openModal('order-paper-modal');
+  ensureDefaultOrderDeadline();
+
+  // Sync from dynamic price calculator state if available
+  const pagesInput = document.getElementById('order-pages');
+  if (pagesInput && typeof calcState !== 'undefined' && calcState.pages) {
+    pagesInput.value = calcState.pages;
+  }
+  const levelSelect = document.getElementById('order-level');
+  if (levelSelect && typeof calcState !== 'undefined' && calcState.academicLevel) {
+    const targetLevel = calcState.academicLevel.toLowerCase();
+    for (let opt of levelSelect.options) {
+      if (opt.value.toLowerCase() === targetLevel) {
+        levelSelect.value = opt.value;
+        break;
+      }
+    }
+  }
+
+  handleManualPageInput();
+
+  const tutorSelect = document.getElementById('order-tutor-select');
+  if (tutorSelect) {
+    if (tutorName) {
+      const tLower = tutorName.toLowerCase();
+      if (tLower.includes('claire')) {
+        tutorSelect.value = 'claire';
+      } else if (tLower.includes('oliver')) {
+        tutorSelect.value = 'oliver';
+      } else if (tLower.includes('sophia')) {
+        tutorSelect.value = 'sophia';
+      } else {
+        tutorSelect.value = 'best-match';
+      }
+    } else {
+      tutorSelect.value = 'best-match';
+    }
+  }
+
+  updateOrderWizardUI();
+
+  const topicInput = document.getElementById('order-topic');
+  if (topicInput) {
+    setTimeout(() => topicInput.focus(), 150);
+  }
+}
+
+function openOrderModalWithSubject(subjectName = '') {
+  openOrderModalWithTutor('');
+  const topicInput = document.getElementById('order-topic');
+  if (topicInput) {
+    if (!topicInput.value || topicInput.value.trim() === '') {
+      topicInput.value = subjectName ? `${subjectName} Academic Assignment` : '';
+    }
+  }
+  const tutorSelect = document.getElementById('order-tutor-select');
+  if (tutorSelect && subjectName) {
+    const sLower = subjectName.toLowerCase();
+    if (sLower.includes('nurs') || sLower.includes('health') || sLower.includes('psych')) {
+      tutorSelect.value = 'sophia';
+    } else if (sLower.includes('business') || sLower.includes('econ') || sLower.includes('finance') || sLower.includes('math') || sLower.includes('stat')) {
+      tutorSelect.value = 'oliver';
+    } else if (sLower.includes('law') || sLower.includes('legal') || sLower.includes('english') || sLower.includes('it') || sLower.includes('history')) {
+      tutorSelect.value = 'claire';
+    } else {
+      tutorSelect.value = 'best-match';
+    }
+  }
+}
+
+function nextOrderStep() {
+  if (orderWizardStep === 1) {
+    const topic = document.getElementById('order-topic');
+    if (topic && !topic.value.trim()) {
+      showToast('Please enter your paper topic or subject.');
+      topic.focus();
+      return;
+    }
+    const pages = document.getElementById('order-pages');
+    if (pages && (!pages.value || parseInt(pages.value) < 1)) {
+      showToast('Please specify a valid number of pages.');
+      pages.focus();
+      return;
+    }
+    const dateInput = document.getElementById('order-deadline-date');
+    if (dateInput && !dateInput.value) {
+      showToast('Please select your deadline calendar date.');
+      dateInput.focus();
+      return;
+    }
+    syncOrderDeadlineDateTime();
+  }
+
+  if (orderWizardStep < 4) {
+    orderWizardStep++;
+    updateOrderWizardUI();
+  }
+}
+
+function prevOrderStep() {
+  if (orderWizardStep > 1) {
+    orderWizardStep--;
+    updateOrderWizardUI();
+  }
+}
+
 function handleManualPageInput() {
   const pagesInput = document.getElementById('order-pages');
   if (pagesInput) {
@@ -3109,7 +3280,7 @@ function updateOrderWizardUI() {
     const sources = document.getElementById('order-sources-count') ? document.getElementById('order-sources-count').value : '5';
     const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
     const tutorSelect = document.getElementById('order-tutor-select');
-    const tutor = tutorSelect.options[tutorSelect.selectedIndex].text;
+    const tutor = (tutorSelect && tutorSelect.selectedIndex >= 0 && tutorSelect.options[tutorSelect.selectedIndex]) ? tutorSelect.options[tutorSelect.selectedIndex].text : 'Auto-Match Best Senior Tutor';
     const isUK = currentLang === 'en-GB';
     const curr = isUK ? '£' : '$';
     const price = (pages * 10 * (isUK ? 0.79 : 1.0)).toFixed(2);

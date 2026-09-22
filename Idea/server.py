@@ -1462,6 +1462,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 file_data = data.get("file_data")
                 sources_count = int(data.get("sources_count", 0)) if data.get("sources_count") else 0
                 deadline_datetime = data.get("deadline_datetime")
+                prompt = data.get("prompt") or data.get("instructions") or ""
                 client_specifications = data.get("client_specifications") or prompt or "Standard academic paper requirements"
 
                 cursor.execute("""
