@@ -273,10 +273,16 @@ def init_db():
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         verified_order_id TEXT,
+        avatar_url TEXT,
         status TEXT DEFAULT 'published',
         created_at TEXT
     )
     """)
+
+    try:
+        cursor.execute("ALTER TABLE reviews ADD COLUMN avatar_url TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     # 8. Password Resets Table
     cursor.execute("""
@@ -420,12 +426,25 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM reviews")
     if cursor.fetchone()[0] == 0:
         cursor.execute("""
-        INSERT INTO reviews (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, status, created_at)
+        INSERT INTO reviews (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, avatar_url, status, created_at)
         VALUES 
-        ('REV-101', 'Elena Rostova', 'elena.r@ox.ac.uk', 'University of Oxford', 'Sophia Mitchell', 5, 'A+ (98%)', '0% AI Guaranteed, DNP Specialist', 'Master-level Clinical Synthesis', 'Sophia is phenomenal! My PICOT systematic review received highest praise in my nursing cohort with zero revisions required. The Turnitin report showed absolute 0% AI detection.', 'SV-84920', 'published', datetime('now', '-2 days')),
-        ('REV-102', 'Marcus Vance', 'm.vance@yale.edu', 'Yale University', 'Oliver Harrison', 5, '4.0 GPA', 'Fast 12h Turnaround, R Code Included', 'Flawless Econometric Proofs', 'Oliver helped me structure my quantitative corporate finance thesis. The empirical proofs and regression interpretations were crystal clear. Truly world-class academic support.', 'SV-77219', 'published', datetime('now', '-4 days')),
-        ('REV-103', 'Chloe St. Pierre', 'chloe.sp@mcgill.ca', 'McGill University', 'Claire Bennett', 5, 'High Distinction', 'OSCOLA Citations, Turnitin 0%', 'Exceptional Legal Precision', 'Claire’s attention to OSCOLA case law citation was spotless. Delivered 24 hours ahead of my deadline with comprehensive peer-reviewed references.', 'SV-99104', 'published', datetime('now', '-7 days'))
+        ('REV-101', 'Elena Rostova', 'elena.r@ox.ac.uk', 'University of Oxford', 'Sophia Mitchell', 5, 'A+ (98%)', '0% AI Guaranteed, DNP Specialist', 'Master-level Clinical Synthesis', 'Sophia is phenomenal! My PICOT systematic review received highest praise in my nursing cohort with zero revisions required. The Turnitin report showed absolute 0% AI detection.', 'SV-84920', 'assets/images/reviews/elena-rostova.jpg', 'published', datetime('now', '-2 days')),
+        ('REV-102', 'Marcus Vance', 'm.vance@yale.edu', 'Yale University', 'Oliver Harrison', 5, '4.0 GPA', 'Fast 12h Turnaround, R Code Included', 'Flawless Econometric Proofs', 'Oliver helped me structure my quantitative corporate finance thesis. The empirical proofs and regression interpretations were crystal clear. Truly world-class academic support.', 'SV-77219', 'assets/images/reviews/marcus-vance.jpg', 'published', datetime('now', '-4 days')),
+        ('REV-103', 'Chloe St. Pierre', 'chloe.sp@mcgill.ca', 'McGill University', 'Claire Bennett', 5, 'High Distinction', 'OSCOLA Citations, Turnitin 0%', 'Exceptional Legal Precision', 'Claire’s attention to OSCOLA case law citation was spotless. Delivered 24 hours ahead of my deadline with comprehensive peer-reviewed references.', 'SV-99104', 'assets/images/reviews/chloe-st-pierre.jpg', 'published', datetime('now', '-7 days')),
+        ('REV-104', 'Liam Chen', 'liam.chen@columbia.edu', 'Columbia University', 'Oliver Harrison', 5, 'Dean''s List / A+', 'Statistical Significance & R Scripts', 'Masterful Econometrics & Thesis Modeling', 'Oliver guided me through dynamic panel regressions and time-series cointegration with absolute precision. My thesis supervisor was thoroughly impressed.', 'SV-66120', 'assets/images/reviews/liam-chen.jpg', 'published', datetime('now', '-10 days'))
         """)
+    else:
+        cursor.execute("UPDATE reviews SET avatar_url = 'assets/images/reviews/elena-rostova.jpg' WHERE student_name = 'Elena Rostova'")
+        cursor.execute("UPDATE reviews SET avatar_url = 'assets/images/reviews/marcus-vance.jpg' WHERE student_name = 'Marcus Vance'")
+        cursor.execute("UPDATE reviews SET avatar_url = 'assets/images/reviews/chloe-st-pierre.jpg' WHERE student_name = 'Chloe St. Pierre'")
+        cursor.execute("UPDATE reviews SET avatar_url = 'assets/images/reviews/liam-chen.jpg' WHERE student_name = 'Liam Chen'")
+
+        cursor.execute("SELECT COUNT(*) FROM reviews WHERE review_id = 'REV-104'")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+            INSERT INTO reviews (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, avatar_url, status, created_at)
+            VALUES ('REV-104', 'Liam Chen', 'liam.chen@columbia.edu', 'Columbia University', 'Oliver Harrison', 5, 'Dean''s List / A+', 'Statistical Significance & R Scripts', 'Masterful Econometrics & Thesis Modeling', 'Oliver guided me through dynamic panel regressions and time-series cointegration with absolute precision. My thesis supervisor was thoroughly impressed.', 'SV-66120', 'assets/images/reviews/liam-chen.jpg', 'published', datetime('now', '-10 days'))
+            """)
 
     # Seed / Synchronize Initial Active Tracked Orders
     cursor.execute("SELECT COUNT(*) FROM orders")
@@ -1467,7 +1486,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 cursor.execute("""
                 INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, client_specifications, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Payment Inquiry', 25, ?, 'email_inquiry', 'pending_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Admin Payment Inquiry', 25, ?, 'email_inquiry', 'pending_admin_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
 
                 if file_name:
@@ -1478,7 +1497,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     """, (upload_id, order_num, student_email, student_name, tutor_name, file_name, file_size or 'Unknown', file_type or 'Document', file_data or '', topic, prompt, citation, academic_level, deadline, deadline))
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
-                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment inquiry sent via email desk"))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment inquiry sent via Admin email desk"))
 
                 # Trigger Live Notification for Super Admin
                 notif_file_note = f" [Attached: {file_name}]" if file_name else ""
@@ -1489,19 +1508,17 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 conn.commit()
 
-                # Build inquiry links
-                inquiry_subject = urllib.parse.quote(f"Payment Inquiry: Order #{order_num} - {topic}")
-                inquiry_url = f"mailto:scholarverge@gmail.com?subject={inquiry_subject}"
-                wa_msg = f"Hello ScholarVerge Admin! I have placed Order #{order_num} for '{topic}' ({pages} pages, {academic_level}, Tutor: {tutor_name}). Please provide the payment details."
-                wa_link = f"https://wa.me/16677757597?text={wa_msg.replace(' ', '%20')}"
+                # Build inquiry links for Admin billing desk
+                inquiry_subject = urllib.parse.quote(f"Official Payment Inquiry: Order #{order_num} - {topic}")
+                inquiry_body = urllib.parse.quote(f"Dear ScholarVerge Administration & Billing Desk,\n\nI have placed Order #{order_num} for '{topic}' ({pages} pages, {academic_level}, Tutor: {tutor_name}, Deadline: {deadline}).\n\nStudent: {student_name} ({student_email})\n\nPlease provide the official invoice and payment instructions for this project.")
+                inquiry_url = f"mailto:scholarverge@gmail.com?subject={inquiry_subject}&body={inquiry_body}"
 
                 self.send_json_response(201, {
                     "success": True,
-                    "message": f"Order #{order_num} registered! Opening email billing desk for payment inquiry.",
+                    "message": f"Order #{order_num} registered! Opening email to inquire about payment with Admin.",
                     "order_number": order_num,
                     "price_amount": price_amount,
-                    "email_inquiry_url": inquiry_url,
-                    "whatsapp_payment_url": wa_link
+                    "email_inquiry_url": inquiry_url
                 })
 
             # 13. Book 1-on-1 Consultation Session (WhatsApp Link Request Flow)
@@ -1691,11 +1708,12 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     return
 
                 review_id = f"REV-{secrets.randbelow(90000) + 10000}"
+                avatar_url = data.get("avatar_url") or "assets/images/reviews/elena-rostova.jpg"
 
                 cursor.execute("""
-                INSERT INTO reviews (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', datetime('now'))
-                """, (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id))
+                INSERT INTO reviews (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, avatar_url, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', datetime('now'))
+                """, (review_id, student_name, student_email, university, tutor_name, rating, grade_received, highlights, title, content, verified_order_id, avatar_url))
 
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('REVIEW_CREATE', ?, ?, datetime('now'))", (student_email, f"Verified Review #{review_id} published for {tutor_name} ({rating} stars)"))
                 conn.commit()

@@ -2573,6 +2573,24 @@ function renderServices() {
 /* ==========================================================================
    Render Verified Student Reviews
    ========================================================================== */
+function getStudentReviewAvatar(name, id) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('elena')) return 'assets/images/reviews/elena-rostova.jpg';
+  if (n.includes('marcus')) return 'assets/images/reviews/marcus-vance.jpg';
+  if (n.includes('chloe')) return 'assets/images/reviews/chloe-st-pierre.jpg';
+  if (n.includes('liam') || n.includes('david')) return 'assets/images/reviews/liam-chen.jpg';
+  const list = [
+    'assets/images/reviews/elena-rostova.jpg',
+    'assets/images/reviews/marcus-vance.jpg',
+    'assets/images/reviews/chloe-st-pierre.jpg',
+    'assets/images/reviews/liam-chen.jpg'
+  ];
+  let hash = 0;
+  const str = (name || id || 'student').toString();
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+  return list[Math.abs(hash) % list.length];
+}
+
 function renderReviews(filter = 'all') {
   const grid = document.getElementById('reviews-grid-container');
   if (!grid) return;
@@ -2591,7 +2609,7 @@ function renderReviews(filter = 'all') {
           title: r.title,
           text: r.content,
           subject: r.highlights || 'General Academic',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+          avatar: r.avatar_url || getStudentReviewAvatar(r.student_name, r.review_id || r.id)
         }));
         
         displayReviewsList(mapped, filter);
@@ -2629,7 +2647,7 @@ function displayReviewsList(list, filter) {
       <h4 class="review-title">${r.title}</h4>
       <p class="review-text">"${r.text}"</p>
       <div class="review-author">
-        <img src="${r.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${r.studentName}" class="review-avatar" />
+        <img src="${r.avatar || getStudentReviewAvatar(r.studentName, r.id)}" alt="${r.studentName}" class="review-avatar" />
         <div class="author-info">
           <span class="author-name">${r.studentName}</span>
           <span class="author-sub">${r.university} • Tutor: <strong>${r.tutor}</strong></span>
@@ -3295,7 +3313,7 @@ function updateOrderWizardUI() {
           <p style="margin-bottom: 6px;"><strong>Attached Materials:</strong> <span style="color: #475569;">${fileAttachedStr}</span></p>
           <p style="margin-bottom: 6px;"><strong>Assigned Specialist Tutor:</strong> ${tutor}</p>
           <p style="margin-bottom: 6px;"><strong>Turnitin & Anti-AI Verification:</strong> <span style="color: #059669; font-weight: 700;">Included Free (0% AI Certificate)</span></p>
-          <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Billing & Invoicing:</strong> <span style="color: #2563eb; font-weight: 700;">Official Quote & Itemized Invoice via Email Billing Desk</span></p>
+          <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Billing & Invoicing:</strong> <span style="color: #2563eb; font-weight: 700;"><i class="fa-solid fa-envelope"></i> Official Payment Inquiry & Invoice via Admin Desk (scholarverge@gmail.com)</span></p>
         </div>
       `;
     }
@@ -3321,31 +3339,31 @@ function submitAcademicOrder(e) {
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
   const attachedFileText = orderUploadedFileMeta ? `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : '';
 
-  const emailRecipient = 'scholarverge@gmail.com';
+  const adminEmail = 'scholarverge@gmail.com';
   const emailSubject = `Payment Inquiry: Order #${randomId} - ${topic}`;
-  const emailBody = `Dear ScholarVerge Academic Billing & Support Team,
+  const emailBody = `Dear ScholarVerge Administration & Billing Desk,
 
-I have submitted an assignment order on ScholarVerge and would like to inquire about payment details, invoice options, and final fee confirmation for this project.
+I have submitted an academic order on ScholarVerge and am writing to formally inquire about payment options, final fee confirmation, and official invoice instructions for this assignment.
 
---- ASSIGNMENT SPECIFICATIONS ---
+--- ORDER SPECIFICATIONS ---
 • Order Reference: #${randomId}
 • Topic / Title: ${topic}
 • Academic Level: ${level}
 • Length: ${pages} Pages (~${(pages * 275).toLocaleString()} Words)
 • Citation & Referencing: ${citation} (${sourcesCount} sources)
 • Target Deadline: ${deadline}
-• Selected Specialist Tutor: ${tutorName}${attachedFileText}
+• Assigned Specialist Tutor: ${tutorName}${attachedFileText}
 
---- STUDENT CONTACT DETAILS ---
+--- STUDENT DETAILS ---
 • Student Name: ${currentStudentName}
 • Student Email: ${currentStudentEmail}
 
-Please send the official invoice and payment instructions at your earliest convenience.
+Please provide the official invoice and payment details at your earliest convenience.
 
 Kind regards,
 ${currentStudentName}`;
 
-  const mailtoLink = `mailto:${emailRecipient}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  const mailtoLink = `mailto:${adminEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
   const deadlineDatetimeVal = document.getElementById('order-deadline-datetime') ? document.getElementById('order-deadline-datetime').value : '';
 
   fetch('/api/orders/create', {
@@ -3366,6 +3384,7 @@ ${currentStudentName}`;
       deadline_datetime: deadlineDatetimeVal,
       sources_count: parseInt(sourcesCount) || 0,
       price_amount: priceAmount,
+      payment_method: 'email_inquiry',
       file_name: orderUploadedFileMeta ? orderUploadedFileMeta.name : null,
       file_size: orderUploadedFileMeta ? orderUploadedFileMeta.size : null,
       file_type: orderUploadedFileMeta ? orderUploadedFileMeta.type : null,
@@ -3386,7 +3405,7 @@ ${currentStudentName}`;
   }
 
   closeModal('order-paper-modal');
-  showToast(`Order #${randomId} Created! Opening official email billing inquiry...`);
+  showToast(`Order #${randomId} Registered! Opening email to inquire about payment with Admin...`);
 }
 
 /* ==========================================================================

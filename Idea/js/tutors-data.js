@@ -205,7 +205,7 @@ const allReviewsData = [
   {
     id: 1,
     studentName: 'Elena Rostova',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    avatar: 'assets/images/reviews/elena-rostova.jpg',
     university: 'University of Oxford',
     subject: 'Nursing & Healthcare',
     tutor: 'Sophia Mitchell',
@@ -218,7 +218,7 @@ const allReviewsData = [
   {
     id: 2,
     studentName: 'Marcus Vance',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    avatar: 'assets/images/reviews/marcus-vance.jpg',
     university: 'Yale University',
     subject: 'Economics & Finance',
     tutor: 'Oliver Harrison',
@@ -231,7 +231,7 @@ const allReviewsData = [
   {
     id: 3,
     studentName: 'Chloe St. Pierre',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
+    avatar: 'assets/images/reviews/chloe-st-pierre.jpg',
     university: 'McGill University',
     subject: 'Law & Technology',
     tutor: 'Claire Bennett',
@@ -240,5 +240,18 @@ const allReviewsData = [
     badge: 'Verified Order #SV-99104',
     title: 'Exceptional Legal Precision',
     text: 'Claire’s attention to OSCOLA case law citation was spotless. Delivered 24 hours ahead of my deadline with comprehensive peer-reviewed references.'
+  },
+  {
+    id: 4,
+    studentName: 'Liam Chen',
+    avatar: 'assets/images/reviews/liam-chen.jpg',
+    university: 'Columbia University',
+    subject: 'Economics & Finance',
+    tutor: 'Oliver Harrison',
+    rating: 5,
+    date: '1 week ago',
+    badge: 'Verified Order #SV-66183',
+    title: 'Top Tier Machine Learning & Econometrics',
+    text: 'Oliver broke down predictive regression models and algorithmic proofs with immense clarity. Received an A grade and passed institutional defense on first attempt.'
   }
 ];
