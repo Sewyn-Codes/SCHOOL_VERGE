@@ -720,9 +720,6 @@
       <div class="hero-grid">
         <!-- Hero Left Content -->
         <div class="hero-content">
-          <div class="hero-tag">
-            <i class="fa-solid fa-shield-halved"></i> 100% Human Writing • Verified Ph.D. & Master's Tutors
-          </div>
           <h1 class="hero-title" data-i18n="heroBreakthrough">
             Your Next Academic Breakthrough Starts Here.
           </h1>
@@ -782,7 +779,7 @@
             <div class="calc-header">
               <div>
                 <h3 style="margin-bottom: 2px;">Calculate Your Paper</h3>
-                <span style="font-size: 0.8125rem; color: var(--text-muted);">$10 / page transparent pricing • Zero hidden fees</span>
+                <span style="font-size: 0.8125rem; color: var(--text-muted);">Instant Word & Deadline Estimation • Turnitin Report Included</span>
               </div>
               <span class="calc-discount-badge"><i class="fa-solid fa-tag"></i> 20% OFF FIRST ORDER</span>
             </div>
@@ -800,7 +797,7 @@
               </div>
 
               <div class="calc-form-group">
-                <label class="calc-label">Number of Pages ($10/Page)</label>
+                <label class="calc-label">Number of Pages</label>
                 <div class="calc-counter">
                   <button type="button" class="counter-btn" id="calc-page-minus" aria-label="Decrease Pages">-</button>
                   <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -832,7 +829,7 @@
             <!-- Live Calculated Turnaround & Rate Indicator -->
             <div id="calc-deadline-indicator" class="calc-deadline-status-badge">
               <i class="fa-solid fa-clock-rotate-left" style="color: #2563eb;"></i>
-              <span id="calc-deadline-text">Manual Timeline: <strong>3 Days (Standard $10.00/page)</strong></span>
+              <span id="calc-deadline-text">Manual Timeline: <strong>3 Days Delivery</strong></span>
             </div>
 
             <div class="calc-form-group">
@@ -843,16 +840,9 @@
               </div>
             </div>
 
-            <div class="calc-price-box">
-              <div class="price-details">
-                <span class="price-label">Estimated Total Price ($10/page)</span>
-                <div>
-                  <span class="price-total" id="calc-price-total">$24.00</span>
-                  <span class="price-old" id="calc-price-old">$30.00</span>
-                </div>
-              </div>
-              <button class="btn btn-accent" onclick="openOrderModalWithTutor('')">
-                <i class="fa-solid fa-arrow-right"></i> Order Now
+            <div class="calc-action-box" style="margin-top: 20px;">
+              <button class="btn btn-accent" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 14px 20px; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 14px rgba(6, 214, 160, 0.35); display: flex; align-items: center; gap: 8px;" onclick="openOrderModalWithTutor('')">
+                <i class="fa-solid fa-calculator"></i> Calculate
               </button>
             </div>
           </div>
@@ -924,7 +914,7 @@
         <span class="section-badge"><i class="fa-solid fa-route"></i> Seamless Process</span>
         <h2 class="section-title" data-i18n="howItWorksTitle">A Step-by-Step Guide on How It Works</h2>
         <p class="section-desc">
-          From your initial assignment brief to tutor collaboration and WhatsApp payment coordination, we ensure complete academic excellence and zero stress.
+          From your initial assignment brief to tutor collaboration and secure payment coordination & invoicing, we ensure complete academic excellence and zero stress.
         </p>
       </div>
 
@@ -1352,8 +1342,8 @@
         <button class="chat-quick-btn" onclick="openStudentProfileModal()">
           🎓 Set Up My Student Profile
         </button>
-        <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('How do I coordinate payment on WhatsApp with the admin?')">
-          💳 How do I coordinate payment on WhatsApp?
+        <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('How do I inquire about and arrange payment?')">
+          💳 How do I inquire about and arrange payment?
         </button>
         <button class="chat-quick-btn" onclick="handleQuickSupportQuestion('What is your Turnitin & Anti-AI guarantee?')">
           📄 Tell me about your 0% AI guarantee
@@ -2924,7 +2914,7 @@
           </div>
           <div class="wizard-step-node" id="order-node-4">
             <div class="wizard-step-circle">4</div>
-            <span>WhatsApp Payment</span>
+            <span>Payment Inquiry</span>
           </div>
         </div>
 
@@ -2948,8 +2938,8 @@
             </div>
             <div class="calc-form-group">
               <label class="calc-label" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Number of Pages ($10/Page)</span>
-                <span id="order-pages-words-badge" style="font-size: 0.78rem; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 8px; border-radius: 6px;">~825 words ($30.00)</span>
+                <span>Number of Pages</span>
+                <span id="order-pages-words-badge" style="font-size: 0.78rem; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 8px; border-radius: 6px;">~825 words</span>
               </label>
               <div class="manual-page-input-wrap">
                 <button type="button" class="page-stepper-btn" onclick="stepOrderPages(-1)" aria-label="Decrease Pages"><i class="fa-solid fa-minus"></i></button>
@@ -3064,28 +3054,33 @@
           </div>
           <div style="display: flex; gap: 12px;">
             <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Review & WhatsApp Payment <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Review & Payment Inquiry <i class="fa-solid fa-arrow-right"></i></button>
           </div>
         </div>
 
-        <!-- Step 4: WhatsApp Payment Coordination Review -->
+        <!-- Step 4: Official Academic Payment Inquiry & Order Review -->
         <div id="order-step-pane-4" style="display: none;">
           <div id="order-summary-box" style="margin-bottom: 18px;"></div>
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-              <i class="fa-brands fa-whatsapp" style="font-size: 1.8rem; color: #16a34a; flex-shrink: 0; margin-top: 2px;"></i>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(37, 99, 235, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #2563eb; font-size: 1.25rem;">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
               <div>
-                <strong style="color: #15803d; font-size: 0.9rem; display: block;">Offline Payment Facilitation via WhatsApp Admin</strong>
-                <p style="color: #166534; font-size: 0.8125rem; margin: 4px 0 0; line-height: 1.45;">
-                  Payment is facilitated directly offline with the ScholarVerge Academic Admin via WhatsApp. Submitting your order registers it in our database and opens direct WhatsApp chat with the Admin to confirm your details and arrange payment.
+                <strong style="color: #0f172a; font-size: 0.95rem; display: block;">Official Payment & Billing Desk Inquiry</strong>
+                <p style="color: #475569; font-size: 0.825rem; margin: 4px 0 0; line-height: 1.5;">
+                  To ensure academic compliance and personalized scoping, payment coordination is facilitated directly through our official academic billing desk (<strong>scholarverge@gmail.com</strong>).
+                </p>
+                <p style="color: #64748b; font-size: 0.78rem; margin: 6px 0 0; line-height: 1.45;">
+                  Submitting your order securely registers your project in our system and prepares a pre-filled email to inquire about payment options and request your official invoice.
                 </p>
               </div>
             </div>
           </div>
           <div style="display: flex; gap: 12px;">
             <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-whatsapp" style="flex: 2; padding: 12px 18px; font-size: 0.92rem;" onclick="submitAcademicOrder(event)">
-              <i class="fa-brands fa-whatsapp"></i> Confirm & Open WhatsApp Payment
+            <button class="btn btn-primary" style="flex: 2; padding: 12px 20px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);" onclick="submitAcademicOrder(event)">
+              <i class="fa-solid fa-envelope-circle-check"></i> Submit Order & Inquire Payment via Email
             </button>
           </div>
         </div>

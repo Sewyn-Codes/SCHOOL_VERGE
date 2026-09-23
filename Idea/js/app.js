@@ -2872,7 +2872,7 @@ function updatePricingDisplay() {
   
   // Calculate dynamic urgency multiplier from manually chosen date and time
   let urgencyMultiplier = 1.0;
-  let turnaroundLabel = '3 Days (Standard $10.00/page)';
+  let turnaroundLabel = '3 Days Delivery';
 
   if (calcState.deadlineDate) {
     const selectedDt = new Date(`${calcState.deadlineDate}T${calcState.deadlineTime || '23:59'}`);
@@ -2901,7 +2901,7 @@ function updatePricingDisplay() {
     } else {
       urgencyMultiplier = 1.0;
       const days = Math.round(diffHours / 24);
-      turnaroundLabel = `${days} Days Delivery (Standard $10.00/page)`;
+      turnaroundLabel = `${days} Days Delivery`;
     }
   }
 
@@ -3139,10 +3139,7 @@ function handleManualPageInput() {
     if (p > 500) p = 500;
     const badge = document.getElementById('order-pages-words-badge');
     if (badge) {
-      const isUK = currentLang === 'en-GB';
-      const curr = isUK ? '£' : '$';
-      const price = (p * 10 * (isUK ? 0.79 : 1.0)).toFixed(2);
-      badge.textContent = `~${(p * 275).toLocaleString()} words (${curr}${price})`;
+      badge.textContent = `~${(p * 275).toLocaleString()} words`;
     }
   }
   updateOrderWizardUI();
@@ -3292,13 +3289,13 @@ function updateOrderWizardUI() {
         <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 18px; font-size: 0.9rem;">
           <p style="margin-bottom: 6px;"><strong>Topic / Course:</strong> ${topic}</p>
           <p style="margin-bottom: 6px;"><strong>Academic Level:</strong> ${level}</p>
-          <p style="margin-bottom: 6px;"><strong>Length:</strong> ${pages} Pages (~${pages * 275} words @ $10.00/page)</p>
+          <p style="margin-bottom: 6px;"><strong>Length:</strong> ${pages} Pages (~${(pages * 275).toLocaleString()} words)</p>
           <p style="margin-bottom: 6px;"><strong>Citation & Style:</strong> ${citation} • ${sources} Minimum Sources</p>
           <p style="margin-bottom: 6px;"><strong>Target Date & Time:</strong> <span style="color: #2563eb; font-weight: 700;">${deadline}</span></p>
           <p style="margin-bottom: 6px;"><strong>Attached Materials:</strong> <span style="color: #475569;">${fileAttachedStr}</span></p>
           <p style="margin-bottom: 6px;"><strong>Assigned Specialist Tutor:</strong> ${tutor}</p>
           <p style="margin-bottom: 6px;"><strong>Turnitin & Anti-AI Verification:</strong> <span style="color: #059669; font-weight: 700;">Included Free (0% AI Certificate)</span></p>
-          <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Estimated Total:</strong> <span style="color: #2563eb; font-weight: 800; font-size: 1.25rem;">${curr}${price}</span> <span style="font-size: 0.75rem; color: #64748b;">($10.00 / page)</span></p>
+          <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Billing & Invoicing:</strong> <span style="color: #2563eb; font-weight: 700;">Official Quote & Itemized Invoice via Email Billing Desk</span></p>
         </div>
       `;
     }
@@ -3311,7 +3308,7 @@ function submitAcademicOrder(e) {
   const randomId = `SV-${Math.floor(10000 + Math.random() * 90000)}`;
   const topic = document.getElementById('order-topic').value || 'Academic Research Paper';
   const tutorSelect = document.getElementById('order-tutor-select');
-  const tutorName = tutorSelect.options[tutorSelect.selectedIndex].text.split('(')[0].trim();
+  const tutorName = (tutorSelect && tutorSelect.selectedIndex >= 0 && tutorSelect.options[tutorSelect.selectedIndex]) ? tutorSelect.options[tutorSelect.selectedIndex].text.split('(')[0].trim() : 'Auto-Match Best Senior Tutor';
   const pages = parseInt(document.getElementById('order-pages').value) || 3;
   const level = document.getElementById('order-level').value;
   const citation = document.getElementById('order-citation') ? document.getElementById('order-citation').value : 'APA 7th Edition';
@@ -3322,17 +3319,33 @@ function submitAcademicOrder(e) {
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
-  const attachedFileText = orderUploadedFileMeta ? `\n• Attached File: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : '';
+  const attachedFileText = orderUploadedFileMeta ? `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : '';
 
-  const waMsg = `Hello ScholarVerge Admin! I have submitted Order #${randomId} for "${topic}".
-• Length: ${pages} Pages ($${priceAmount.toFixed(2)} @ $10/page)
+  const emailRecipient = 'scholarverge@gmail.com';
+  const emailSubject = `Payment Inquiry: Order #${randomId} - ${topic}`;
+  const emailBody = `Dear ScholarVerge Academic Billing & Support Team,
+
+I have submitted an assignment order on ScholarVerge and would like to inquire about payment details, invoice options, and final fee confirmation for this project.
+
+--- ASSIGNMENT SPECIFICATIONS ---
+• Order Reference: #${randomId}
+• Topic / Title: ${topic}
 • Academic Level: ${level}
-• Tutor: ${tutorName}
-• Citation Style: ${citation} (${sourcesCount} sources)
-• Target Deadline: ${deadline}${attachedFileText}
-Please guide me on completing the payment.`;
-  const waUrl = `https://wa.me/16677757597?text=${encodeURIComponent(waMsg)}`;
+• Length: ${pages} Pages (~${(pages * 275).toLocaleString()} Words)
+• Citation & Referencing: ${citation} (${sourcesCount} sources)
+• Target Deadline: ${deadline}
+• Selected Specialist Tutor: ${tutorName}${attachedFileText}
 
+--- STUDENT CONTACT DETAILS ---
+• Student Name: ${currentStudentName}
+• Student Email: ${currentStudentEmail}
+
+Please send the official invoice and payment instructions at your earliest convenience.
+
+Kind regards,
+${currentStudentName}`;
+
+  const mailtoLink = `mailto:${emailRecipient}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
   const deadlineDatetimeVal = document.getElementById('order-deadline-datetime') ? document.getElementById('order-deadline-datetime').value : '';
 
   fetch('/api/orders/create', {
@@ -3361,14 +3374,10 @@ Please guide me on completing the payment.`;
   })
   .then(r => r.json())
   .then(res => {
-    if (res.success && res.whatsapp_payment_url) {
-      window.open(res.whatsapp_payment_url, '_blank');
-    } else {
-      window.open(waUrl, '_blank');
-    }
+    window.location.href = mailtoLink;
   })
   .catch(() => {
-    window.open(waUrl, '_blank');
+    window.location.href = mailtoLink;
   });
 
   if (authSession.user) {
@@ -3377,7 +3386,7 @@ Please guide me on completing the payment.`;
   }
 
   closeModal('order-paper-modal');
-  showToast(`Order #${randomId} Created! Connecting to WhatsApp Admin for payment...`);
+  showToast(`Order #${randomId} Created! Opening official email billing inquiry...`);
 }
 
 /* ==========================================================================

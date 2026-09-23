@@ -1467,7 +1467,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 cursor.execute("""
                 INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, client_specifications, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting WhatsApp Payment Coordination', 25, ?, 'offline_whatsapp', 'pending_whatsapp_confirmation', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Payment Inquiry', 25, ?, 'email_inquiry', 'pending_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
 
                 if file_name:
@@ -1478,7 +1478,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     """, (upload_id, order_num, student_email, student_name, tutor_name, file_name, file_size or 'Unknown', file_type or 'Document', file_data or '', topic, prompt, citation, academic_level, deadline, deadline))
 
                 cursor.execute("UPDATE students SET total_orders = total_orders + 1 WHERE email = ?", (student_email,))
-                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment coordinated via WhatsApp"))
+                cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment inquiry sent via email desk"))
 
                 # Trigger Live Notification for Super Admin
                 notif_file_note = f" [Attached: {file_name}]" if file_name else ""
@@ -1489,15 +1489,18 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
 
                 conn.commit()
 
-                # Build WhatsApp payment link
+                # Build inquiry links
+                inquiry_subject = urllib.parse.quote(f"Payment Inquiry: Order #{order_num} - {topic}")
+                inquiry_url = f"mailto:scholarverge@gmail.com?subject={inquiry_subject}"
                 wa_msg = f"Hello ScholarVerge Admin! I have placed Order #{order_num} for '{topic}' ({pages} pages, {academic_level}, Tutor: {tutor_name}). Please provide the payment details."
                 wa_link = f"https://wa.me/16677757597?text={wa_msg.replace(' ', '%20')}"
 
                 self.send_json_response(201, {
                     "success": True,
-                    "message": f"Order #{order_num} created! Please contact the Admin on WhatsApp to complete payment.",
+                    "message": f"Order #{order_num} registered! Opening email billing desk for payment inquiry.",
                     "order_number": order_num,
                     "price_amount": price_amount,
+                    "email_inquiry_url": inquiry_url,
                     "whatsapp_payment_url": wa_link
                 })
 
