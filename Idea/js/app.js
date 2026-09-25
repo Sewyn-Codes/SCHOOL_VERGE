@@ -988,22 +988,13 @@ function clearOrderFile(e) {
 
 function updateBriefPricePreview() {
   const pagesInput = document.getElementById('upload-pages');
-  const levelSelect = document.getElementById('upload-level');
   const priceDisplay = document.getElementById('brief-price-total');
   const wordsDisplay = document.getElementById('brief-word-count-sub');
 
   const pages = pagesInput ? Math.max(1, parseInt(pagesInput.value) || 1) : 1;
-  const level = levelSelect ? levelSelect.value : 'Undergraduate';
 
-  let ratePerPage = 15.00;
-  if (level === 'Highschool' || level === 'High School') ratePerPage = 12.00;
-  else if (level === 'College' || level === 'Bachelors' || level === 'Undergraduate') ratePerPage = 15.00;
-  else if (level === 'Masters' || level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
-  else if (level === 'Doctorate' || level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
-
-  const total = pages * ratePerPage;
-  if (priceDisplay) priceDisplay.textContent = `$${total.toFixed(2)}`;
-  if (wordsDisplay) wordsDisplay.textContent = `~${pages * 275} words (Double Spaced)`;
+  if (priceDisplay) priceDisplay.innerHTML = '<i class="fa-solid fa-envelope-circle-check"></i> Provided by Admin';
+  if (wordsDisplay) wordsDisplay.textContent = `~${(pages * 275).toLocaleString()} words (Double Spaced)`;
 }
 
 function handleDocumentEmailDispatch(e) {
@@ -1045,13 +1036,6 @@ function handleDocumentEmailDispatch(e) {
   const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
   const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
 
-  let ratePerPage = 15.00;
-  if (level === 'Highschool' || level === 'High School') ratePerPage = 12.00;
-  else if (level === 'College' || level === 'Bachelors' || level === 'Undergraduate') ratePerPage = 15.00;
-  else if (level === 'Masters' || level === 'Master\'s' || level === 'Master\'s Degree') ratePerPage = 18.00;
-  else if (level === 'Doctorate' || level === 'Doctoral / Ph.D.') ratePerPage = 22.00;
-  const priceAmount = pages * ratePerPage;
-
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
   const fileName = uploadedFileMeta.name;
@@ -1081,7 +1065,7 @@ function handleDocumentEmailDispatch(e) {
       day_ready: dayReady,
       deadline: dayReady,
       instructions: instructions,
-      price_amount: priceAmount
+      price_amount: 0.00
     })
   })
   .then(r => r.json())
@@ -1100,7 +1084,7 @@ function handleDocumentEmailDispatch(e) {
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.825rem; color: #334155; line-height: 1.6;">
               <div><strong>Type:</strong> ${assignmentType} • <strong>Subject:</strong> ${subject} (${level})</div>
               <div><strong>Length:</strong> ${pages} Pages (~${pages * 275} words) • <strong>Citation:</strong> ${citation} (${sourcesCount} sources)</div>
-              <div><strong>Guiding Tutor:</strong> ${res.tutor_name} • <strong>Target Day:</strong> ${dayReady} • <strong>Est. Total:</strong> $${priceAmount.toFixed(2)}</div>
+              <div><strong>Guiding Tutor:</strong> ${res.tutor_name} • <strong>Target Day:</strong> ${dayReady} • <strong>Invoicing:</strong> Official Invoice Provided by Admin Desk</div>
             </div>
             <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">
               <i class="fa-solid fa-paperclip"></i> Attached Document: <strong>${fileName}</strong> (${fileSize})
@@ -1437,8 +1421,8 @@ function renderStudentDashboardOrders(orders) {
         </div>
       </td>
       <td>
-        <div style="font-size: 0.75rem; color: #059669; font-weight: 600;">
-          <i class="fa-brands fa-whatsapp"></i> ${o.payment_status === 'payment_verified' ? 'Verified' : 'WhatsApp Facilitated'}
+        <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">
+          <i class="fa-solid fa-envelope-circle-check"></i> ${o.payment_status === 'payment_verified' ? 'Verified & Paid' : 'Admin Email Inquiry'}
         </div>
       </td>
       <td>
@@ -2573,6 +2557,45 @@ function renderServices() {
 /* ==========================================================================
    Render Verified Student Reviews
    ========================================================================== */
+function handleReviewAvatarError(img, name) {
+  if (img.dataset.hasFailed) {
+    // Ultimate fallback if offline/disconnected: crisp SVG avatar with student initials
+    const initials = (name || 'Student').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    img.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%232563eb"/><stop offset="100%" stop-color="%231d4ed8"/></linearGradient></defs><rect width="100" height="100" rx="50" fill="url(%23g)"/><text x="50" y="62" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="36" font-weight="700" fill="white" text-anchor="middle">${initials}</text></svg>`;
+    img.onerror = null;
+    return;
+  }
+  img.dataset.hasFailed = 'true';
+  const n = (name || '').toLowerCase();
+  const realisticPortraits = {
+    'elena': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+    'marcus': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    'chloe': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
+    'liam': 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80',
+    'david': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    'jessica': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
+    'brittany': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
+    'ashley': 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80'
+  };
+  for (const [key, url] of Object.entries(realisticPortraits)) {
+    if (n.includes(key)) {
+      img.src = url;
+      return;
+    }
+  }
+  const diversePortraits = [
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'
+  ];
+  let hash = 0;
+  for (let i = 0; i < n.length; i++) hash = (hash * 31 + n.charCodeAt(i)) & 0xffffffff;
+  img.src = diversePortraits[Math.abs(hash) % diversePortraits.length];
+}
+
 function getStudentReviewAvatar(name, id) {
   const n = (name || '').toLowerCase();
   if (n.includes('elena')) return 'assets/images/reviews/elena-rostova.jpg';
@@ -2642,15 +2665,15 @@ function displayReviewsList(list, filter) {
         <div class="review-stars">
           ${Array(r.rating || 5).fill('<i class="fa-solid fa-star"></i>').join('')}
         </div>
-        <span class="review-badge">${r.badge || 'Verified Review'}</span>
+        <span class="review-badge">${escapeHtml(r.badge || 'Verified Review')}</span>
       </div>
-      <h4 class="review-title">${r.title}</h4>
-      <p class="review-text">"${r.text}"</p>
+      <h4 class="review-title">${escapeHtml(r.title)}</h4>
+      <p class="review-text">"${escapeHtml(r.text)}"</p>
       <div class="review-author">
-        <img src="${r.avatar || getStudentReviewAvatar(r.studentName, r.id)}" alt="${r.studentName}" class="review-avatar" />
+        <img src="${r.avatar || getStudentReviewAvatar(r.studentName, r.id)}" alt="${escapeHtml(r.studentName)}" class="review-avatar" onerror="handleReviewAvatarError(this, '${escapeHtml(r.studentName)}')" loading="lazy" />
         <div class="author-info">
-          <span class="author-name">${r.studentName}</span>
-          <span class="author-sub">${r.university} • Tutor: <strong>${r.tutor}</strong></span>
+          <span class="author-name">${escapeHtml(r.studentName)}</span>
+          <span class="author-sub">${escapeHtml(r.university)} • Tutor: <strong>${escapeHtml(r.tutor)}</strong></span>
         </div>
       </div>
     </div>
@@ -2767,8 +2790,17 @@ const deadlineMultipliers = {
   '14days': 0.90
 };
 
+function syncHeroAssignmentType() {
+  const heroType = document.getElementById('calc-assignment-type');
+  const modalType = document.getElementById('order-assignment-type');
+  if (heroType && modalType) {
+    modalType.value = heroType.value;
+  }
+}
+
 function initPriceCalculator() {
   const levelSelect = document.getElementById('calc-academic-level');
+  const assignTypeSelect = document.getElementById('calc-assignment-type');
   const dateInput = document.getElementById('calc-deadline-date');
   const timeInput = document.getElementById('calc-deadline-time');
   const pagesInput = document.getElementById('calc-pages-input');
@@ -2776,6 +2808,13 @@ function initPriceCalculator() {
   const btnPlus = document.getElementById('calc-page-plus');
   const promoInput = document.getElementById('calc-promo-input');
   const promoBtn = document.getElementById('calc-promo-apply');
+
+  // Assignment type sync
+  if (assignTypeSelect) {
+    assignTypeSelect.addEventListener('change', () => {
+      syncHeroAssignmentType();
+    });
+  }
 
   // Academic level
   if (levelSelect) {
@@ -2952,16 +2991,11 @@ function updatePricingDisplay() {
   if (wordValEl) wordValEl.textContent = `~${words.toLocaleString()} words`;
 
   if (totalEl) {
-    totalEl.textContent = `${currencySymbol}${discountedTotal.toFixed(2)}`;
+    totalEl.innerHTML = '<i class="fa-solid fa-envelope-circle-check"></i> Official Admin Invoicing';
   }
 
   if (oldEl) {
-    if (calcState.hasPromo) {
-      oldEl.style.display = 'inline';
-      oldEl.textContent = `${currencySymbol}${baseTotal.toFixed(2)}`;
-    } else {
-      oldEl.style.display = 'none';
-    }
+    oldEl.style.display = 'none';
   }
 }
 
@@ -3060,6 +3094,13 @@ function openOrderModalWithTutor(tutorName = '') {
         break;
       }
     }
+  }
+
+  // Sync assignment type if chosen on hero calculator
+  const heroType = document.getElementById('calc-assignment-type');
+  const modalType = document.getElementById('order-assignment-type');
+  if (heroType && modalType && heroType.value) {
+    modalType.value = heroType.value;
   }
 
   handleManualPageInput();
@@ -3289,6 +3330,7 @@ function updateOrderWizardUI() {
   if (orderWizardStep === 4) {
     syncOrderDeadlineString();
     const topic = document.getElementById('order-topic').value || 'Academic Research Essay';
+    const assignmentType = document.getElementById('order-assignment-type') ? document.getElementById('order-assignment-type').value : 'Essays';
     const pages = parseInt(document.getElementById('order-pages').value) || 3;
     const level = document.getElementById('order-level').value || 'Undergraduate';
     const citation = document.getElementById('order-citation') ? document.getElementById('order-citation').value : 'APA 7th Edition';
@@ -3296,22 +3338,20 @@ function updateOrderWizardUI() {
     const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
     const tutorSelect = document.getElementById('order-tutor-select');
     const tutor = (tutorSelect && tutorSelect.selectedIndex >= 0 && tutorSelect.options[tutorSelect.selectedIndex]) ? tutorSelect.options[tutorSelect.selectedIndex].text : 'Auto-Match Best Senior Tutor';
-    const isUK = currentLang === 'en-GB';
-    const curr = isUK ? '£' : '$';
-    const price = (pages * 10 * (isUK ? 0.79 : 1.0)).toFixed(2);
     const fileAttachedStr = orderUploadedFileMeta ? `${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : 'None (Optional brief)';
     
     const summaryEl = document.getElementById('order-summary-box');
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 18px; font-size: 0.9rem;">
-          <p style="margin-bottom: 6px;"><strong>Topic / Course:</strong> ${topic}</p>
-          <p style="margin-bottom: 6px;"><strong>Academic Level:</strong> ${level}</p>
+          <p style="margin-bottom: 6px;"><strong>Topic / Course:</strong> ${escapeHtml(topic)}</p>
+          <p style="margin-bottom: 6px;"><strong>Assignment Type:</strong> ${escapeHtml(assignmentType)}</p>
+          <p style="margin-bottom: 6px;"><strong>Academic Level:</strong> ${escapeHtml(level)}</p>
           <p style="margin-bottom: 6px;"><strong>Length:</strong> ${pages} Pages (~${(pages * 275).toLocaleString()} words)</p>
-          <p style="margin-bottom: 6px;"><strong>Citation & Style:</strong> ${citation} • ${sources} Minimum Sources</p>
-          <p style="margin-bottom: 6px;"><strong>Target Date & Time:</strong> <span style="color: #2563eb; font-weight: 700;">${deadline}</span></p>
-          <p style="margin-bottom: 6px;"><strong>Attached Materials:</strong> <span style="color: #475569;">${fileAttachedStr}</span></p>
-          <p style="margin-bottom: 6px;"><strong>Assigned Specialist Tutor:</strong> ${tutor}</p>
+          <p style="margin-bottom: 6px;"><strong>Citation & Style:</strong> ${escapeHtml(citation)} • ${sources} Minimum Sources</p>
+          <p style="margin-bottom: 6px;"><strong>Target Date & Time:</strong> <span style="color: #2563eb; font-weight: 700;">${escapeHtml(deadline)}</span></p>
+          <p style="margin-bottom: 6px;"><strong>Attached Materials:</strong> <span style="color: #475569;">${escapeHtml(fileAttachedStr)}</span></p>
+          <p style="margin-bottom: 6px;"><strong>Assigned Specialist Tutor:</strong> ${escapeHtml(tutor)}</p>
           <p style="margin-bottom: 6px;"><strong>Turnitin & Anti-AI Verification:</strong> <span style="color: #059669; font-weight: 700;">Included Free (0% AI Certificate)</span></p>
           <p style="margin-bottom: 0; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;"><strong>Billing & Invoicing:</strong> <span style="color: #2563eb; font-weight: 700;"><i class="fa-solid fa-envelope"></i> Official Payment Inquiry & Invoice via Admin Desk (scholarverge@gmail.com)</span></p>
         </div>
@@ -3325,6 +3365,7 @@ function submitAcademicOrder(e) {
   syncOrderDeadlineString();
   const randomId = `SV-${Math.floor(10000 + Math.random() * 90000)}`;
   const topic = document.getElementById('order-topic').value || 'Academic Research Paper';
+  const assignmentType = document.getElementById('order-assignment-type') ? document.getElementById('order-assignment-type').value : 'Essays';
   const tutorSelect = document.getElementById('order-tutor-select');
   const tutorName = (tutorSelect && tutorSelect.selectedIndex >= 0 && tutorSelect.options[tutorSelect.selectedIndex]) ? tutorSelect.options[tutorSelect.selectedIndex].text.split('(')[0].trim() : 'Auto-Match Best Senior Tutor';
   const pages = parseInt(document.getElementById('order-pages').value) || 3;
@@ -3333,7 +3374,6 @@ function submitAcademicOrder(e) {
   const sourcesCount = document.getElementById('order-sources-count') ? document.getElementById('order-sources-count').value : '5';
   const prompt = document.getElementById('order-prompt') ? document.getElementById('order-prompt').value : '';
   const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
-  const priceAmount = pages * 10.00;
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
@@ -3348,6 +3388,7 @@ I have submitted an academic order on ScholarVerge and am writing to formally in
 --- ORDER SPECIFICATIONS ---
 • Order Reference: #${randomId}
 • Topic / Title: ${topic}
+• Assignment Type: ${assignmentType}
 • Academic Level: ${level}
 • Length: ${pages} Pages (~${(pages * 275).toLocaleString()} Words)
 • Citation & Referencing: ${citation} (${sourcesCount} sources)
@@ -3371,6 +3412,7 @@ ${currentStudentName}`;
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       topic: topic,
+      assignment_type: assignmentType,
       student_name: currentStudentName,
       student_email: currentStudentEmail,
       tutor_name: tutorName,
@@ -3383,7 +3425,7 @@ ${currentStudentName}`;
       deadline: deadline,
       deadline_datetime: deadlineDatetimeVal,
       sources_count: parseInt(sourcesCount) || 0,
-      price_amount: priceAmount,
+      price_amount: 0.00,
       payment_method: 'email_inquiry',
       file_name: orderUploadedFileMeta ? orderUploadedFileMeta.name : null,
       file_size: orderUploadedFileMeta ? orderUploadedFileMeta.size : null,

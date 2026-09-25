@@ -781,7 +781,19 @@
                 <h3 style="margin-bottom: 2px;">Calculate Your Paper</h3>
                 <span style="font-size: 0.8125rem; color: var(--text-muted);">Instant Word & Deadline Estimation • Turnitin Report Included</span>
               </div>
-              <span class="calc-discount-badge"><i class="fa-solid fa-tag"></i> 20% OFF FIRST ORDER</span>
+              <span class="calc-discount-badge" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.2);"><i class="fa-solid fa-shield-check"></i> Turnitin 0% AI Pass</span>
+            </div>
+
+            <div class="calc-form-group" style="margin-bottom: 12px;">
+              <label class="calc-label">Assignment Type</label>
+              <select id="calc-assignment-type" class="calc-select" onchange="syncHeroAssignmentType()">
+                <option value="Essays" selected>Essays</option>
+                <option value="Research papers">Research papers</option>
+                <option value="powerpoint">powerpoint</option>
+                <option value="Dissertations">Dissertations</option>
+                <option value="Discussion post">Discussion post</option>
+                <option value="Others">Others</option>
+              </select>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -1817,7 +1829,7 @@
                 <th>Topic & Subject</th>
                 <th>Tutor</th>
                 <th>Status</th>
-                <th>Amount & Payment</th>
+                <th>Payment & Invoicing</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -2015,17 +2027,12 @@
                   <div class="calc-form-group" style="margin-bottom: 14px;">
                     <label class="calc-label" style="font-weight: 600; color: #334155;">Assignment Type</label>
                     <select id="upload-assignment-type" class="calc-select">
-                      <option value="Essay" selected>Essay</option>
-                      <option value="Research Paper">Research Paper</option>
-                      <option value="Dissertation / Thesis">Dissertation / Thesis</option>
-                      <option value="Case Study">Case Study</option>
-                      <option value="Literature Review">Literature Review</option>
-                      <option value="Coursework">Coursework</option>
-                      <option value="Term Paper">Term Paper</option>
-                      <option value="Report / Memorandum">Report / Memorandum</option>
-                      <option value="Annotated Bibliography">Annotated Bibliography</option>
-                      <option value="Care Plan / PICOT">Care Plan / PICOT</option>
-                      <option value="Other Academic Writing">Other Academic Writing</option>
+                      <option value="Essays" selected>Essays</option>
+                      <option value="Research papers">Research papers</option>
+                      <option value="powerpoint">powerpoint</option>
+                      <option value="Dissertations">Dissertations</option>
+                      <option value="Discussion post">Discussion post</option>
+                      <option value="Others">Others</option>
                     </select>
                   </div>
 
@@ -2120,8 +2127,8 @@
                   <p style="margin: 0; font-size: 0.8rem; color: #475569;">100% Human Master's / Ph.D. Rigor • Live Progress Tracker</p>
                 </div>
                 <div style="text-align: right;">
-                  <span style="font-size: 0.78rem; color: #64748b; display: block;">Estimated Total</span>
-                  <strong id="brief-price-total" style="font-size: 1.3rem; color: #2563eb;">$15.00</strong>
+                  <span style="font-size: 0.78rem; color: #64748b; display: block;">Official Invoicing</span>
+                  <strong id="brief-price-total" style="font-size: 0.95rem; color: #2563eb; font-weight: 600;"><i class="fa-solid fa-envelope-circle-check"></i> Provided by Admin</strong>
                 </div>
               </div>
 
@@ -2927,6 +2934,17 @@
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="calc-form-group">
+              <label class="calc-label">Assignment Type</label>
+              <select id="order-assignment-type" class="calc-select">
+                <option value="Essays" selected>Essays</option>
+                <option value="Research papers">Research papers</option>
+                <option value="powerpoint">powerpoint</option>
+                <option value="Dissertations">Dissertations</option>
+                <option value="Discussion post">Discussion post</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+            <div class="calc-form-group">
               <label class="calc-label">Academic Level</label>
               <select id="order-level" class="calc-select">
                 <option value="Highschool">Highschool</option>
@@ -2936,6 +2954,9 @@
                 <option value="Doctorate">Doctorate</option>
               </select>
             </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px;">
             <div class="calc-form-group">
               <label class="calc-label" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>Number of Pages</span>
@@ -2947,29 +2968,27 @@
                 <button type="button" class="page-stepper-btn" onclick="stepOrderPages(1)" aria-label="Increase Pages"><i class="fa-solid fa-plus"></i></button>
               </div>
             </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px;">
-            <div class="calc-form-group">
-              <label class="calc-label">Citation & Referencing Style</label>
-              <select id="order-citation" class="calc-select">
-                <option value="APA 7th Edition">APA 7th Edition</option>
-                <option value="APA 6th Edition">APA 6th Edition</option>
-                <option value="MLA 9th Edition">MLA 9th Edition</option>
-                <option value="Harvard Style">Harvard Referencing</option>
-                <option value="Chicago 17th / Turabian">Chicago 17th / Turabian</option>
-                <option value="OSCOLA Legal">OSCOLA (Oxford Legal)</option>
-                <option value="IEEE">IEEE (Tech & Engineering)</option>
-                <option value="Vancouver">Vancouver (Medical / Clinical)</option>
-                <option value="AMA 11th">AMA 11th Edition</option>
-                <option value="ACS">ACS (Chemistry)</option>
-                <option value="Other / None">Other / No Citations Needed</option>
-              </select>
-            </div>
             <div class="calc-form-group">
               <label class="calc-label">Min. Sources / Citations</label>
               <input type="number" id="order-sources-count" class="calc-input" value="5" min="0" max="100" placeholder="e.g. 5" />
             </div>
+          </div>
+
+          <div class="calc-form-group">
+            <label class="calc-label">Citation & Referencing Style</label>
+            <select id="order-citation" class="calc-select">
+              <option value="APA 7th Edition">APA 7th Edition</option>
+              <option value="APA 6th Edition">APA 6th Edition</option>
+              <option value="MLA 9th Edition">MLA 9th Edition</option>
+              <option value="Harvard Style">Harvard Referencing</option>
+              <option value="Chicago 17th / Turabian">Chicago 17th / Turabian</option>
+              <option value="OSCOLA Legal">OSCOLA (Oxford Legal)</option>
+              <option value="IEEE">IEEE (Tech & Engineering)</option>
+              <option value="Vancouver">Vancouver (Medical / Clinical)</option>
+              <option value="AMA 11th">AMA 11th Edition</option>
+              <option value="ACS">ACS (Chemistry)</option>
+              <option value="Other / None">Other / No Citations Needed</option>
+            </select>
           </div>
 
           <!-- Manual Deadline Calendar & Manual Deadline Time -->

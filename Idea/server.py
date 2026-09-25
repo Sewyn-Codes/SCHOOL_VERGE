@@ -11,6 +11,7 @@ and WhatsApp-Driven 1-on-1 Consultation & Offline Payment Facilitation.
 import http.server
 import socketserver
 import os
+import sys
 import json
 import sqlite3
 import hashlib
@@ -22,7 +23,10 @@ import io
 import mimetypes
 from datetime import datetime
 
-PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
+if len(sys.argv) > 1 and sys.argv[1].isdigit():
+    PORT = int(sys.argv[1])
+else:
+    PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.path.join(BASE_DIR, "database")
 DB_PATH = os.path.join(DB_DIR, "scholarverge.db")
@@ -536,12 +540,14 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/api/"):
             self.handle_api_get(self.path)
         else:
-            clean_path = self.path.split("?")[0].lstrip("/")
+            clean_path = urllib.parse.unquote(self.path.split("?")[0].lstrip("/"))
             if clean_path in ["", "index.html"]:
                 file_path = os.path.join(BASE_DIR, "index.html")
                 self.serve_file_with_compression(file_path, "text/html; charset=utf-8", cache_control="no-cache")
             else:
-                file_path = os.path.join(BASE_DIR, clean_path)
+                # Normalize slashes for OS cross-compatibility (Windows/Linux/Docker)
+                clean_path_parts = [p for p in clean_path.replace("\\", "/").split("/") if p and p != ".."]
+                file_path = os.path.normpath(os.path.join(BASE_DIR, *clean_path_parts))
                 if os.path.exists(file_path) and os.path.isfile(file_path):
                     ext = os.path.splitext(file_path)[1].lower()
                     mime_types = {
@@ -1458,9 +1464,10 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                     }
                 })
 
-            # 12. Create Assignment Order (Offline WhatsApp Payment Coordination)
+            # 12. Create Assignment Order (Email Payment Inquiry Coordination)
             elif path == "/api/orders/create":
                 topic = data.get("topic", "Academic Paper")
+                assignment_type = data.get("assignment_type", "Essays")
                 student_name = data.get("student_name", "Registered Student")
                 student_email = data.get("student_email", "student@university.edu").strip().lower()
                 tutor_name = data.get("tutor_name", "Oliver Harrison")
@@ -1468,7 +1475,7 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 pages = int(data.get("pages", 3))
                 citation = data.get("citation_style", "APA 7th")
                 deadline = data.get("deadline", "3 Days")
-                price_amount = float(data.get("price_amount", pages * 10.00))
+                price_amount = float(data.get("price_amount", 0.00))
                 order_num = f"SV-{secrets.randbelow(90000) + 10000}"
 
                 cursor.execute("SELECT student_id FROM students WHERE email = ?", (student_email,))
@@ -1485,9 +1492,9 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 client_specifications = data.get("client_specifications") or prompt or "Standard academic paper requirements"
 
                 cursor.execute("""
-                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, client_specifications, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Admin Payment Inquiry', 25, ?, 'email_inquiry', 'pending_admin_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (order_num, student_id, student_name, student_email, tutor_name, topic, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
+                INSERT INTO orders (order_number, student_id, student_name, student_email, tutor_name, topic, assignment_type, subject, academic_level, pages, citation_style, deadline, status, progress_percentage, price_amount, payment_method, payment_status, turnitin_ai_score, turnitin_similarity, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, admin_notes, client_specifications, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Admin Payment Inquiry', 25, ?, 'email_inquiry', 'pending_admin_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (order_num, student_id, student_name, student_email, tutor_name, topic, assignment_type, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
 
                 if file_name:
                     upload_id = f"DOC-{secrets.randbelow(90000) + 10000}"
@@ -1504,20 +1511,19 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("""
                 INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
                 VALUES ('admin', NULL, ?, ?, 'order_created', ?, 0, datetime('now'))
-                """, (f"New Order Placed (#{order_num})", f"Student {student_name} ({student_email}) placed order #{order_num} for '{topic}' ({pages} pages, Tutor: {tutor_name}){notif_file_note}", order_num))
+                """, (f"New Order Placed (#{order_num})", f"Student {student_name} ({student_email}) placed order #{order_num} for '{topic}' ({assignment_type}, {pages} pages, Tutor: {tutor_name}){notif_file_note}", order_num))
 
                 conn.commit()
 
                 # Build inquiry links for Admin billing desk
                 inquiry_subject = urllib.parse.quote(f"Official Payment Inquiry: Order #{order_num} - {topic}")
-                inquiry_body = urllib.parse.quote(f"Dear ScholarVerge Administration & Billing Desk,\n\nI have placed Order #{order_num} for '{topic}' ({pages} pages, {academic_level}, Tutor: {tutor_name}, Deadline: {deadline}).\n\nStudent: {student_name} ({student_email})\n\nPlease provide the official invoice and payment instructions for this project.")
+                inquiry_body = urllib.parse.quote(f"Dear ScholarVerge Administration & Billing Desk,\n\nI have placed Order #{order_num} for '{topic}' ({assignment_type}, {pages} pages, {academic_level}, Tutor: {tutor_name}, Deadline: {deadline}).\n\nStudent: {student_name} ({student_email})\n\nPlease provide the official invoice and payment instructions for this project.")
                 inquiry_url = f"mailto:scholarverge@gmail.com?subject={inquiry_subject}&body={inquiry_body}"
 
                 self.send_json_response(201, {
                     "success": True,
                     "message": f"Order #{order_num} registered! Opening email to inquire about payment with Admin.",
                     "order_number": order_num,
-                    "price_amount": price_amount,
                     "email_inquiry_url": inquiry_url
                 })
 
