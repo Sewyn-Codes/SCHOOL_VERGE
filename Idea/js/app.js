@@ -884,124 +884,271 @@ function handleBookingSubmit(e) {
   });
 }
 
-/* Activity 2: Direct Document & Rubric Dispatch */
-function handleRealFileChange(e) {
-  const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
-  if (!file) return;
+/* ==========================================================================
+   Multi-Document Attachment Engine (Multiple PDF, Word, Excel, PPT, Zip, etc.)
+   ========================================================================== */
+let orderUploadedFiles = [];
+let uploadedFiles = [];
+let orderUploadedFileMeta = null;
+let uploadedFileMeta = null;
 
-  const sizeFormatted = file.size > 1024 * 1024 
-    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
-    : `${(file.size / 1024).toFixed(1)} KB`;
-
-  uploadedFileMeta = {
-    name: file.name,
-    size: sizeFormatted,
-    type: file.type || 'Document File',
-    data: ''
-  };
-
-  if (typeof FileReader !== 'undefined' && file instanceof Blob) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      if (uploadedFileMeta) uploadedFileMeta.data = evt.target.result;
-    };
-    reader.readAsDataURL(file);
+function getFileIconMeta(fileName, fileType) {
+  const ext = (fileName || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') {
+    return { icon: 'fa-solid fa-file-pdf', color: '#ef4444', label: 'PDF' };
+  } else if (['doc', 'docx', 'rtf', 'odt', 'pages'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-word', color: '#2563eb', label: 'DOC' };
+  } else if (['xls', 'xlsx', 'csv', 'ods', 'numbers'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-excel', color: '#16a34a', label: 'XLS' };
+  } else if (['ppt', 'pptx', 'key'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-powerpoint', color: '#ea580c', label: 'PPT' };
+  } else if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-image', color: '#8b5cf6', label: 'IMG' };
+  } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-zipper', color: '#d97706', label: 'ZIP' };
+  } else if (['txt', 'md'].includes(ext)) {
+    return { icon: 'fa-solid fa-file-lines', color: '#475569', label: 'TXT' };
   }
-
-  const dropzone = document.getElementById('file-dropzone-container');
-  const preview = document.getElementById('file-selected-preview');
-  const nameEl = document.getElementById('file-selected-name');
-  const sizeEl = document.getElementById('file-selected-size');
-  const submitWrap = document.getElementById('upload-submit-container');
-  const hintEl = document.getElementById('upload-no-file-hint');
-
-  if (dropzone) dropzone.style.display = 'none';
-  if (preview) {
-    preview.style.display = 'flex';
-    if (nameEl) nameEl.textContent = file.name;
-    if (sizeEl) sizeEl.textContent = `${sizeFormatted} • Ready to send`;
-  }
-  if (submitWrap) submitWrap.style.display = 'block';
-  if (hintEl) hintEl.style.display = 'none';
-
-  showToast(`Attached file: ${file.name} (${sizeFormatted})`);
+  return { icon: 'fa-solid fa-file-lines', color: '#2563eb', label: 'DOC' };
 }
 
-function clearUploadedFile(e) {
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return '0 KB';
+  if (bytes > 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function formatTotalFilesSize(filesArr) {
+  const total = filesArr.reduce((sum, f) => sum + (f.rawBytes || 0), 0);
+  return formatFileSize(total);
+}
+
+/* Activity 2: Direct Document & Rubric Dispatch (Multi-File Support) */
+function handleRealFileChange(e) {
+  const fileList = (e.target && e.target.files) || (e.dataTransfer && e.dataTransfer.files) || [];
+  if (!fileList || fileList.length === 0) return;
+
+  const newFiles = Array.from(fileList);
+  let addedCount = 0;
+
+  newFiles.forEach(file => {
+    const exists = uploadedFiles.some(f => f.name === file.name && f.rawBytes === file.size);
+    if (!exists) {
+      const meta = {
+        name: file.name,
+        size: formatFileSize(file.size),
+        rawBytes: file.size,
+        type: file.type || 'application/octet-stream',
+        data: ''
+      };
+      uploadedFiles.push(meta);
+      addedCount++;
+
+      if (typeof FileReader !== 'undefined' && file instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          meta.data = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+
+  uploadedFileMeta = uploadedFiles.length > 0 ? uploadedFiles[0] : null;
+  renderUploadedFilesUI();
+
+  if (addedCount > 0) {
+    showToast(`Added ${addedCount} document${addedCount > 1 ? 's' : ''}! (${uploadedFiles.length} total attached)`);
+  }
+}
+
+function removeUploadedFile(index, e) {
   if (e) {
     e.stopPropagation();
     e.preventDefault();
   }
+  if (index >= 0 && index < uploadedFiles.length) {
+    const removed = uploadedFiles.splice(index, 1)[0];
+    uploadedFileMeta = uploadedFiles.length > 0 ? uploadedFiles[0] : null;
+    renderUploadedFilesUI();
+    showToast(`Removed ${removed.name}`);
+  }
+}
+
+function clearAllUploadedFiles(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  uploadedFiles = [];
   uploadedFileMeta = null;
   const picker = document.getElementById('real-file-picker');
   if (picker) picker.value = '';
+  renderUploadedFilesUI();
+}
 
+function clearUploadedFile(e) {
+  clearAllUploadedFiles(e);
+}
+
+function renderUploadedFilesUI() {
   const dropzone = document.getElementById('file-dropzone-container');
   const preview = document.getElementById('file-selected-preview');
+  const listEl = document.getElementById('upload-files-list');
+  const countEl = document.getElementById('upload-files-count');
+  const sizeEl = document.getElementById('upload-files-totalsize');
   const submitWrap = document.getElementById('upload-submit-container');
   const hintEl = document.getElementById('upload-no-file-hint');
 
-  if (preview) preview.style.display = 'none';
-  if (dropzone) dropzone.style.display = 'block';
-  if (submitWrap) submitWrap.style.display = 'none';
-  if (hintEl) hintEl.style.display = 'block';
-}
-
-/* Modal 4: File Upload & Attachment Logic */
-let orderUploadedFileMeta = null;
-
-function handleOrderFileChange(e) {
-  const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
-  if (!file) return;
-
-  const sizeFormatted = file.size > 1024 * 1024 
-    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
-    : `${(file.size / 1024).toFixed(1)} KB`;
-
-  orderUploadedFileMeta = {
-    name: file.name,
-    size: sizeFormatted,
-    type: file.type || 'Document File',
-    data: ''
-  };
-
-  if (typeof FileReader !== 'undefined' && file instanceof Blob) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      if (orderUploadedFileMeta) orderUploadedFileMeta.data = evt.target.result;
-    };
-    reader.readAsDataURL(file);
+  if (uploadedFiles.length === 0) {
+    if (preview) preview.style.display = 'none';
+    if (dropzone) dropzone.style.display = 'block';
+    if (submitWrap) submitWrap.style.display = 'none';
+    if (hintEl) hintEl.style.display = 'block';
+    return;
   }
-
-  const dropzone = document.getElementById('order-file-dropzone');
-  const preview = document.getElementById('order-file-preview');
-  const nameEl = document.getElementById('order-preview-filename');
-  const sizeEl = document.getElementById('order-preview-filesize');
 
   if (dropzone) dropzone.style.display = 'none';
-  if (preview) {
-    preview.style.display = 'flex';
-    if (nameEl) nameEl.textContent = file.name;
-    if (sizeEl) sizeEl.textContent = `${sizeFormatted} • Attached`;
-  }
+  if (preview) preview.style.display = 'flex';
+  if (submitWrap) submitWrap.style.display = 'block';
+  if (hintEl) hintEl.style.display = 'none';
 
-  showToast(`Attached ${file.name} (${sizeFormatted})!`);
+  if (countEl) countEl.textContent = uploadedFiles.length;
+  if (sizeEl) sizeEl.textContent = `${formatTotalFilesSize(uploadedFiles)} total`;
+
+  if (listEl) {
+    listEl.innerHTML = uploadedFiles.map((f, idx) => {
+      const iconMeta = getFileIconMeta(f.name, f.type);
+      return `
+        <div class="multi-file-item">
+          <div class="multi-file-meta">
+            <div class="multi-file-icon" style="color: ${iconMeta.color}; background: ${iconMeta.color}15;">
+              <i class="${iconMeta.icon}"></i>
+            </div>
+            <div class="multi-file-details">
+              <strong class="multi-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</strong>
+              <span class="multi-file-size"><i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 0.65rem;"></i> ${escapeHtml(f.size)} • Ready to send</span>
+            </div>
+          </div>
+          <button type="button" class="multi-file-remove-btn" onclick="removeUploadedFile(${idx}, event)" title="Remove this document">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
-function clearOrderFile(e) {
+/* Modal 4: File Upload & Attachment Logic (Order Wizard Multi-File Support) */
+function handleOrderFileChange(e) {
+  const fileList = (e.target && e.target.files) || (e.dataTransfer && e.dataTransfer.files) || [];
+  if (!fileList || fileList.length === 0) return;
+
+  const newFiles = Array.from(fileList);
+  let addedCount = 0;
+
+  newFiles.forEach(file => {
+    const exists = orderUploadedFiles.some(f => f.name === file.name && f.rawBytes === file.size);
+    if (!exists) {
+      const meta = {
+        name: file.name,
+        size: formatFileSize(file.size),
+        rawBytes: file.size,
+        type: file.type || 'application/octet-stream',
+        data: ''
+      };
+      orderUploadedFiles.push(meta);
+      addedCount++;
+
+      if (typeof FileReader !== 'undefined' && file instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          meta.data = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+
+  orderUploadedFileMeta = orderUploadedFiles.length > 0 ? orderUploadedFiles[0] : null;
+  renderOrderFilesUI();
+
+  if (addedCount > 0) {
+    showToast(`Attached ${addedCount} document${addedCount > 1 ? 's' : ''}! (${orderUploadedFiles.length} total attached)`);
+  }
+}
+
+function removeOrderFile(index, e) {
   if (e) {
     e.stopPropagation();
     e.preventDefault();
   }
+  if (index >= 0 && index < orderUploadedFiles.length) {
+    const removed = orderUploadedFiles.splice(index, 1)[0];
+    orderUploadedFileMeta = orderUploadedFiles.length > 0 ? orderUploadedFiles[0] : null;
+    renderOrderFilesUI();
+    showToast(`Removed ${removed.name}`);
+  }
+}
+
+function clearAllOrderFiles(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  orderUploadedFiles = [];
   orderUploadedFileMeta = null;
   const picker = document.getElementById('order-file-picker');
   if (picker) picker.value = '';
+  renderOrderFilesUI();
+}
 
+function clearOrderFile(e) {
+  clearAllOrderFiles(e);
+}
+
+function renderOrderFilesUI() {
   const dropzone = document.getElementById('order-file-dropzone');
   const preview = document.getElementById('order-file-preview');
+  const listEl = document.getElementById('order-files-list');
+  const countEl = document.getElementById('order-files-count');
+  const sizeEl = document.getElementById('order-files-totalsize');
 
-  if (preview) preview.style.display = 'none';
-  if (dropzone) dropzone.style.display = 'block';
+  if (orderUploadedFiles.length === 0) {
+    if (preview) preview.style.display = 'none';
+    if (dropzone) dropzone.style.display = 'block';
+    return;
+  }
+
+  if (dropzone) dropzone.style.display = 'none';
+  if (preview) preview.style.display = 'flex';
+
+  if (countEl) countEl.textContent = orderUploadedFiles.length;
+  if (sizeEl) sizeEl.textContent = `${formatTotalFilesSize(orderUploadedFiles)} total`;
+
+  if (listEl) {
+    listEl.innerHTML = orderUploadedFiles.map((f, idx) => {
+      const iconMeta = getFileIconMeta(f.name, f.type);
+      return `
+        <div class="multi-file-item">
+          <div class="multi-file-meta">
+            <div class="multi-file-icon" style="color: ${iconMeta.color}; background: ${iconMeta.color}15;">
+              <i class="${iconMeta.icon}"></i>
+            </div>
+            <div class="multi-file-details">
+              <strong class="multi-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</strong>
+              <span class="multi-file-size"><i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 0.65rem;"></i> ${escapeHtml(f.size)} • Attached</span>
+            </div>
+          </div>
+          <button type="button" class="multi-file-remove-btn" onclick="removeOrderFile(${idx}, event)" title="Remove this document">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 function updateBriefPricePreview() {
@@ -1023,24 +1170,16 @@ function handleDocumentEmailDispatch(e) {
     return;
   }
 
-  // Ensure file is attached: check uploadedFileMeta or real-file-picker
-  if (!uploadedFileMeta || !uploadedFileMeta.name) {
+  // Ensure file is attached: check uploadedFiles or real-file-picker
+  if (uploadedFiles.length === 0) {
     const picker = document.getElementById('real-file-picker');
-    if (picker && picker.files && picker.files[0]) {
-      const file = picker.files[0];
-      const sizeFormatted = file.size > 1024 * 1024 
-        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
-        : `${(file.size / 1024).toFixed(1)} KB`;
-      uploadedFileMeta = {
-        name: file.name,
-        size: sizeFormatted,
-        type: file.type || 'Document File',
-        data: ''
-      };
-    } else {
-      showToast('Please select or upload a document file from your device first.');
-      return;
+    if (picker && picker.files && picker.files.length > 0) {
+      handleRealFileChange({ target: picker });
     }
+  }
+  if (uploadedFiles.length === 0) {
+    showToast('Please select or upload at least one assignment document from your device.');
+    return;
   }
 
   const topic = document.getElementById('upload-topic').value.trim();
@@ -1056,10 +1195,11 @@ function handleDocumentEmailDispatch(e) {
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
-  const fileName = uploadedFileMeta.name;
-  const fileSize = uploadedFileMeta.size;
-  const fileType = uploadedFileMeta.type || 'Document File';
-  const fileData = uploadedFileMeta.data || `data:${fileType};base64,`;
+  const totalSizeFormatted = formatTotalFilesSize(uploadedFiles);
+  const fileName = uploadedFiles.map(f => f.name).join(', ');
+  const fileSize = `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} (${totalSizeFormatted})`;
+  const fileType = uploadedFiles.length === 1 ? (uploadedFiles[0].type || 'Document') : 'multiple_documents';
+  const fileData = (uploadedFiles[0] && uploadedFiles[0].data) || `data:${fileType};base64,`;
 
   fetch('/api/student/upload-document', {
     method: 'POST',
@@ -1072,6 +1212,12 @@ function handleDocumentEmailDispatch(e) {
       file_size: fileSize,
       file_type: fileType,
       file_data: fileData,
+      files: uploadedFiles.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        data: f.data
+      })),
       assignment_topic: topic,
       assignment_type: assignmentType,
       academic_subject: subject,
@@ -3390,7 +3536,12 @@ function updateOrderWizardUI() {
     const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
     const tutorSelect = document.getElementById('order-tutor-select');
     const tutor = (tutorSelect && tutorSelect.selectedIndex >= 0 && tutorSelect.options[tutorSelect.selectedIndex]) ? tutorSelect.options[tutorSelect.selectedIndex].text : 'Auto-Match Best Senior Tutor';
-    const fileAttachedStr = orderUploadedFileMeta ? `${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : 'None (Optional brief)';
+    let fileAttachedStr = 'None (Optional brief)';
+    if (orderUploadedFiles.length > 0) {
+      fileAttachedStr = `${orderUploadedFiles.length} Document${orderUploadedFiles.length > 1 ? 's' : ''} Attached (${orderUploadedFiles.map(f => f.name).join(', ')})`;
+    } else if (orderUploadedFileMeta) {
+      fileAttachedStr = `${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})`;
+    }
     
     const summaryEl = document.getElementById('order-summary-box');
     if (summaryEl) {
@@ -3429,7 +3580,14 @@ function submitAcademicOrder(e) {
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
-  const attachedFileText = orderUploadedFileMeta ? `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})` : '';
+  
+  let attachedFileText = '';
+  if (orderUploadedFiles.length > 0) {
+    attachedFileText = `\n• Attached Documents (${orderUploadedFiles.length}):\n` + 
+      orderUploadedFiles.map((f, idx) => `    ${idx + 1}. ${f.name} (${f.size})`).join('\n');
+  } else if (orderUploadedFileMeta) {
+    attachedFileText = `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})`;
+  }
 
   const adminEmail = 'scholarverge@gmail.com';
   const emailSubject = `Payment Inquiry: Order #${randomId} - ${topic}`;
@@ -3459,6 +3617,11 @@ ${currentStudentName}`;
   const mailtoLink = `mailto:${adminEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
   const deadlineDatetimeVal = document.getElementById('order-deadline-datetime') ? document.getElementById('order-deadline-datetime').value : '';
 
+  const orderFilesName = orderUploadedFiles.length > 0 ? orderUploadedFiles.map(f => f.name).join(', ') : (orderUploadedFileMeta ? orderUploadedFileMeta.name : null);
+  const orderFilesSize = orderUploadedFiles.length > 0 ? `${orderUploadedFiles.length} file(s) (${formatTotalFilesSize(orderUploadedFiles)})` : (orderUploadedFileMeta ? orderUploadedFileMeta.size : null);
+  const orderFilesType = orderUploadedFiles.length > 1 ? 'multiple_documents' : (orderUploadedFiles.length === 1 ? orderUploadedFiles[0].type : (orderUploadedFileMeta ? orderUploadedFileMeta.type : null));
+  const orderFilesData = (orderUploadedFiles.length > 0 && orderUploadedFiles[0].data) || (orderUploadedFileMeta ? orderUploadedFileMeta.data : null);
+
   fetch('/api/orders/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -3479,10 +3642,16 @@ ${currentStudentName}`;
       sources_count: parseInt(sourcesCount) || 0,
       price_amount: 0.00,
       payment_method: 'email_inquiry',
-      file_name: orderUploadedFileMeta ? orderUploadedFileMeta.name : null,
-      file_size: orderUploadedFileMeta ? orderUploadedFileMeta.size : null,
-      file_type: orderUploadedFileMeta ? orderUploadedFileMeta.type : null,
-      file_data: orderUploadedFileMeta ? (orderUploadedFileMeta.data || `data:${orderUploadedFileMeta.type || 'application/octet-stream'};base64,`) : null
+      file_name: orderFilesName,
+      file_size: orderFilesSize,
+      file_type: orderFilesType,
+      file_data: orderFilesData,
+      files: orderUploadedFiles.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        data: f.data
+      }))
     })
   })
   .then(r => r.json())

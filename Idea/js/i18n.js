@@ -6,7 +6,7 @@
 const translations = {
   'en-US': {
     tagline: 'Your Path to Academic Excellence',
-    heroSubtitle: 'We are a team of experienced academic tutors committed to helping students achieve their academic goals through personalized, reliable, and high-quality academic support.',
+    heroSubtitle: 'Get high-quality, 100% human-written academic papers carefully tailored to your assignment requirements and grading rubric.',
     heroBreakthrough: 'Your Next Academic Breakthrough Starts Here.',
     deadlineUrgency: 'Deadline Getting Close? We\'ve Got You.',
     writeMyPaper: 'Write My Paper',
@@ -25,7 +25,7 @@ const translations = {
     step1Title: 'Provide the assignment details',
     step1Desc: 'Upload your instructions, grading rubric, required sources, and citation format (APA 7, MLA 9, Chicago, etc.).',
     step2Title: 'Select your preferred tutor',
-    step2Desc: 'Choose Claire Bennett, Oliver Harrison, Sophia Mitchell, or match with an expert tailored to your field.',
+    step2Desc: 'Choose Sophia Mitchell, Oliver Harrison, Claire Bennett, or match with an expert tailored to your field.',
     step3Title: 'Confirm Details & Payment Inquiry',
     step3Desc: 'Connect with our academic billing desk (scholarverge@gmail.com) to confirm assignment details and arrange your preferred convenient payment method.',
     step4Title: 'Receive your completed assignment',
@@ -39,7 +39,7 @@ const translations = {
   },
   'en-GB': {
     tagline: 'Your Path to Academic Excellence',
-    heroSubtitle: 'We are a team of experienced academic tutors committed to helping students achieve their academic goals through personalised, reliable, and high-quality academic support.',
+    heroSubtitle: 'Get high-quality, 100% human-written academic papers carefully tailored to your assignment requirements and grading rubric.',
     heroBreakthrough: 'Your Next Academic Breakthrough Starts Here.',
     deadlineUrgency: 'Deadline Getting Close? We\'ve Got You.',
     writeMyPaper: 'Write My Paper',
@@ -58,7 +58,7 @@ const translations = {
     step1Title: 'Provide the assignment details',
     step1Desc: 'Upload your brief, assessment criteria, required literature, and citation style (Harvard, OSCOLA, Chicago, etc.).',
     step2Title: 'Select your preferred tutor',
-    step2Desc: 'Choose Claire Bennett, Oliver Harrison, Sophia Mitchell, or match with an expert tailored to your discipline.',
+    step2Desc: 'Choose Sophia Mitchell, Oliver Harrison, Claire Bennett, or match with an expert tailored to your discipline.',
     step3Title: 'Confirm Details & Payment Inquiry',
     step3Desc: 'Connect with our academic billing desk (scholarverge@gmail.com) to confirm assignment details and arrange your preferred convenient payment method.',
     step4Title: 'Receive your completed assignment',

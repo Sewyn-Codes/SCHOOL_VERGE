@@ -1493,7 +1493,19 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'Academic Research', ?, ?, ?, ?, 'Order Placed - Awaiting Admin Payment Inquiry', 25, ?, 'email_inquiry', 'pending_admin_payment_inquiry', 0.0, 0.2, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 """, (order_num, student_id, student_name, student_email, tutor_name, topic, assignment_type, academic_level, pages, citation, deadline, price_amount, file_name, file_size, file_type, file_data, sources_count, deadline_datetime, prompt, client_specifications))
 
-                if file_name:
+                files_list = data.get("files") or []
+                if isinstance(files_list, list) and len(files_list) > 0:
+                    for f_item in files_list:
+                        f_name = f_item.get("name") or "Attached_Document"
+                        f_sz = f_item.get("size") or "Unknown"
+                        f_tp = f_item.get("type") or "Document"
+                        f_dt = f_item.get("data") or ""
+                        u_id = f"DOC-{secrets.randbelow(90000) + 10000}"
+                        cursor.execute("""
+                        INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'attached_to_order', datetime('now'))
+                        """, (u_id, order_num, student_email, student_name, tutor_name, f_name, f_sz, f_tp, f_dt, topic, prompt, citation, academic_level, deadline, deadline))
+                elif file_name:
                     upload_id = f"DOC-{secrets.randbelow(90000) + 10000}"
                     cursor.execute("""
                     INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, status, created_at)
@@ -1504,7 +1516,12 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('ORDER_CREATE', ?, ?, datetime('now'))", (student_email, f"Order #{order_num} created - Payment inquiry sent via Admin email desk"))
 
                 # Trigger Live Notification for Super Admin
-                notif_file_note = f" [Attached: {file_name}]" if file_name else ""
+                if isinstance(files_list, list) and len(files_list) > 0:
+                    notif_file_note = f" [Attached ({len(files_list)}): {', '.join(f.get('name') for f in files_list)}]"
+                elif file_name:
+                    notif_file_note = f" [Attached: {file_name}]"
+                else:
+                    notif_file_note = ""
                 cursor.execute("""
                 INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
                 VALUES ('admin', NULL, ?, ?, 'order_created', ?, 0, datetime('now'))
@@ -1636,10 +1653,23 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 stu_row = cursor.fetchone()
                 student_id = stu_row["student_id"] if stu_row else f"SV-STU-{secrets.randbelow(9000) + 1000}"
 
-                cursor.execute("""
-                INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scholarverge@gmail.com', 'dispatched_to_email', datetime('now'))
-                """, (tracking_number, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, topic, instructions, citation, study_level, day_ready, deadline))
+                files_list = data.get("files") or []
+                if isinstance(files_list, list) and len(files_list) > 0:
+                    for idx, f_item in enumerate(files_list):
+                        f_name = f_item.get("name") or f"Document_{idx+1}"
+                        f_sz = f_item.get("size") or "Unknown"
+                        f_tp = f_item.get("type") or "Document"
+                        f_dt = f_item.get("data") or ""
+                        u_id = f"DOC-{secrets.randbelow(90000) + 10000}" if idx > 0 else tracking_number
+                        cursor.execute("""
+                        INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scholarverge@gmail.com', 'dispatched_to_email', datetime('now'))
+                        """, (u_id, tracking_number, student_email, student_name, tutor_name, f_name, f_sz, f_tp, f_dt, topic, instructions, citation, study_level, day_ready, deadline))
+                else:
+                    cursor.execute("""
+                    INSERT INTO document_uploads (upload_id, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, assignment_topic, instructions, citation_style, study_level, day_ready, deadline, target_email, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scholarverge@gmail.com', 'dispatched_to_email', datetime('now'))
+                    """, (tracking_number, tracking_number, student_email, student_name, tutor_name, file_name, file_size, file_type, file_data, topic, instructions, citation, study_level, day_ready, deadline))
 
                 # Insert into orders table as a live tracked assignment
                 initial_stage = "Document Received & Reviewed by Admin"
@@ -1655,15 +1685,19 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('DOCUMENT_UPLOAD_TRACKED', ?, ?, datetime('now'))", (student_email, f"Assignment Brief #{tracking_number} ({topic} - {assignment_type}) uploaded for {tutor_name}"))
 
                 # Trigger Live Notification for Super Admin
+                if isinstance(files_list, list) and len(files_list) > 0:
+                    notif_file_note = f" [Attached ({len(files_list)}): {', '.join(f.get('name') for f in files_list)}]"
+                else:
+                    notif_file_note = f" [Attached: {file_name}]"
                 cursor.execute("""
                 INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
                 VALUES ('admin', NULL, ?, ?, 'doc_uploaded', ?, 0, datetime('now'))
-                """, (f"New Document Uploaded (#{tracking_number})", f"{student_name} ({student_email}) uploaded brief '{file_name}' ({file_size}) for: {topic}", tracking_number))
+                """, (f"New Documents Uploaded (#{tracking_number})", f"{student_name} ({student_email}) uploaded brief '{file_name}' ({file_size}) for: {topic}", tracking_number))
 
                 conn.commit()
 
                 # Generate direct WhatsApp sharing URL to Super Admin
-                wa_msg = f"Hello Super Admin! I have submitted my assignment brief under Tracking #{tracking_number} guided by Tutor {tutor_name}.\n\n📋 *Assignment Details:*\n• *Topic:* {topic}\n• *Type:* {assignment_type}\n• *Subject:* {academic_subject}\n• *Level of Study:* {study_level}\n• *Length:* {pages} Pages (~{pages * 275} words)\n• *Citation:* {citation} ({sources_count} sources)\n• *Day to be Ready:* {day_ready}\n• *File:* {file_name} ({file_size})\n\nPlease confirm my task stage and delivery timeline."
+                wa_msg = f"Hello Super Admin! I have submitted my assignment brief under Tracking #{tracking_number} guided by Tutor {tutor_name}.\n\n📋 *Assignment Details:*\n• *Topic:* {topic}\n• *Type:* {assignment_type}\n• *Subject:* {academic_subject}\n• *Level of Study:* {study_level}\n• *Length:* {pages} Pages (~{pages * 275} words)\n• *Citation:* {citation} ({sources_count} sources)\n• *Day to be Ready:* {day_ready}\n• *Files Attached:* {file_name} ({file_size})\n\nPlease confirm my task stage and delivery timeline."
                 wa_share_url = f"https://wa.me/16677757597?text={urllib.parse.quote(wa_msg)}"
 
                 mailto_subject = f"Assignment Brief #{tracking_number} - {student_name}"
