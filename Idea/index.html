@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
   <title>ScholarVerge | Premier 1-on-1 Academic Tutoring, Research & Essay Consultation</title>
-  <meta name="description" content="Connect 1-on-1 with verified Master's & Ph.D. tutors (Oliver Harrison, Claire Bennett, Sophia Mitchell) for thesis design, econometric modeling, clinical nursing reviews, legal briefs, and human-crafted academic writing with 0% AI Turnitin guarantee." />
-  <meta name="keywords" content="academic tutoring, 1-on-1 tutor consultation, Oliver Harrison, Claire Bennett, Sophia Mitchell, dissertation writing, econometric modeling, nursing care plan, PICOT synthesis, law brief, Turnitin 0% AI, ScholarVerge" />
+  <meta name="description" content="Connect 1-on-1 with verified Master's & Ph.D. tutors (Sophia Mitchell, Oliver Harrison, Claire Bennett) for clinical nursing reviews, econometric modeling, legal briefs, thesis design, and human-crafted academic writing with 0% AI Turnitin guarantee." />
+  <meta name="keywords" content="academic tutoring, 1-on-1 tutor consultation, Sophia Mitchell, Oliver Harrison, Claire Bennett, nursing care plan, PICOT synthesis, econometric modeling, dissertation writing, law brief, Turnitin 0% AI, ScholarVerge" />
   <meta name="author" content="ScholarVerge Academic Team" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://scholarvergee.com/" />
@@ -14,8 +14,8 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://scholarvergee.com/" />
   <meta property="og:title" content="ScholarVerge | Premier 1-on-1 Academic Tutoring & Research Consultation" />
-  <meta property="og:description" content="Personalized Master's and Ph.D. academic guidance across nursing, economics, law, and research. 100% human-crafted with Turnitin 0% AI verification." />
-  <meta property="og:image" content="https://scholarvergee.com/assets/images/tutors/oliver-harrison.jpg" />
+  <meta property="og:description" content="Personalized Master's and Ph.D. academic guidance with verified specialists: Dr. Sophia Mitchell (Clinical Healthcare & Nursing), Dr. Oliver Harrison (Econometrics & Finance), and Prof. Claire Bennett (Law & IT). 100% human-crafted with Turnitin 0% AI verification." />
+  <meta property="og:image" content="https://scholarvergee.com/assets/images/tutors/sophia-mitchell.jpg" />
   <meta property="og:site_name" content="ScholarVerge" />
   <meta property="og:locale" content="en_US" />
 
@@ -23,8 +23,8 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://scholarvergee.com/" />
   <meta name="twitter:title" content="ScholarVerge | 1-on-1 Academic Tutoring & Research Consultation" />
-  <meta name="twitter:description" content="Connect 1-on-1 with senior academic specialists for rigorous thesis strategy, clinical reviews, and econometric modeling with 0% AI Turnitin reports." />
-  <meta name="twitter:image" content="https://scholarvergee.com/assets/images/tutors/oliver-harrison.jpg" />
+  <meta name="twitter:description" content="Connect 1-on-1 with senior academic specialists led by Dr. Sophia Mitchell (Nursing & Healthcare) and Dr. Oliver Harrison (Finance & Econometrics) for 0% AI Turnitin guaranteed research." />
+  <meta name="twitter:image" content="https://scholarvergee.com/assets/images/tutors/sophia-mitchell.jpg" />
 
   <!-- Schema.org JSON-LD Structured Data for Rich SEO Search Snippets -->
   <script type="application/ld+json">
@@ -33,7 +33,7 @@
     "@type": "EducationalOrganization",
     "name": "ScholarVerge",
     "url": "https://scholarvergee.com",
-    "logo": "https://scholarvergee.com/assets/images/tutors/oliver-harrison.jpg",
+    "logo": "https://scholarvergee.com/assets/images/tutors/sophia-mitchell.jpg",
     "description": "Premier multi-tenant academic tutoring and research consultation platform featuring senior Master's and Ph.D. specialist tutors.",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -43,6 +43,14 @@
       "availableLanguage": ["English"]
     },
     "employee": [
+      {
+        "@type": "Person",
+        "name": "Sophia Mitchell",
+        "jobTitle": "Clinical Healthcare Consultant & Psychology Fellow",
+        "honorificPrefix": "Dr.",
+        "description": "Doctor of Nursing Practice (DNP) specializing in evidence-based practice, PICOT question framing, and clinical healthcare reviews.",
+        "image": "https://scholarvergee.com/assets/images/tutors/sophia-mitchell.jpg"
+      },
       {
         "@type": "Person",
         "name": "Oliver Harrison",
@@ -58,14 +66,6 @@
         "honorificPrefix": "Prof.",
         "description": "Master's Degree in English Literature & IT Law specializing in comparative legal memorandums, IT architectures, and historiography.",
         "image": "https://scholarvergee.com/assets/images/tutors/claire-bennett.jpg"
-      },
-      {
-        "@type": "Person",
-        "name": "Sophia Mitchell",
-        "jobTitle": "Clinical Healthcare Consultant & Psychology Fellow",
-        "honorificPrefix": "Dr.",
-        "description": "Doctor of Nursing Practice (DNP) specializing in evidence-based practice, PICOT question framing, and clinical healthcare reviews.",
-        "image": "https://scholarvergee.com/assets/images/tutors/sophia-mitchell.jpg"
       }
     ]
   }
@@ -1272,9 +1272,9 @@
         <div class="footer-col">
           <h4>Meet Our Tutors</h4>
           <ul class="footer-links">
-            <li><a href="#tutors" onclick="openOrderModalWithTutor('Claire Bennett')">Claire Bennett (Law & IT)</a></li>
-            <li><a href="#tutors" onclick="openOrderModalWithTutor('Oliver Harrison')">Oliver Harrison (Finance & Math)</a></li>
             <li><a href="#tutors" onclick="openOrderModalWithTutor('Sophia Mitchell')">Sophia Mitchell (Nursing & Psych)</a></li>
+            <li><a href="#tutors" onclick="openOrderModalWithTutor('Oliver Harrison')">Oliver Harrison (Finance & Math)</a></li>
+            <li><a href="#tutors" onclick="openOrderModalWithTutor('Claire Bennett')">Claire Bennett (Law & IT)</a></li>
           </ul>
         </div>
 
@@ -1410,6 +1410,17 @@
       <div class="auth-body-content">
         <!-- 1. Student Sign In Tab -->
         <div id="auth-pane-login">
+          <!-- Successful Account Creation / System Notice Banner -->
+          <div id="login-alert-banner" style="display: none; background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; color: #065f46; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i class="fa-solid fa-circle-check" style="font-size: 1.3rem; color: #059669; flex-shrink: 0;"></i>
+              <div>
+                <strong style="display: block; color: #065f46; font-size: 0.88rem;">Account Created Successfully!</strong>
+                <span id="login-alert-text" style="color: #047857; font-size: 0.8rem;">Please enter your password to sign in and access your student dashboard.</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Instant Working Demo Credentials Banner -->
           <div class="demo-credentials-banner" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 214, 160, 0.08)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -1520,7 +1531,7 @@
             </div>
 
             <button type="submit" class="btn btn-accent" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 10px;">
-              <i class="fa-solid fa-user-check"></i> Register Account & Open Dashboard
+              <i class="fa-solid fa-user-plus"></i> Create Account
             </button>
           </form>
 
@@ -2297,6 +2308,24 @@
       </div>
 
       <div class="modal-body">
+        <!-- Live Admin Alert Banner for Newly Registered Students -->
+        <div id="admin-new-user-banner" style="display: none; background: #eff6ff; border: 1.5px solid #3b82f6; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; color: #1e3a8a; font-size: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;">
+                <i class="fa-solid fa-user-plus"></i>
+              </div>
+              <div>
+                <strong style="color: #1e3a8a; font-size: 0.88rem; display: block;" id="admin-new-user-banner-title">New Student Joined System</strong>
+                <span style="color: #2563eb; font-size: 0.8rem;" id="admin-new-user-banner-text">A new student has created an account and joined the system.</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem; border-color: #93c5fd; color: #2563eb; background: #ffffff;" onclick="switchAdminTab('students'); document.getElementById('admin-new-user-banner').style.display='none';">
+              View in Roster
+            </button>
+          </div>
+        </div>
+
         <!-- Live Admin Notifications Panel (Document Uploads & Operations) -->
         <div id="admin-notif-panel" style="display: none; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -3061,9 +3090,9 @@
           <div class="calc-form-group">
             <label class="calc-label">Select Your Expert Academic Tutor</label>
             <select id="order-tutor-select" class="calc-select" style="margin-bottom: 14px;">
-              <option value="claire">Claire Bennett (English, IT, History, Law • 6+ yrs)</option>
-              <option value="oliver">Oliver Harrison (Business, Econ, Finance, Math, Stats • 5+ yrs)</option>
               <option value="sophia">Sophia Mitchell (Nursing, Healthcare, Psychology • 6+ yrs)</option>
+              <option value="oliver">Oliver Harrison (Business, Econ, Finance, Math, Stats • 5+ yrs)</option>
+              <option value="claire">Claire Bennett (English, IT, History, Law • 6+ yrs)</option>
               <option value="best-match">Auto-Match Best Senior Tutor in Subject</option>
             </select>
           </div>

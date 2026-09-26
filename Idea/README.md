@@ -1,44 +1,81 @@
-# ScholarVerge.com - Your Path to Academic Excellence
+# ScholarVerge.com - Academic Tutoring & Research Excellence
 
-ScholarVerge.com is a premier, hyper-realistic, modern multi-tenant academic tutoring platform built to connect students with verified human Master's and Ph.D. tutors.
+ScholarVerge.com is a premier, modern multi-tenant academic tutoring and research consultation platform built to connect students with verified human Master's and Ph.D. tutors.
 
 ---
 
-## 🌟 Core Features & Highlights
+## 🌟 Core Features & Architecture
 
 ### 1. **Multi-Tenant Student & Super Admin Architecture**
+- **Student Registration & Explicit Login**: When a user registers an account, the system indicates that the account was created successfully, and requires the user to log in with their credentials to access the academic dashboard.
+- **Admin Dashboard Notifications**: When a new user registers, the Super Admin command center immediately records and highlights an operational alert (`New Student Joined`), increments the student roster, and updates real-time analytics.
 - **Dedicated Student Accounts**: Email + Password authentication (salted SHA-256), Google OAuth simulation, and scoped data tenancy.
-- **Account Recovery**: 6-digit OTP verification code dispatched via realistic simulated email notification drawer with auto-fill.
-- **Super Admin Command Center**: 2FA Security PIN (`202688`) gate, student roster management, order workflow dispatcher, and PostgreSQL live sync console.
+- **Account Recovery**: 6-digit OTP verification code dispatched via simulated email notification drawer.
+- **Super Admin Command Center**: Student roster management, order workflow dispatcher, live operational notifications, and database synchronization.
 
-### 2. **Verified Academic Tutors (Detailed Profiles & Direct Actions)**
-- **Claire Bennett**: Master’s degree in English Literature & Comparative Law, 6+ years experience specializing in English, Information Technology, History, and Law.
-- **Oliver Harrison**: Ph.D. in Econometrics & Applied Statistics, 5+ years experience specializing in Business, Economics, Finance, Mathematics, and Statistics.
-- **Sophia Mitchell**: Doctor of Nursing Practice (DNP), 6+ years experience specializing in Nursing, Healthcare, and Psychology (Evidence-Based Practice & PICOT synthesis).
+### 2. **Verified Academic Specialist Tutors**
+1. **Dr. Sophia Mitchell** *(Female - Displayed 1st & in Social Sharing)*:
+   - Doctor of Nursing Practice (DNP) & M.S. in Health Psychology.
+   - Specialties: Clinical Healthcare, Evidence-Based Practice (EBP), PICOT synthesis, and Nursing Care Plans.
+2. **Dr. Oliver Harrison** *(Male - In the Middle)*:
+   - Ph.D. in Econometrics & Applied Statistics.
+   - Specialties: Econometric modeling, quantitative regression (R, SPSS, Python), financial valuation (DCF), and statistical synthesis.
+3. **Prof. Claire Bennett** *(Female - 3rd)*:
+   - Master’s Degree in English Literature & IT Law.
+   - Specialties: Legal briefs (IRAC / CREAC), IT whitepapers, comparative law, and literature critiques.
 
-### 3. **Interactive 6-Step Workflow (Offline WhatsApp Payment Coordination)**
-1. **Provide the assignment details**: Instructions, grading rubrics, required sources, citation styles (APA 7, MLA 9, Harvard, Chicago, OSCOLA).
-2. **Select your preferred tutor**: Choose Claire, Oliver, Sophia, or auto-match with a senior specialist.
-3. **Confirm & Coordinate Payment via WhatsApp**: Direct WhatsApp chat with Admin (`+1 667 775 7597`) to arrange convenient offline payment.
-4. **Receive your completed assignment**: Direct 1-on-1 collaboration, outline approval, and drafting updates.
-5. **Download your work together with the reports**: Verified Turnitin Originality Report & AI-free Authenticity certificate.
-6. **Review & approve your completed work**: Inspect the document, request free unlimited adjustments within 14 days, and achieve top grades.
-
-### 4. **Interactive Utilities & Modals**
-- **Dynamic Price Calculator**: Instant calculation with deadline urgency, page counts, academic levels, and promo discount codes (`SCHOLAR20`).
-- **Direct WhatsApp & Email Channels**: Instant 1-click WhatsApp (`https://wa.me/16677757597`) and official Email (`scholarverge@gmail.com`).
-- **Write My Paper Wizard**: Multi-step assignment submission with automatic WhatsApp Admin payment chat generation.
-- **Live Order Tracker & 1-on-1 Tutor Messenger**: Real-time tracking for active orders (`#SV-84920`, `#SV-77219`, `#SV-99104`) with interactive messaging.
-- **Verified Reviews & Review Submission**: Dynamic star rating selector with instant live publication.
-- **24/7 Live Support Widget**: Interactive academic advisor drawer for immediate answers.
+### 3. **Paper Submission & Pricing Flow**
+- **Zero Dollar Amounts in Paper Flow**: All assignment pricing and scoping is inquiry-driven and coordinated through official admin communication, ensuring academic integrity and customized scoping.
+- **Restored Assignment Types**: Essays, Research papers, powerpoint, Dissertations, Discussion post, and Others.
 
 ---
 
-## 🚀 How to Run & Preview
+## 🐳 Containerization & Deployment
 
-Start the multi-tenant Python REST API and frontend server:
+ScholarVerge is containerized using Docker and Docker Compose for production deployment.
 
+### Quick Start with Docker Compose:
+```bash
+docker compose up --build
+```
+The application will be accessible at `http://localhost:8000`.
+
+### Building and Running Docker Image:
+```bash
+docker build -t scholarverge:latest .
+docker run -p 8000:8000 -v $(pwd)/database:/app/database scholarverge:latest
+```
+
+### Running Locally without Docker:
 ```bash
 python server.py
 ```
-Then visit `http://localhost:8000` in your web browser.
+Then open `http://localhost:8000` in your web browser.
+
+---
+
+## 📁 Repository Structure
+
+```
+├── .github/
+│   └── workflows/
+│       ├── ci.yml            # Automated CI syntax compilation & Docker build
+│       └── keep-alive.yml    # Heartbeat monitoring workflow
+├── assets/                   # Tutor images, student portraits, icons
+├── database/                 # SQLite database and schema.sql
+├── js/
+│   ├── app.js                # Core frontend application logic & API client
+│   └── tutors-data.js        # Tutor data & verified student reviews
+├── styles/
+│   └── main.css              # Responsive styling and design system
+├── uploads/                  # Uploaded student briefs and rubric documents
+├── .dockerignore             # Docker build ignores
+├── .gitignore                # Git repository ignores
+├── Dockerfile                # Multi-stage production container definition
+├── docker-compose.yml        # Multi-container orchestration config
+├── index.html                # Main single-page application & modals
+├── Procfile                  # Cloud platform process declaration
+├── README.md                 # Project documentation
+├── requirements.txt          # Python dependencies
+└── server.py                 # Multi-tenant Python server & REST API
+```

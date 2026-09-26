@@ -413,18 +413,15 @@ def init_db():
         VALUES ('SV-ADM-01', ?, 'Academic Operations Lead', 'scholarverge@gmail.com', 'ScholarVerge Academic Administration', 'Doctoral / Ph.D.', 'Academic Operations & Research', 'APA 7th', 4.00, 4.00, '+16677757597', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 0, 'active', datetime('now'), datetime('now'))
         """, (admin_user_id,))
 
-    # Synchronize Exactly 3 Real Tutors in Requested Order (without wiping auto-increment each restart)
-    cursor.execute("SELECT COUNT(*) FROM tutors")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("""
-        INSERT INTO tutors (tutor_id, full_name, title, degree, subjects, whatsapp_number, direct_email, rating, total_reviews, active_load, status, avatar_url)
-        VALUES 
-        ('TUT-01', 'Oliver Harrison', 'Lead Quantitative Analyst & Economic Modeling Specialist', 'Ph.D. in Econometrics & Applied Statistics', 'Business, Economics, Finance, Mathematics, Statistics', '+16677757597', 'scholarverge@gmail.com', 4.97, 1280, 12, 'available', 'assets/images/tutors/oliver-harrison.jpg'),
-        ('TUT-02', 'Claire Bennett', 'Senior Academic Tutor & Legal Scholar', 'Master’s Degree in English Literature & IT Law', 'English, Information Technology, History, Law', '+16677757597', 'scholarverge@gmail.com', 4.99, 1420, 8, 'available', 'assets/images/tutors/claire-bennett.jpg'),
-        ('TUT-03', 'Sophia Mitchell', 'Clinical Healthcare Consultant & Psychology Fellow', 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology', 'Nursing, Healthcare, Psychology', '+16677757597', 'scholarverge@gmail.com', 4.99, 1650, 15, 'available', 'assets/images/tutors/sophia-mitchell.jpg')
-        """)
-    else:
-        cursor.execute("UPDATE tutors SET whatsapp_number = '+16677757597', direct_email = 'scholarverge@gmail.com', status = 'available'")
+    # Synchronize Exactly 3 Real Tutors in Requested Order (Sophia Mitchell 1st, Oliver Harrison 2nd/Middle, Claire Bennett 3rd)
+    cursor.execute("DELETE FROM tutors")
+    cursor.execute("""
+    INSERT INTO tutors (id, tutor_id, full_name, title, degree, subjects, whatsapp_number, direct_email, rating, total_reviews, active_load, status, avatar_url)
+    VALUES 
+    (1, 'TUT-01', 'Sophia Mitchell', 'Clinical Healthcare Consultant & Psychology Fellow', 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology', 'Nursing, Healthcare, Psychology', '+16677757597', 'scholarverge@gmail.com', 4.99, 1650, 15, 'available', 'assets/images/tutors/sophia-mitchell.jpg'),
+    (2, 'TUT-02', 'Oliver Harrison', 'Lead Quantitative Analyst & Economic Modeling Specialist', 'Ph.D. in Econometrics & Applied Statistics', 'Business, Economics, Finance, Mathematics, Statistics', '+16677757597', 'scholarverge@gmail.com', 4.97, 1280, 12, 'available', 'assets/images/tutors/oliver-harrison.jpg'),
+    (3, 'TUT-03', 'Claire Bennett', 'Senior Academic Tutor & Legal Scholar', 'Master’s Degree in English Literature & IT Law', 'English, Information Technology, History, Law', '+16677757597', 'scholarverge@gmail.com', 4.99, 1420, 8, 'available', 'assets/images/tutors/claire-bennett.jpg')
+    """)
 
     # Seed Initial Clean Verified Reviews (Linked to Real Tutors)
     cursor.execute("SELECT COUNT(*) FROM reviews")
@@ -1045,28 +1042,28 @@ class ScholarVergeAPIHandler(http.server.SimpleHTTPRequestHandler):
                 if invite_code:
                     cursor.execute("UPDATE invitations SET status = 'claimed' WHERE invite_code = ?", (invite_code,))
 
+                # Notify Super Admin in Notifications Center
+                cursor.execute("""
+                INSERT INTO notifications (recipient_role, recipient_email, title, message, type, reference_id, is_read, created_at)
+                VALUES ('admin', 'scholarverge@gmail.com', 'New Student Joined', ?, 'user_registered', ?, 0, datetime('now'))
+                """, (f"New student {full_name} ({email}) from {university} has joined the system.", student_id))
+
                 cursor.execute("INSERT INTO audit_logs (action, user_email, details, created_at) VALUES ('REGISTER_STUDENT', ?, ?, datetime('now'))", (email, f"New student account created: {full_name} ({university})"))
                 conn.commit()
 
-                session_token = generate_token()
+                # User account created successfully; student must explicitly log in
                 self.send_json_response(201, {
                     "success": True,
-                    "message": f"Welcome to ScholarVerge, {full_name}! Your student account is ready.",
-                    "session_token": session_token,
-                    "user": {
+                    "require_login": True,
+                    "message": f"Account created successfully for {full_name}! Please sign in with your email and password to access your dashboard.",
+                    "registered_email": email,
+                    "student": {
                         "id": student_id,
                         "full_name": full_name,
                         "email": email,
                         "university": university,
                         "academic_level": academic_level,
-                        "major_field": major,
-                        "preferred_citation": citation,
-                        "target_gpa": target_gpa,
-                        "current_gpa": current_gpa,
-                        "whatsapp_number": whatsapp,
-                        "total_orders": 0,
-                        "status": "active",
-                        "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
+                        "major_field": major
                     }
                 })
 

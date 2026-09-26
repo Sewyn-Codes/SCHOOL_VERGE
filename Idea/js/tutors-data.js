@@ -1,12 +1,63 @@
 /**
  * ScholarVerge.com - Verified Academic Tutors, Services, Reviews & Real Data Configurations
  * Strictly 3 Specialist Tutors with Real Provided Images:
- * 1. Oliver Harrison (Lead Quantitative Analyst & Econometrician)
- * 2. Claire Bennett (Senior Academic Tutor & Legal-IT Lead)
- * 3. Sophia Mitchell (Clinical Healthcare Consultant & Psychology Fellow)
+ * 1. Sophia Mitchell (Clinical Healthcare Consultant & Psychology Fellow) - 1st (Female)
+ * 2. Oliver Harrison (Lead Quantitative Analyst & Econometrician) - In the Middle (Male)
+ * 3. Claire Bennett (Senior Academic Tutor & Legal-IT Lead) - 3rd (Female)
  */
 
 const tutorsData = [
+  {
+    id: 'sophia-mitchell',
+    name: 'Sophia Mitchell',
+    avatar: 'assets/images/tutors/sophia-mitchell.jpg',
+    title: 'Senior Clinical Nursing & Health Sciences Academic Specialist',
+    degree: 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology',
+    experience: '6+ Years Experience',
+    rating: 4.99,
+    totalReviews: 1650,
+    successRate: '99.9%',
+    subjects: ['Nursing', 'Healthcare', 'Psychology'],
+    tagline: 'Evidence-based clinical rigor, holistic healthcare inquiry, and psychological research depth.',
+    bio: `I’m a Doctor of Nursing Practice (DNP) and a dedicated academic specialist with a deep background in nursing, healthcare policy, and clinical psychology. My areas of guidance include nursing theory, healthcare concepts, psychological research methods, clinical case-study analysis, evidence-based practice (EBP), PICOT synthesis, and examination preparation. My approach combines rigorous scientific research with clear rubric adherence.`,
+    stats: {
+      papersCompleted: 1650,
+      activeStudents: 41,
+      turnitinClearScore: '100%',
+      avgResponseTime: 'Instant / <15m'
+    },
+    specialties: [
+      'Evidence-Based Practice (EBP) & PICOT Question Synthesis',
+      'Nursing Care Plans (NANDA-I, NIC & NOC Interventions)',
+      'Systematic Literature Reviews & PRISMA Protocols',
+      'Qualitative & Quantitative Psychological Research Methods',
+      'APA 7th Clinical Formatting & Peer-Reviewed Journal Sourcing'
+    ],
+    sampleTopics: [
+      'Impact of Nurse-Patient Ratios on Post-Operative Mortality: An EBP Review',
+      'Cognitive Behavioral Therapy vs Pharmacotherapy in Adolescent Depression',
+      'Implementing Telehealth in Rural Palliative Care: Barriers and Outcomes',
+      'Ethical Considerations in Geriatric End-of-Life Decision Making'
+    ],
+    verifiedReviews: [
+      {
+        student: 'Brittany R.',
+        university: 'Johns Hopkins School of Nursing',
+        subject: 'Evidence-Based Practice',
+        rating: 5,
+        date: 'Yesterday',
+        comment: 'Sophia is the absolute best! My PICOT synthesis paper scored 98%. Her clinical terminology, peer-reviewed nursing citations (all 2023-2025 PubMed sources), and care plan table were breathtaking.'
+      },
+      {
+        student: 'Ashley M.',
+        university: 'University of Edinburgh',
+        subject: 'Clinical Psychology',
+        rating: 5,
+        date: '4 days ago',
+        comment: 'Sophia helped me navigate complex neurobiological research on trauma. The paper was completely original, insightful, and beautifully organized.'
+      }
+    ]
+  },
   {
     id: 'oliver-harrison',
     name: 'Oliver Harrison',
@@ -106,57 +157,6 @@ const tutorsData = [
         rating: 5,
         date: '1 week ago',
         comment: 'Claire helped me structure my entire final year dissertation outline and source primary archival evidence. She explained everything clearly via our direct messaging chat.'
-      }
-    ]
-  },
-  {
-    id: 'sophia-mitchell',
-    name: 'Sophia Mitchell',
-    avatar: 'assets/images/tutors/sophia-mitchell.jpg',
-    title: 'Senior Clinical Nursing & Health Sciences Academic Specialist',
-    degree: 'Doctor of Nursing Practice (DNP) & M.S. in Health Psychology',
-    experience: '6+ Years Experience',
-    rating: 4.99,
-    totalReviews: 1650,
-    successRate: '99.9%',
-    subjects: ['Nursing', 'Healthcare', 'Psychology'],
-    tagline: 'Evidence-based clinical rigor, holistic healthcare inquiry, and psychological research depth.',
-    bio: `I’m a Doctor of Nursing Practice (DNP) and a dedicated academic specialist with a deep background in nursing, healthcare policy, and clinical psychology. My areas of guidance include nursing theory, healthcare concepts, psychological research methods, clinical case-study analysis, evidence-based practice (EBP), PICOT synthesis, and examination preparation. My approach combines rigorous scientific research with clear rubric adherence.`,
-    stats: {
-      papersCompleted: 1650,
-      activeStudents: 41,
-      turnitinClearScore: '100%',
-      avgResponseTime: 'Instant / <15m'
-    },
-    specialties: [
-      'Evidence-Based Practice (EBP) & PICOT Question Synthesis',
-      'Nursing Care Plans (NANDA-I, NIC & NOC Interventions)',
-      'Systematic Literature Reviews & PRISMA Protocols',
-      'Qualitative & Quantitative Psychological Research Methods',
-      'APA 7th Clinical Formatting & Peer-Reviewed Journal Sourcing'
-    ],
-    sampleTopics: [
-      'Impact of Nurse-Patient Ratios on Post-Operative Mortality: An EBP Review',
-      'Cognitive Behavioral Therapy vs Pharmacotherapy in Adolescent Depression',
-      'Implementing Telehealth in Rural Palliative Care: Barriers and Outcomes',
-      'Ethical Considerations in Geriatric End-of-Life Decision Making'
-    ],
-    verifiedReviews: [
-      {
-        student: 'Brittany R.',
-        university: 'Johns Hopkins School of Nursing',
-        subject: 'Evidence-Based Practice',
-        rating: 5,
-        date: 'Yesterday',
-        comment: 'Sophia is the absolute best! My PICOT synthesis paper scored 98%. Her clinical terminology, peer-reviewed nursing citations (all 2023-2025 PubMed sources), and care plan table were breathtaking.'
-      },
-      {
-        student: 'Ashley M.',
-        university: 'University of Edinburgh',
-        subject: 'Clinical Psychology',
-        rating: 5,
-        date: '4 days ago',
-        comment: 'Sophia helped me navigate complex neurobiological research on trauma. The paper was completely original, insightful, and beautifully organized.'
       }
     ]
   }

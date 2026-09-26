@@ -387,15 +387,33 @@ function handleStudentRegister(e) {
   .then(r => r.json())
   .then(res => {
     if (res.success) {
-      saveSession({
-        isLoggedIn: true,
-        role: 'student',
-        token: res.session_token,
-        user: res.user
-      });
-      closeModal('auth-modal');
-      showToast(res.message || 'Account created successfully!');
-      openStudentDashboard();
+      // Clear registration form fields
+      const regForm = document.getElementById('register-form');
+      if (regForm) regForm.reset();
+
+      // Explicitly switch to Sign In tab (User MUST log in with credentials)
+      switchAuthTab('login');
+
+      // Pre-populate login email field and prepare password input
+      const loginEmail = document.getElementById('login-email');
+      const loginPw = document.getElementById('login-password');
+      if (loginEmail) loginEmail.value = email;
+      if (loginPw) {
+        loginPw.value = '';
+        setTimeout(() => loginPw.focus(), 200);
+      }
+
+      // Display dedicated success alert banner in the login pane
+      const alertBanner = document.getElementById('login-alert-banner');
+      const alertText = document.getElementById('login-alert-text');
+      if (alertBanner) {
+        if (alertText) {
+          alertText.textContent = res.message || `Account created successfully for ${name}! Please sign in with your email and password to access your dashboard.`;
+        }
+        alertBanner.style.display = 'block';
+      }
+
+      showToast(res.message || 'Account created successfully! Please sign in with your password to continue.');
     } else {
       showToast(res.error || 'Registration error. Please check your details.');
     }
@@ -1782,19 +1800,26 @@ function renderAdminStudentsTable(students) {
     return;
   }
 
-  tbody.innerHTML = students.map(s => {
+  tbody.innerHTML = students.map((s, idx) => {
     const isFlagged = s.status === 'flagged' || s.status === 'suspended';
+    const isNewStudent = (idx === 0 && s.email !== 'scholarverge@gmail.com') || (s.created_at && (new Date() - new Date(s.created_at)) < 86400000);
     return `
-      <tr>
+      <tr style="${isNewStudent ? 'background: rgba(37, 99, 235, 0.03);' : ''}">
         <td>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">${(s.full_name || 'S').charAt(0)}</div>
-            <strong>${s.full_name}</strong>
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; flex-shrink: 0;">${(s.full_name || 'S').charAt(0)}</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <strong style="color: #0f172a;">${escapeHtml(s.full_name)}</strong>
+                ${isNewStudent ? '<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; padding: 1px 5px;">NEW</span>' : ''}
+              </div>
+              <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(s.email)}</div>
+            </div>
           </div>
         </td>
-        <td>${s.university}</td>
-        <td>${s.major_field}</td>
-        <td>${s.academic_level}</td>
+        <td>${escapeHtml(s.university)}</td>
+        <td>${escapeHtml(s.major_field)}</td>
+        <td>${escapeHtml(s.academic_level)}</td>
         <td><span class="badge badge-trust">${s.total_orders || 0} Orders</span></td>
         <td>
           <span class="status-pill ${s.status === 'flagged' ? 'flagged' : s.status === 'suspended' ? 'suspended' : 'active'}">
@@ -1803,14 +1828,14 @@ function renderAdminStudentsTable(students) {
         </td>
         <td>
           <div style="display: flex; gap: 4px;">
-            <button class="btn btn-outline" style="padding: 3px 7px; font-size: 0.7rem; color: ${isFlagged ? '#047857' : '#b91c1c'};" onclick="adminToggleStudentFlag('${s.email}', '${s.status || 'active'}')">
+            <button class="btn btn-outline" style="padding: 3px 7px; font-size: 0.7rem; color: ${isFlagged ? '#047857' : '#b91c1c'};" onclick="adminToggleStudentFlag('${escapeHtml(s.email)}', '${escapeHtml(s.status || 'active')}')">
               <i class="fa-solid fa-flag"></i> ${isFlagged ? 'Unflag' : 'Flag'}
             </button>
             <a href="https://wa.me/16677757597?text=Hello%20${encodeURIComponent(s.full_name)}%2C%20from%20ScholarVerge%20Super%20Admin" target="_blank" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #16a34a;">
               <i class="fa-brands fa-whatsapp"></i>
             </a>
             ${s.role !== 'superadmin' && s.email !== 'scholarverge@gmail.com' ? `
-              <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteStudent('${s.email}')" title="Delete Student Account">
+              <button class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem; color: #dc2626; border-color: #fca5a5;" onclick="adminDeleteStudent('${escapeHtml(s.email)}')" title="Delete Student Account">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             ` : ''}
@@ -1996,44 +2021,70 @@ function adminPurgeTestData() {
    Live Notifications System: Admin Operations & Student Dashboard Alerts
    ========================================================================== */
 function fetchAdminNotifications() {
-  const badge = document.getElementById('admin-notif-badge');
+  const badge = document.getElementById('admin-notif-badge') || document.getElementById('admin-notif-count');
   const list = document.getElementById('admin-notif-list');
-  if (!badge || !list) return;
+  if (!list) return;
 
   fetch('/api/notifications?role=admin')
     .then(r => r.json())
     .then(data => {
       if (data.success) {
         const unreadCount = data.unread_count || 0;
-        if (unreadCount > 0) {
-          badge.textContent = unreadCount;
-          badge.style.display = 'inline-block';
-        } else {
-          badge.style.display = 'none';
+        if (badge) {
+          if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.style.display = 'inline-block';
+          } else {
+            badge.style.display = 'none';
+          }
         }
 
         const notifs = data.notifications || [];
+
+        // Check for recent new student registrations to show top banner
+        const newStudentNotif = notifs.find(n => n.type === 'user_registered');
+        const newUserBanner = document.getElementById('admin-new-user-banner');
+        const newUserBannerText = document.getElementById('admin-new-user-banner-text');
+        if (newUserBanner) {
+          if (newStudentNotif && (!newStudentNotif.is_read || notifs.indexOf(newStudentNotif) === 0)) {
+            if (newUserBannerText) newUserBannerText.textContent = newStudentNotif.message;
+            newUserBanner.style.display = 'block';
+          } else {
+            newUserBanner.style.display = 'none';
+          }
+        }
+
         if (notifs.length === 0) {
           list.innerHTML = `<div style="font-size: 0.8rem; color: #78350f; padding: 8px 0; text-align: center;">No new operational alerts.</div>`;
           return;
         }
 
-        list.innerHTML = notifs.map(n => `
-          <div style="background: ${n.is_read ? '#fef3c7' : '#ffffff'}; border: 1px solid ${n.is_read ? '#fde68a' : '#f59e0b'}; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        list.innerHTML = notifs.map(n => {
+          const isUserReg = n.type === 'user_registered';
+          const icon = isUserReg ? 'fa-user-plus' : (n.type === 'doc_uploaded' ? 'fa-file-arrow-up' : 'fa-bell');
+          const iconColor = isUserReg ? '#2563eb' : (n.type === 'doc_uploaded' ? '#059669' : '#d97706');
+          return `
+          <div style="background: ${n.is_read ? '#f8fafc' : (isUserReg ? '#eff6ff' : '#ffffff')}; border: 1.5px solid ${n.is_read ? '#e2e8f0' : (isUserReg ? '#93c5fd' : '#f59e0b')}; border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
             <div>
-              <div style="font-size: 0.85rem; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid ${n.type === 'doc_uploaded' ? 'fa-file-arrow-up' : 'fa-bell'}" style="color: #d97706;"></i>
-                ${n.title}
-                ${!n.is_read ? '<span class="badge" style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 1px 5px;">NEW</span>' : ''}
+              <div style="font-size: 0.85rem; font-weight: 700; color: ${isUserReg ? '#1e3a8a' : '#92400e'}; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid ${icon}" style="color: ${iconColor};"></i>
+                ${escapeHtml(n.title)}
+                ${isUserReg ? '<span class="badge" style="background: #2563eb; color: #fff; font-size: 0.65rem; padding: 1px 6px;">NEW STUDENT</span>' : ''}
+                ${!n.is_read && !isUserReg ? '<span class="badge" style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 1px 5px;">NEW</span>' : ''}
               </div>
-              <div style="font-size: 0.78rem; color: #78350f; margin-top: 2px;">
-                ${n.message}
+              <div style="font-size: 0.78rem; color: ${isUserReg ? '#1e293b' : '#78350f'}; margin-top: 3px;">
+                ${escapeHtml(n.message)}
               </div>
-              <div style="font-size: 0.7rem; color: #a16207; margin-top: 2px;">
+              <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
                 ${n.created_at ? n.created_at.split('T')[0] + ' ' + (n.created_at.split('T')[1] || '').substring(0, 5) : 'Just now'}
               </div>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
+              ${isUserReg ? `
+                <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; color: #2563eb; border-color: #93c5fd; background: #ffffff;" onclick="switchAdminTab('students'); document.getElementById('admin-notif-panel').style.display='none';">
+                  <i class="fa-solid fa-users"></i> View Roster
+                </button>
+              ` : ''}
               ${n.link ? `
                 <a href="${n.link}" class="btn btn-outline" style="padding: 3px 8px; font-size: 0.72rem; color: #2563eb; text-decoration: none;" download>
                   <i class="fa-solid fa-download"></i> View File
@@ -2041,7 +2092,8 @@ function fetchAdminNotifications() {
               ` : ''}
             </div>
           </div>
-        `).join('');
+        `;
+        }).join('');
       }
     })
     .catch(() => {});
