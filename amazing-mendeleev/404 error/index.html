@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cosmos">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Transmission Lost in Deep Space</title>
+  <meta name="description" content="Houston, we have a problem. The requested coordinates do not exist in this sector.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+</head>
+<body>
+  <!-- Fullscreen Interactive Canvas Starfield -->
+  <canvas id="space-canvas" aria-hidden="true"></canvas>
+
+  <!-- CRT Scanline & Lens Overlay -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <!-- Warp Flash Overlay -->
+  <div id="warp-overlay" class="warp-overlay" aria-hidden="true"></div>
+
+  <!-- Main Viewport Layout -->
+  <div class="viewport-wrap">
+    <!-- Top Telemetry HUD Header -->
+    <header class="hud-header" role="banner">
+      <div class="hud-telemetry">
+        <div class="telemetry-item">
+          <div class="beacon-pulse" title="Subspace Beacon Beaconing"></div>
+          <span class="telemetry-label">SECTOR:</span>
+          <span class="telemetry-value">VOID-404</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">COORDS:</span>
+          <span id="telemetry-coords" class="telemetry-value">[40.4040°, 0.0000°]</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">SIGNAL:</span>
+          <span class="telemetry-alert">0% (LOST)</span>
+        </div>
+      </div>
+
+      <div class="hud-controls">
+        <!-- Audio Synth Toggle -->
+        <button id="audio-toggle-btn" class="btn-icon muted" aria-label="Toggle Sci-Fi Audio Synthesis">
+          <div class="sound-bars">
+            <span class="sound-bar"></span>
+            <span class="sound-bar"></span>
+            <span class="sound-bar"></span>
+          </div>
+          <span class="audio-label">Sound: Off</span>
+        </button>
+
+        <!-- Mini-Game Launcher -->
+        <button id="hud-game-btn" class="btn-icon" title="Play Sector Rescue Mini-Game">
+          <span>🕹️</span>
+          <span>Mini-Game</span>
+        </button>
+
+        <!-- Visual Mode Theme Selector -->
+        <select id="theme-select" class="theme-select" aria-label="Select Visual Theme">
+          <option value="cosmos">🌌 Deep Cosmos</option>
+          <option value="cyberpunk">⚡ Cyberpunk Neon</option>
+          <option value="crt">📟 Retro CRT Green</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Center Hero Stage -->
+    <main class="hero-stage" role="main">
+      <!-- Left Content & Actions -->
+      <div class="hero-content">
+        <div class="title-wrap">
+          <div class="sector-tag">Transmission Signal Lost</div>
+          <h1 id="glitch-404" class="glitch-code" title="Click to pulse quantum anomaly">404</h1>
+        </div>
+
+        <h2 class="hero-heading">Houston, We Have a Problem.</h2>
+        <p class="hero-desc">
+          You've drifted beyond the charted boundaries of our digital multiverse. The coordinates you entered either collapsed into a black hole or were never broadcast in this reality.
+        </p>
+
+        <!-- Primary Action Buttons -->
+        <div class="hero-actions">
+          <a href="/" id="warp-home-btn" class="btn-primary">
+            <span>⚡ Initiate Warp Home</span>
+          </a>
+          <button id="launch-game-btn" class="btn-secondary">
+            <span>🚀 Rescue Mission</span>
+          </button>
+          <button id="open-terminal-btn" class="btn-secondary">
+            <span>💻 Diagnostic Terminal</span>
+          </button>
+        </div>
+
+        <!-- Quick Recovery Coordinates Search -->
+        <div class="search-section">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input 
+              type="text" 
+              id="site-search-input" 
+              class="search-input" 
+              placeholder="Search subspace coordinates (e.g., Home, Docs, Pricing)..."
+              autocomplete="off"
+            >
+          </div>
+          <div id="quick-links" class="quick-links" aria-label="Suggested Destinations">
+            <a href="/" class="quick-tag">Home Base</a>
+            <a href="/docs" class="quick-tag">Mission Docs</a>
+            <a href="/dashboard" class="quick-tag">Telemetry Dashboard</a>
+            <a href="/pricing" class="quick-tag">Pricing Plans</a>
+            <a href="/support" class="quick-tag">Subspace Support</a>
+            <a href="/status" class="quick-tag">System Status</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Interactive Draggable Astronaut -->
+      <div class="astronaut-container">
+        <!-- Physics Tether Canvas -->
+        <canvas id="tether-canvas" class="astro-tether-canvas" aria-hidden="true"></canvas>
+
+        <div id="draggable-astronaut" class="astronaut-wrap" title="Drag or fling me into zero gravity!">
+          <!-- High-Fidelity Custom Vector Astronaut SVG -->
+          <svg class="astro-svg" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="astroSuit" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="70%" stop-color="#d4dce8"/>
+                <stop offset="100%" stop-color="#9aaec4"/>
+              </linearGradient>
+              <linearGradient id="visorGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffcc00"/>
+                <stop offset="45%" stop-color="#ff8800"/>
+                <stop offset="100%" stop-color="#00f0ff"/>
+              </linearGradient>
+              <radialGradient id="helmetShadow" cx="50%" cy="50%" r="50%">
+                <stop offset="60%" stop-color="rgba(0,0,0,0)"/>
+                <stop offset="100%" stop-color="rgba(0,0,0,0.4)"/>
+              </radialGradient>
+              <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+              </filter>
+            </defs>
+
+            <!-- Life Support Backpack -->
+            <rect x="52" y="65" width="96" height="110" rx="14" fill="#323b4d" stroke="#1d2433" stroke-width="3"/>
+            <rect x="62" y="75" width="76" height="28" rx="6" fill="#1f2635"/>
+            <!-- Dual Thruster Nozzles -->
+            <polygon points="62,175 74,175 78,190 58,190" fill="#20293a" stroke="#00f0ff" stroke-width="1.5"/>
+            <polygon points="126,175 138,175 142,190 122,190" fill="#20293a" stroke="#00f0ff" stroke-width="1.5"/>
+
+            <!-- Left Leg -->
+            <rect x="68" y="155" width="26" height="55" rx="12" fill="url(#astroSuit)"/>
+            <ellipse cx="81" cy="214" rx="16" ry="10" fill="#2a3344" stroke="#1d2433" stroke-width="2"/>
+
+            <!-- Right Leg -->
+            <rect x="106" y="155" width="26" height="55" rx="12" fill="url(#astroSuit)"/>
+            <ellipse cx="119" cy="214" rx="16" ry="10" fill="#2a3344" stroke="#1d2433" stroke-width="2"/>
+
+            <!-- Main Torso / Spacesuit -->
+            <rect x="60" y="80" width="80" height="85" rx="18" fill="url(#astroSuit)"/>
+
+            <!-- Chest Utility Control Pack -->
+            <rect x="74" y="96" width="52" height="42" rx="8" fill="#1a2232" stroke="#2c3a52" stroke-width="2"/>
+            <circle cx="85" cy="110" r="4" fill="#00f0ff" filter="url(#glowCyan)"/>
+            <circle cx="99" cy="110" r="4" fill="#ff2a85"/>
+            <circle cx="113" cy="110" r="4" fill="#00ffaa"/>
+            <rect x="83" y="122" width="34" height="6" rx="3" fill="#384964"/>
+
+            <!-- Left Arm & Glove -->
+            <g transform="rotate(-15 50 100)">
+              <rect x="36" y="85" width="22" height="58" rx="11" fill="url(#astroSuit)"/>
+              <ellipse cx="47" cy="146" rx="13" ry="11" fill="#2a3344"/>
+            </g>
+
+            <!-- Right Arm & Glove (Waving) -->
+            <g transform="rotate(35 150 100)">
+              <rect x="142" y="85" width="22" height="58" rx="11" fill="url(#astroSuit)"/>
+              <ellipse cx="153" cy="146" rx="13" ry="11" fill="#2a3344"/>
+            </g>
+
+            <!-- Helmet Base Collar -->
+            <ellipse cx="100" cy="80" rx="36" ry="10" fill="#6c7d95"/>
+
+            <!-- Helmet Dome -->
+            <circle cx="100" cy="54" r="42" fill="url(#astroSuit)" stroke="#6c7d95" stroke-width="3"/>
+            <circle cx="100" cy="54" r="42" fill="url(#helmetShadow)"/>
+
+            <!-- Gold / Cyan Reflected Visor -->
+            <ellipse cx="100" cy="55" rx="28" ry="22" fill="url(#visorGold)" stroke="#1a2232" stroke-width="2"/>
+            
+            <!-- Visor Glass Glare Arc -->
+            <path d="M 80 44 Q 100 36 120 44" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            <circle cx="85" cy="48" r="3" fill="#ffffff" opacity="0.6"/>
+
+            <!-- Helmet Comm Antenna -->
+            <line x1="62" y1="52" x2="52" y2="40" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="50" cy="38" r="3" fill="#00f0ff" filter="url(#glowCyan)"/>
+          </svg>
+        </div>
+
+        <div class="astro-hint">
+          <span>🖐️</span>
+          <span>Drag or fling astronaut in 0-G</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Collapsible Cyber Diagnostic Terminal -->
+    <section id="terminal-drawer" class="terminal-drawer collapsed" aria-label="Interactive Diagnostic Terminal">
+      <div id="terminal-header" class="terminal-header" title="Click to expand/collapse terminal">
+        <div class="terminal-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <div class="terminal-title">SUBSPACE DIAGNOSTIC CONSOLE // V4.0.4</div>
+        <div id="terminal-toggle-icon" class="terminal-toggle-icon">[+]</div>
+      </div>
+
+      <div id="terminal-body" class="terminal-body">
+        <div class="terminal-log system">[BOOT] Telemetry subsystem active.</div>
+        <div class="terminal-log error">[ERR-404] Resource not located in local cluster database.</div>
+        <div class="terminal-log warning">[WARN] Gravity tether nominal (100% elasticity).</div>
+        <div class="terminal-log system">Type 'help' to review diagnostic commands.</div>
+      </div>
+
+      <div class="terminal-input-row">
+        <span class="terminal-prompt">user@sector404:~$</span>
+        <input 
+          type="text" 
+          id="terminal-input" 
+          class="terminal-input" 
+          placeholder="type 'help', 'scan', 'ping', 'warp', or 'game'..."
+          autocomplete="off" 
+          spellcheck="false"
+        >
+      </div>
+    </section>
+  </div>
+
+  <!-- Sector 404 Rescue Mini-Game Modal -->
+  <div id="game-modal" class="game-modal" role="dialog" aria-modal="true" aria-label="Sector 404 Rescue Game">
+    <div class="game-container">
+      <div class="game-top-bar">
+        <div class="game-stats">
+          <div>SCORE: <span id="game-score" class="game-stat-val">0</span></div>
+          <div>LIVES: <span id="game-lives" class="game-stat-val">❤️❤️❤️</span></div>
+          <div>COMBO: <span id="game-multiplier" class="game-stat-val">1x</span></div>
+          <div>BEST: <span id="game-highscore" class="game-stat-val">0</span></div>
+        </div>
+        <button id="game-close-btn" class="game-close-btn" aria-label="Close Mini-Game">✕</button>
+      </div>
+
+      <div class="game-canvas-wrap">
+        <canvas id="game-canvas" width="680" height="420"></canvas>
+
+        <div id="game-over-screen" class="game-over-screen">
+          <div class="game-over-title">CRITICAL FAILURE</div>
+          <p>Final Score: <span id="game-final-score" class="game-stat-val">0</span> Packets Recovered</p>
+          <button id="game-restart-btn" class="btn-primary">Try Again 🔄</button>
+        </div>
+      </div>
+
+      <div class="game-instructions">
+        <span>Controls: Arrow Keys / WASD or Mouse Steering</span>
+        <span>Collect Glowing Data Packets • Dodge Red Anomalies</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modular Scripts -->
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
