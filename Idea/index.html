@@ -479,7 +479,7 @@
           <span style="font-size: 0.7rem; color: #94a3b8;">ScholarVerge Tools & Order Hub</span>
         </div>
       </div>
-      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close Sidebar">&times;</button>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close Sidebar" onclick="closeSidebar()">&times;</button>
     </div>
 
     <!-- Sidebar Scrollable Body -->
@@ -1383,7 +1383,7 @@
           <span style="font-size: 0.7rem; color: #cbd5e1;">Avg response time: Under 1 min</span>
         </div>
       </div>
-      <button id="chat-drawer-close" style="color: #ffffff; font-size: 1.2rem;">&times;</button>
+      <button id="chat-drawer-close" style="color: #ffffff; font-size: 1.2rem;" onclick="document.getElementById('live-chat-drawer').classList.remove('active')">&times;</button>
     </div>
 
     <div class="chat-drawer-body" id="chat-drawer-messages">
@@ -1469,11 +1469,14 @@
           <div class="demo-credentials-banner" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(6, 214, 160, 0.08)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);"><i class="fa-solid fa-key" style="color: var(--accent-blue);"></i> Instant Verified Demo Accounts</span>
-              <span class="badge badge-trust" style="font-size: 0.65rem; padding: 2px 6px;">1-Click Login</span>
+              <span class="badge badge-trust" style="font-size: 0.65rem; padding: 2px 6px;">1-Click Fill</span>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; background: #ffffff;" onclick="fillStudentDemoCredentials()">
                 <i class="fa-solid fa-graduation-cap" style="color: var(--accent-blue);"></i> Fill Student Demo
+              </button>
+              <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; background: #ffffff;" onclick="fillAdminDemoCredentials()">
+                <i class="fa-solid fa-crown" style="color: #fbbf24;"></i> Fill Admin Demo
               </button>
             </div>
           </div>
@@ -1497,9 +1500,14 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 8px;">
-              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to My Account
-            </button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button type="button" class="btn btn-cancel" style="flex: 1;" onclick="closeModal('auth-modal')">
+                <i class="fa-solid fa-xmark"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to My Account
+              </button>
+            </div>
           </form>
 
           <div style="margin-top: 18px; text-align: center; font-size: 0.8125rem; color: #64748b;">
@@ -1574,9 +1582,17 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-accent" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 10px;">
-              <i class="fa-solid fa-user-plus"></i> Create Account
-            </button>
+            <div class="modal-actions-row">
+              <button type="button" class="btn btn-back" onclick="switchAuthTab('login')">
+                <i class="fa-solid fa-arrow-left"></i> Back to Sign In
+              </button>
+              <button type="button" class="btn btn-cancel" onclick="closeModal('auth-modal')">
+                <i class="fa-solid fa-xmark"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-accent" style="flex: 2; padding: 13px;">
+                <i class="fa-solid fa-user-plus"></i> Create Account
+              </button>
+            </div>
           </form>
 
           <div style="margin-top: 18px; text-align: center; font-size: 0.8125rem; color: #64748b;">
@@ -1586,16 +1602,20 @@
 
         <!-- 3. Super Admin Gate Tab (2FA Removed) -->
         <div id="auth-pane-admin" style="display: none;">
-          <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 14px; color: #ffffff; margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
-            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(251, 191, 36, 0.2); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
-              <i class="fa-solid fa-crown"></i>
+          <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 14px; color: #ffffff; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(251, 191, 36, 0.2); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+              <div>
+                <strong style="font-size: 0.9rem; display: block;">Master Administrator Control Center</strong>
+                <span style="font-size: 0.72rem; color: #cbd5e1;">Super Admin Master Credentials Authentication</span>
+              </div>
             </div>
-            <div>
-              <strong style="font-size: 0.9rem; display: block;">Master Administrator Control Center</strong>
-              <span style="font-size: 0.72rem; color: #cbd5e1;">Super Admin Master Credentials Authentication</span>
-            </div>
+            <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.75rem; border-color: rgba(251, 191, 36, 0.5); color: #fbbf24; background: rgba(255,255,255,0.08);" onclick="fillAdminDemoCredentials()">
+              <i class="fa-solid fa-key"></i> Fill Admin Demo
+            </button>
           </div>
-
 
           <form onsubmit="handleSuperAdminLogin(event)">
             <div class="calc-form-group">
@@ -1613,9 +1633,17 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fbbf24; border: 1px solid #4338ca; margin-top: 8px;">
-              <i class="fa-solid fa-shield-halved"></i> Sign In to Super Admin Command Center
-            </button>
+            <div class="modal-actions-row">
+              <button type="button" class="btn btn-back" onclick="switchAuthTab('login')">
+                <i class="fa-solid fa-arrow-left"></i> Back to Student Login
+              </button>
+              <button type="button" class="btn btn-cancel" onclick="closeModal('auth-modal')">
+                <i class="fa-solid fa-xmark"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fbbf24; border: 1px solid #4338ca;">
+                <i class="fa-solid fa-shield-halved"></i> Sign In to Super Admin
+              </button>
+            </div>
           </form>
         </div>
 
@@ -1630,9 +1658,17 @@
                 <label class="calc-label">Registered Student Email</label>
                 <input type="email" id="reset-req-email" class="calc-input" placeholder="e.g. jordan.m@university.edu" required />
               </div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
-                <i class="fa-solid fa-paper-plane"></i> Send 6-Digit Reset Code
-              </button>
+              <div class="modal-actions-row">
+                <button type="button" class="btn btn-back" onclick="switchAuthTab('login')">
+                  <i class="fa-solid fa-arrow-left"></i> Back to Sign In
+                </button>
+                <button type="button" class="btn btn-cancel" onclick="closeModal('auth-modal')">
+                  <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+                  <i class="fa-solid fa-paper-plane"></i> Send 6-Digit Reset Code
+                </button>
+              </div>
             </form>
           </div>
 
@@ -1698,9 +1734,17 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 8px;">
-                <i class="fa-solid fa-shield-check"></i> Set New Password & Sign In
-              </button>
+              <div class="modal-actions-row">
+                <button type="button" class="btn btn-back" onclick="backToResetStep1()">
+                  <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+                <button type="button" class="btn btn-cancel" onclick="closeModal('auth-modal')">
+                  <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+                  <i class="fa-solid fa-shield-check"></i> Set New Password & Sign In
+                </button>
+              </div>
             </form>
           </div>
 
@@ -1717,7 +1761,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-id-card" style="color: var(--accent-blue);"></i> Student Academic Profile Onboarding</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('student-profile-modal')">&times;</button>
       </div>
       <div class="modal-body">
         <form onsubmit="submitStudentProfile(event)">
@@ -1787,11 +1831,17 @@
             <i class="fa-solid fa-shield-check"></i> Connected to PostgreSQL Academic Storage. Update your academic major, target GPA, or preferred citation style at any time.
           </div>
 
-          <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="closeModal('student-profile-modal'); openStudentDashboard();">
+              <i class="fa-solid fa-arrow-left"></i> Back to Hub
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal('student-profile-modal')">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
             <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
               <i class="fa-solid fa-floppy-disk"></i> Save Profile Details
             </button>
-            <button type="button" class="btn btn-outline" style="flex: 1; padding: 13px; font-size: 0.85rem; color: #ef4444; border-color: #fca5a5;" onclick="handleStudentDeleteAccount()">
+            <button type="button" class="btn btn-cancel-danger" style="padding: 13px; font-size: 0.85rem;" onclick="handleStudentDeleteAccount()">
               <i class="fa-solid fa-trash-can"></i> Deactivate
             </button>
           </div>
@@ -1805,7 +1855,7 @@
     <div class="modal-card" style="max-width: 850px;">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-gauge-high" style="color: var(--accent-teal-dark);"></i> Student Academic Hub</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('student-dashboard-modal')">&times;</button>
       </div>
       <div class="modal-body">
         <!-- Live Student Notification Alert (e.g. Assignment Completed & Verified) -->
@@ -1895,12 +1945,22 @@
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-top: 20px; gap: 12px; flex-wrap: wrap;">
-          <button class="btn btn-outline" onclick="openStudentProfileModal()">
-            <i class="fa-solid fa-pen-to-square"></i> Edit Profile Preferences
-          </button>
-          <a href="https://wa.me/16677757597" target="_blank" class="btn btn-whatsapp">
-            <i class="fa-brands fa-whatsapp"></i> Chat with Academic Advisor
-          </a>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-back" onclick="closeModal('student-dashboard-modal')">
+              <i class="fa-solid fa-arrow-left"></i> Back to Main Site
+            </button>
+            <button class="btn btn-outline" onclick="openStudentProfileModal()">
+              <i class="fa-solid fa-pen-to-square"></i> Edit Profile Preferences
+            </button>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="https://wa.me/16677757597" target="_blank" class="btn btn-whatsapp">
+              <i class="fa-brands fa-whatsapp"></i> Chat with Academic Advisor
+            </a>
+            <button class="btn btn-cancel" onclick="closeModal('student-dashboard-modal')">
+              <i class="fa-solid fa-xmark"></i> Close Hub
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1922,7 +1982,7 @@
               </p>
             </div>
           </div>
-          <button class="modal-close" aria-label="Close modal" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
+          <button class="modal-close" aria-label="Close modal" onclick="closeModal('student-activities-modal')" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
         </div>
 
         <!-- Activity Tabs Bar -->
@@ -2005,9 +2065,17 @@
               <textarea id="book-notes" class="calc-input" rows="3" placeholder="Briefly describe what you would like to cover with your tutor during this session..."></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem;">
-              <i class="fa-brands fa-whatsapp"></i> Request Consultation & Dispatch to WhatsApp Admin
-            </button>
+            <div class="modal-actions-row" style="margin-top: 14px;">
+              <button type="button" class="btn btn-back" onclick="closeModal('student-activities-modal'); openStudentDashboard();">
+                <i class="fa-solid fa-arrow-left"></i> Back to Hub
+              </button>
+              <button type="button" class="btn btn-cancel" onclick="closeModal('student-activities-modal')">
+                <i class="fa-solid fa-xmark"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+                <i class="fa-brands fa-whatsapp"></i> Request Consultation & Dispatch to WhatsApp
+              </button>
+            </div>
           </form>
 
           <div id="booking-confirmation-card" style="display: none; margin-top: 18px;"></div>
@@ -2194,14 +2262,22 @@
                 </div>
               </div>
 
-              <!-- Send Button: ONLY visible AFTER a file is chosen/uploaded -->
-              <div id="upload-submit-container" style="display: none;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; border-radius: var(--radius-md);">
-                  <i class="fa-solid fa-paper-plane"></i> Send Assignment Document & Dispatch Brief
-                </button>
+              <!-- Send Button & Navigation Actions -->
+              <div id="upload-submit-container" style="display: block; margin-top: 14px;">
+                <div class="modal-actions-row">
+                  <button type="button" class="btn btn-back" onclick="closeModal('student-activities-modal'); openStudentDashboard();">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Hub
+                  </button>
+                  <button type="button" class="btn btn-cancel" onclick="closeModal('student-activities-modal')">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; font-size: 0.95rem;">
+                    <i class="fa-solid fa-paper-plane"></i> Send Assignment Document & Dispatch Brief
+                  </button>
+                </div>
               </div>
-              <div id="upload-no-file-hint" style="text-align: center; font-size: 0.82rem; color: #64748b; margin-top: 6px; background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;">
-                <i class="fa-solid fa-arrow-up" style="color: #2563eb;"></i> Please select or drag a file above to enable the Send button.
+              <div id="upload-no-file-hint" style="text-align: center; font-size: 0.78rem; color: #64748b; margin-top: 8px;">
+                <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> You can attach files above, or paste detailed instructions below to dispatch your brief.
               </div>
             </form>
           </div>
@@ -2263,9 +2339,17 @@
               <textarea id="rev-act-content" class="calc-input" rows="4" placeholder="Detail the tutor's depth of research, turnaround speed, and how it boosted your academic GPA..." required></textarea>
             </div>
 
-            <button type="submit" class="btn btn-accent" style="width: 100%; padding: 13px; font-size: 0.95rem;">
-              <i class="fa-solid fa-star"></i> Submit & Publish Verified Review
-            </button>
+            <div class="modal-actions-row" style="margin-top: 14px;">
+              <button type="button" class="btn btn-back" onclick="closeModal('student-activities-modal'); openStudentDashboard();">
+                <i class="fa-solid fa-arrow-left"></i> Back to Hub
+              </button>
+              <button type="button" class="btn btn-cancel" onclick="closeModal('student-activities-modal')">
+                <i class="fa-solid fa-xmark"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-accent" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+                <i class="fa-solid fa-star"></i> Submit & Publish Verified Review
+              </button>
+            </div>
           </form>
         </div>
 
@@ -2329,6 +2413,14 @@
             <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.85rem; padding: 8px;" onclick="copyLiveCitation()">
               <i class="fa-solid fa-copy"></i> Copy Formatted Citation to Clipboard
             </button>
+            <div class="modal-actions-row" style="margin-top: 14px;">
+              <button type="button" class="btn btn-back" onclick="closeModal('student-activities-modal'); openStudentDashboard();">
+                <i class="fa-solid fa-arrow-left"></i> Back to Hub
+              </button>
+              <button type="button" class="btn btn-cancel" onclick="closeModal('student-activities-modal')">
+                <i class="fa-solid fa-xmark"></i> Close Tools
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2348,13 +2440,19 @@
             <span style="font-size: 0.75rem; color: #94a3b8;">ScholarVerge System Operations & PostgreSQL Live Hub</span>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <button class="btn btn-outline" id="admin-notif-toggle-btn" onclick="toggleAdminNotificationPanel()" style="color: #ffffff; border-color: rgba(255,255,255,0.3); padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; position: relative;">
             <i class="fa-solid fa-bell"></i>
             <span>Alerts</span>
             <span id="admin-notif-badge" class="badge" style="background: #ef4444; color: #ffffff; font-size: 0.68rem; padding: 2px 6px; border-radius: 10px; display: none;">0</span>
           </button>
-          <button class="modal-close" aria-label="Close modal" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
+          <button class="btn btn-outline" onclick="closeModal('super-admin-modal')" style="color: #cbd5e1; border-color: rgba(255,255,255,0.2); padding: 6px 12px; font-size: 0.8rem;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Site
+          </button>
+          <button class="btn btn-cancel-danger" onclick="handleAdminSignOut()" style="padding: 6px 12px; font-size: 0.8rem;">
+            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+          </button>
+          <button class="modal-close" aria-label="Close modal" onclick="closeModal('super-admin-modal')" style="color: #ffffff; background: rgba(255,255,255,0.1);">&times;</button>
         </div>
       </div>
 
@@ -2722,6 +2820,21 @@
           <pre class="db-console-panel" id="admin-db-console">Connecting to PostgreSQL engine...</pre>
         </div>
 
+        <!-- Super Admin Operational Navigation Footer -->
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-back" onclick="closeModal('super-admin-modal')">
+              <i class="fa-solid fa-arrow-left"></i> Back to Website
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal('super-admin-modal')">
+              <i class="fa-solid fa-xmark"></i> Close Admin Portal
+            </button>
+          </div>
+          <button type="button" class="btn btn-cancel-danger" onclick="handleAdminSignOut()">
+            <i class="fa-solid fa-right-from-bracket"></i> Sign Out Super Admin
+          </button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2731,7 +2844,7 @@
     <div class="modal-card" style="max-width: 520px;">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-video" style="color: #2563eb;"></i> Assign Meeting Link</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('admin-set-meetlink-modal')">&times;</button>
       </div>
       <div class="modal-body">
         <form onsubmit="handleAdminSubmitMeetingLink(event)">
@@ -2758,9 +2871,17 @@
             <input type="text" id="admin-assign-note" class="calc-input" value="Your specialist tutor is prepared for your scheduled session." />
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.9rem;">
-            <i class="fa-solid fa-check"></i> Confirm Link & Open WhatsApp to Share
-          </button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="closeModal('admin-set-meetlink-modal')">
+              <i class="fa-solid fa-arrow-left"></i> Back to Admin
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal('admin-set-meetlink-modal')">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px; font-size: 0.9rem;">
+              <i class="fa-solid fa-check"></i> Confirm Link & Share
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2779,7 +2900,7 @@
             <span style="font-size: 0.72rem; color: #94a3b8;" id="admin-stage-header-order-ref">Order #SV-84920</span>
           </div>
         </div>
-        <button class="modal-close" aria-label="Close modal" style="color: #fff; background: rgba(255,255,255,0.1);">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('admin-order-stage-modal')" style="color: #fff; background: rgba(255,255,255,0.1);">&times;</button>
       </div>
       <div class="modal-body">
         <form onsubmit="handleAdminSubmitOrderStageUpdate(event)">
@@ -2874,9 +2995,17 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; margin-top: 6px;">
-            <i class="fa-solid fa-floppy-disk"></i> Save Stage to DB & Open WhatsApp Notify
-          </button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="closeModal('admin-order-stage-modal')">
+              <i class="fa-solid fa-arrow-left"></i> Back to Orders
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal('admin-order-stage-modal')">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem;">
+              <i class="fa-solid fa-floppy-disk"></i> Save Stage to DB & Open WhatsApp
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2895,7 +3024,7 @@
             <span style="font-size: 0.72rem; color: #a7f3d0;" id="admin-complete-header-order-ref">Order #SV-84920</span>
           </div>
         </div>
-        <button class="modal-close" aria-label="Close modal" style="color: #fff; background: rgba(255,255,255,0.1);">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('admin-upload-completed-modal')" style="color: #fff; background: rgba(255,255,255,0.1);">&times;</button>
       </div>
       <div class="modal-body">
         <form onsubmit="handleAdminSubmitCompletedWork(event)">
@@ -2940,9 +3069,17 @@
             <textarea id="admin-complete-notes" class="calc-input" rows="2" placeholder="e.g. Your assignment has been completed by your tutor with verified 0.0% AI. Download below!"></textarea>
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none;">
-            <i class="fa-solid fa-upload"></i> Load Completed Work to Student Portal & WhatsApp
-          </button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="closeModal('admin-upload-completed-modal')">
+              <i class="fa-solid fa-arrow-left"></i> Back to Orders
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal('admin-upload-completed-modal')">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none;">
+              <i class="fa-solid fa-upload"></i> Load Completed Work
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2969,7 +3106,9 @@
       <div class="modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
         <span style="font-size: 0.75rem; color: #64748b;"><i class="fa-solid fa-shield-halved" style="color: #059669;"></i> Verified Academic Record</span>
         <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn btn-outline" onclick="closeModal('admin-order-specs-modal')">Close</button>
+          <button type="button" class="btn btn-back" onclick="closeModal('admin-order-specs-modal')">
+            <i class="fa-solid fa-arrow-left"></i> Back to Orders
+          </button>
           <a href="#" id="admin-specs-modal-wa-btn" target="_blank" class="btn btn-whatsapp" style="text-decoration: none;">
             <i class="fa-brands fa-whatsapp"></i> Chat with Client
           </a>
@@ -2983,7 +3122,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-pen-nib" style="color: var(--accent-blue);"></i> Write My Paper - Assignment Order</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeOrderPaperModal()">&times;</button>
       </div>
       <div class="modal-body">
         <div class="wizard-steps-indicator">
@@ -3005,8 +3144,30 @@
           </div>
         </div>
 
-        <!-- Step 1: Assignment Basics -->
+        <!-- Step 1: Assignment Basics & Student Contact -->
         <div id="order-step-pane-1">
+          <!-- Student Contact Info Card (Auto-filled if logged in) -->
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: #1e293b;"><i class="fa-solid fa-user-graduate" style="color: #2563eb;"></i> Student Information</span>
+              <span id="order-user-status-pill" class="badge badge-secondary" style="font-size: 0.7rem;">Guest Student</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="calc-form-group" style="margin-bottom: 0;">
+                <label class="calc-label" style="font-size: 0.78rem;">Full Name</label>
+                <input type="text" id="order-student-name" class="calc-input" placeholder="e.g. Jordan Miller" required />
+              </div>
+              <div class="calc-form-group" style="margin-bottom: 0;">
+                <label class="calc-label" style="font-size: 0.78rem;">Student Email</label>
+                <input type="email" id="order-student-email" class="calc-input" placeholder="e.g. jordan.m@university.edu" required />
+              </div>
+            </div>
+            <div class="calc-form-group" style="margin-top: 10px; margin-bottom: 0;">
+              <label class="calc-label" style="font-size: 0.78rem;">WhatsApp / Contact Number (For Instant Invoicing & Updates)</label>
+              <input type="tel" id="order-student-phone" class="calc-input" placeholder="e.g. +1 667 775 7597" />
+            </div>
+          </div>
+
           <div class="calc-form-group">
             <label class="calc-label">Paper Topic or Subject Title</label>
             <input type="text" id="order-topic" class="calc-input" placeholder="e.g. Ethical Implications of AI in Healthcare" required />
@@ -3089,9 +3250,14 @@
           <input type="hidden" id="order-deadline-datetime" value="" />
           <input type="hidden" id="order-deadline-modal" value="" />
 
-          <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="nextOrderStep()">
-            Next: Instructions & Rubric <i class="fa-solid fa-arrow-right"></i>
-          </button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-cancel" onclick="closeOrderPaperModal()">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">
+              Next: Instructions & Rubric <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Step 2: Instructions & Uploads -->
@@ -3137,9 +3303,16 @@
               </button>
             </div>
           </div>
-          <div style="display: flex; gap: 12px; margin-top: 14px;">
-            <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Select Tutor <i class="fa-solid fa-arrow-right"></i></button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="prevOrderStep()">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeOrderPaperModal()">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">
+              Next: Select Tutor <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
         </div>
 
@@ -3158,9 +3331,16 @@
             <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> 
             Your selected specialist tutor and administration will review your prompt and specifications upon submission.
           </div>
-          <div style="display: flex; gap: 12px;">
-            <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">Next: Review & Payment Inquiry <i class="fa-solid fa-arrow-right"></i></button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="prevOrderStep()">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </button>
+            <button type="button" class="btn btn-cancel" onclick="closeOrderPaperModal()">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextOrderStep()">
+              Next: Review & Payment Inquiry <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
         </div>
 
@@ -3183,11 +3363,53 @@
               </div>
             </div>
           </div>
-          <div style="display: flex; gap: 12px;">
-            <button class="btn btn-outline" style="flex: 1;" onclick="prevOrderStep()">Back</button>
-            <button class="btn btn-primary" style="flex: 2; padding: 12px 20px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);" onclick="submitAcademicOrder(event)">
-              <i class="fa-solid fa-envelope-circle-check"></i> Submit Order & Inquire Payment via Email
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-back" onclick="prevOrderStep()">
+              <i class="fa-solid fa-arrow-left"></i> Back
             </button>
+            <button type="button" class="btn btn-cancel" onclick="closeOrderPaperModal()">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="button" id="order-submit-btn" class="btn btn-primary" style="flex: 2; padding: 12px 20px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);" onclick="submitAcademicOrder(event)">
+              <i class="fa-solid fa-paper-plane"></i> Submit Order & Inquire Payment
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5: Order Confirmation & Live Tracking Jump -->
+        <div id="order-step-pane-5" style="display: none;">
+          <div class="order-conf-card">
+            <div class="order-conf-celebrate">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; color: #0f172a; margin: 0 0 6px;">Assignment Order Confirmed!</h3>
+            <p style="font-size: 0.88rem; color: #475569; margin: 0 0 16px;">
+              Your academic specifications have been recorded in our PostgreSQL database and assigned to your specialist tutor.
+            </p>
+            <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; font-weight: 700; margin-bottom: 4px;">Official Tracking Reference</div>
+            <div class="order-conf-ref" id="order-conf-ref-display">#SV-00000</div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; text-align: left; font-size: 0.825rem; color: #334155; margin-bottom: 20px;">
+              <p style="margin: 0 0 6px;"><strong><i class="fa-solid fa-shield-halved" style="color: #059669;"></i> Next Steps for Invoicing & Payment:</strong></p>
+              <span style="color: #64748b;">Our Admin billing desk has been notified. You can send your payment inquiry email with 1 click or chat instantly on WhatsApp to receive payment instructions.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="#" id="order-conf-mailto-btn" class="btn btn-primary" style="flex: 1; min-width: 200px; padding: 11px; font-size: 0.88rem; text-decoration: none;">
+                  <i class="fa-solid fa-envelope"></i> Send Email to Admin Desk
+                </a>
+                <a href="#" id="order-conf-whatsapp-btn" target="_blank" class="btn btn-whatsapp" style="flex: 1; min-width: 200px; padding: 11px; font-size: 0.88rem; text-decoration: none;">
+                  <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp Desk
+                </a>
+              </div>
+              <div class="modal-actions-row">
+                <button type="button" id="order-conf-track-btn" class="btn btn-outline" style="flex: 1; padding: 11px; font-size: 0.88rem;">
+                  <i class="fa-solid fa-satellite-dish"></i> Track Order Live
+                </button>
+                <button type="button" class="btn btn-cancel" style="flex: 1; padding: 11px;" onclick="closeOrderPaperModal()">
+                  <i class="fa-solid fa-arrow-left"></i> Back to Main Site
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3199,7 +3421,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Leave Us a Review</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('review-modal')">&times;</button>
       </div>
       <div class="modal-body">
         <form onsubmit="submitStudentReview(event)">
@@ -3234,9 +3456,14 @@
             <label class="calc-label">Your Detailed Review</label>
             <textarea id="rev-text" class="calc-input" rows="4" placeholder="Tell other students about your experience, response speed, writing quality, and Turnitin report..." required></textarea>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">
-            Submit Verified Review
-          </button>
+          <div class="modal-actions-row" style="margin-top: 14px;">
+            <button type="button" class="btn btn-cancel" onclick="closeModal('review-modal')">
+              <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 13px;">
+              <i class="fa-solid fa-star"></i> Submit Verified Review
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -3247,7 +3474,7 @@
     <div class="modal-card" style="max-width: 750px;">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-certificate" style="color: var(--accent-teal-dark);"></i> Official Turnitin & AI Authenticity Certificate</h3>
-        <button class="modal-close" aria-label="Close modal">&times;</button>
+        <button class="modal-close" aria-label="Close modal" onclick="closeModal('turnitin-modal')">&times;</button>
       </div>
       <div class="modal-body">
         <div style="background: #0b132b; color: #ffffff; border-radius: 14px; padding: 24px; margin-bottom: 24px;">
@@ -3282,9 +3509,14 @@
           <li><i class="fa-solid fa-circle-check" style="color: #059669;"></i> Formatted rigorously according to chosen style guide (APA 7, MLA 9, Harvard, OSCOLA).</li>
         </ul>
 
-        <button class="btn btn-primary" style="width: 100%;" onclick="showToast('Sample PDF certificate downloaded!')">
-          <i class="fa-solid fa-download"></i> Download Sample Originality PDF Report
-        </button>
+        <div class="modal-actions-row" style="margin-top: 14px;">
+          <button type="button" class="btn btn-cancel" onclick="closeModal('turnitin-modal')">
+            <i class="fa-solid fa-arrow-left"></i> Back / Close
+          </button>
+          <button type="button" class="btn btn-primary" style="flex: 2; padding: 13px;" onclick="showToast('Sample PDF certificate downloaded!')">
+            <i class="fa-solid fa-download"></i> Download Sample Originality PDF Report
+          </button>
+        </div>
       </div>
     </div>
   </div>

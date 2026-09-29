@@ -19,7 +19,6 @@ let authSession = {
 
 let activeResetOtp = '849205';
 let selectedHubStars = 5;
-let uploadedFileMeta = null;
 let currentInviteToken = '';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -81,6 +80,19 @@ function handleUserLogout() {
   localStorage.removeItem('scholarverge_session');
   updateNavAuthUI();
   showToast('Signed out successfully. See you soon!');
+}
+
+function handleAdminSignOut() {
+  closeModal('super-admin-modal');
+  handleUserLogout();
+  showToast('Super Admin signed out safely.');
+}
+
+function openLiveChatSupport() {
+  const drawer = document.getElementById('live-chat-drawer');
+  if (drawer) {
+    drawer.classList.add('active');
+  }
 }
 
 function updateNavAuthUI() {
@@ -306,7 +318,14 @@ function fillStudentDemoCredentials() {
 }
 
 function fillAdminDemoCredentials() {
-  // Admin credentials are confidential and securely entered manually
+  switchAuthTab('admin');
+  const emailInput = document.getElementById('admin-login-email');
+  const pwInput = document.getElementById('admin-login-password');
+  if (emailInput && pwInput) {
+    emailInput.value = 'scholarverge@gmail.com';
+    pwInput.value = 'Lovato20';
+    showToast('Loaded Super Admin Master Demo: scholarverge@gmail.com');
+  }
 }
 
 
@@ -1177,12 +1196,24 @@ function handleDocumentEmailDispatch(e) {
       handleRealFileChange({ target: picker });
     }
   }
-  if (uploadedFiles.length === 0) {
-    showToast('Please select or upload at least one assignment document from your device.');
-    return;
-  }
 
-  const topic = document.getElementById('upload-topic').value.trim();
+  const topic = document.getElementById('upload-topic') ? document.getElementById('upload-topic').value.trim() : '';
+  const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
+
+  if (uploadedFiles.length === 0) {
+    if (instructions && instructions.length >= 10) {
+      uploadedFiles.push({
+        name: `${(topic || 'Assignment_Brief').replace(/[^a-zA-Z0-9_-]/g, '_')}_Instructions.txt`,
+        size: `${Math.round(instructions.length / 1024 * 10) / 10 || 1.2} KB`,
+        type: 'text/plain',
+        data: 'data:text/plain;base64,' + btoa(unescape(encodeURIComponent(instructions)))
+      });
+      renderUploadedFilesList();
+    } else {
+      showToast('Please upload an assignment document or enter your detailed instructions below.');
+      return;
+    }
+  }
   const assignmentType = document.getElementById('upload-assignment-type') ? document.getElementById('upload-assignment-type').value : 'Essay';
   const subject = document.getElementById('upload-subject') ? document.getElementById('upload-subject').value : 'Academic Research';
   const level = document.getElementById('upload-level') ? document.getElementById('upload-level').value : 'Bachelors';
@@ -1191,7 +1222,6 @@ function handleDocumentEmailDispatch(e) {
   const pages = document.getElementById('upload-pages') ? Math.max(1, parseInt(document.getElementById('upload-pages').value) || 1) : 1;
   const dayReady = document.getElementById('upload-day-ready') ? document.getElementById('upload-day-ready').value : 'In 3 Days (Standard)';
   const tutor = document.getElementById('upload-tutor') ? document.getElementById('upload-tutor').value : 'Sophia Mitchell';
-  const instructions = document.getElementById('upload-instructions') ? document.getElementById('upload-instructions').value.trim() : '';
 
   const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
   const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
@@ -3216,6 +3246,24 @@ function initModals() {
     });
   });
 
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay.active').forEach(overlay => {
+        overlay.classList.remove('active');
+      });
+      const sidebar = document.getElementById('collapsible-sidebar');
+      if (sidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (backdrop) backdrop.classList.remove('active');
+      }
+      const chatDrawer = document.getElementById('live-chat-drawer');
+      if (chatDrawer && chatDrawer.classList.contains('active')) {
+        chatDrawer.classList.remove('active');
+      }
+    }
+  });
+
   initFileDropzones();
 }
 
@@ -3273,10 +3321,37 @@ function closeModal(modalId) {
    ========================================================================== */
 let orderWizardStep = 1;
 
+function closeOrderPaperModal() {
+  orderWizardStep = 1;
+  updateOrderWizardUI();
+  closeModal('order-paper-modal');
+}
+
 function openOrderModalWithTutor(tutorName = '') {
   orderWizardStep = 1;
   openModal('order-paper-modal');
   ensureDefaultOrderDeadline();
+
+  // Populate student contact info from authSession or fallback to guest
+  const nameInput = document.getElementById('order-student-name');
+  const emailInput = document.getElementById('order-student-email');
+  const phoneInput = document.getElementById('order-student-phone');
+  const statusPill = document.getElementById('order-user-status-pill');
+
+  if (authSession.isLoggedIn && authSession.user) {
+    if (nameInput) nameInput.value = authSession.user.full_name || '';
+    if (emailInput) emailInput.value = authSession.user.email || '';
+    if (phoneInput) phoneInput.value = authSession.user.whatsapp_number || '';
+    if (statusPill) {
+      statusPill.className = 'badge badge-trust';
+      statusPill.textContent = authSession.role === 'superadmin' ? 'Super Admin' : 'Verified Student';
+    }
+  } else {
+    if (statusPill) {
+      statusPill.className = 'badge badge-secondary';
+      statusPill.textContent = 'Guest Student';
+    }
+  }
 
   // Sync from dynamic price calculator state if available
   const pagesInput = document.getElementById('order-pages');
@@ -3354,6 +3429,18 @@ function openOrderModalWithSubject(subjectName = '') {
 
 function nextOrderStep() {
   if (orderWizardStep === 1) {
+    const studentName = document.getElementById('order-student-name');
+    const studentEmail = document.getElementById('order-student-email');
+    if (studentName && !studentName.value.trim()) {
+      showToast('Please enter your full name in the Student Details section.');
+      studentName.focus();
+      return;
+    }
+    if (studentEmail && (!studentEmail.value.trim() || !studentEmail.value.includes('@'))) {
+      showToast('Please enter a valid student email address.');
+      studentEmail.focus();
+      return;
+    }
     const topic = document.getElementById('order-topic');
     if (topic && !topic.value.trim()) {
       showToast('Please enter your paper topic or subject.');
@@ -3508,7 +3595,7 @@ function syncUploadDeadlineString() {
 }
 
 function updateOrderWizardUI() {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const stepPane = document.getElementById(`order-step-pane-${i}`);
     const stepNode = document.getElementById(`order-node-${i}`);
     if (stepPane) {
@@ -3566,7 +3653,30 @@ function updateOrderWizardUI() {
 function submitAcademicOrder(e) {
   if (e) e.preventDefault();
   syncOrderDeadlineString();
-  const randomId = `SV-${Math.floor(10000 + Math.random() * 90000)}`;
+
+  const nameInput = document.getElementById('order-student-name');
+  const emailInput = document.getElementById('order-student-email');
+  const phoneInput = document.getElementById('order-student-phone');
+
+  let studentName = (nameInput && nameInput.value.trim()) || (authSession.user ? authSession.user.full_name : 'Guest Student');
+  let studentEmail = (emailInput && emailInput.value.trim()) || (authSession.user ? authSession.user.email : 'student@university.edu');
+  let studentPhone = (phoneInput && phoneInput.value.trim()) || (authSession.user ? authSession.user.whatsapp_number : '');
+
+  if (!studentName || studentName === 'Guest Student') {
+    showToast('Please enter your full name in Step 1.');
+    orderWizardStep = 1;
+    updateOrderWizardUI();
+    if (nameInput) nameInput.focus();
+    return;
+  }
+  if (!studentEmail || !studentEmail.includes('@')) {
+    showToast('Please provide a valid contact email in Step 1.');
+    orderWizardStep = 1;
+    updateOrderWizardUI();
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
   const topic = document.getElementById('order-topic').value || 'Academic Research Paper';
   const assignmentType = document.getElementById('order-assignment-type') ? document.getElementById('order-assignment-type').value : 'Essays';
   const tutorSelect = document.getElementById('order-tutor-select');
@@ -3577,45 +3687,13 @@ function submitAcademicOrder(e) {
   const sourcesCount = document.getElementById('order-sources-count') ? document.getElementById('order-sources-count').value : '5';
   const prompt = document.getElementById('order-prompt') ? document.getElementById('order-prompt').value : '';
   const deadline = document.getElementById('order-deadline-modal') ? document.getElementById('order-deadline-modal').value : 'Flexible Target Timeline';
-
-  const currentStudentName = authSession.user ? authSession.user.full_name : 'Registered Student';
-  const currentStudentEmail = authSession.user ? authSession.user.email : 'student@university.edu';
-  
-  let attachedFileText = '';
-  if (orderUploadedFiles.length > 0) {
-    attachedFileText = `\n• Attached Documents (${orderUploadedFiles.length}):\n` + 
-      orderUploadedFiles.map((f, idx) => `    ${idx + 1}. ${f.name} (${f.size})`).join('\n');
-  } else if (orderUploadedFileMeta) {
-    attachedFileText = `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})`;
-  }
-
-  const adminEmail = 'scholarverge@gmail.com';
-  const emailSubject = `Payment Inquiry: Order #${randomId} - ${topic}`;
-  const emailBody = `Dear ScholarVerge Administration & Billing Desk,
-
-I have submitted an academic order on ScholarVerge and am writing to formally inquire about payment options, final fee confirmation, and official invoice instructions for this assignment.
-
---- ORDER SPECIFICATIONS ---
-• Order Reference: #${randomId}
-• Topic / Title: ${topic}
-• Assignment Type: ${assignmentType}
-• Academic Level: ${level}
-• Length: ${pages} Pages (~${(pages * 275).toLocaleString()} Words)
-• Citation & Referencing: ${citation} (${sourcesCount} sources)
-• Target Deadline: ${deadline}
-• Assigned Specialist Tutor: ${tutorName}${attachedFileText}
-
---- STUDENT DETAILS ---
-• Student Name: ${currentStudentName}
-• Student Email: ${currentStudentEmail}
-
-Please provide the official invoice and payment details at your earliest convenience.
-
-Kind regards,
-${currentStudentName}`;
-
-  const mailtoLink = `mailto:${adminEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
   const deadlineDatetimeVal = document.getElementById('order-deadline-datetime') ? document.getElementById('order-deadline-datetime').value : '';
+
+  const submitBtn = document.getElementById('order-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registering Assignment...';
+  }
 
   const orderFilesName = orderUploadedFiles.length > 0 ? orderUploadedFiles.map(f => f.name).join(', ') : (orderUploadedFileMeta ? orderUploadedFileMeta.name : null);
   const orderFilesSize = orderUploadedFiles.length > 0 ? `${orderUploadedFiles.length} file(s) (${formatTotalFilesSize(orderUploadedFiles)})` : (orderUploadedFileMeta ? orderUploadedFileMeta.size : null);
@@ -3628,8 +3706,9 @@ ${currentStudentName}`;
     body: JSON.stringify({
       topic: topic,
       assignment_type: assignmentType,
-      student_name: currentStudentName,
-      student_email: currentStudentEmail,
+      student_name: studentName,
+      student_email: studentEmail,
+      student_phone: studentPhone,
       tutor_name: tutorName,
       academic_level: level,
       pages: pages,
@@ -3656,19 +3735,108 @@ ${currentStudentName}`;
   })
   .then(r => r.json())
   .then(res => {
-    window.location.href = mailtoLink;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order & Inquire Payment';
+    }
+
+    const orderNumber = (res && res.order_number) ? res.order_number : `SV-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    let attachedFileText = '';
+    if (orderUploadedFiles.length > 0) {
+      attachedFileText = `\n• Attached Documents (${orderUploadedFiles.length}):\n` + 
+        orderUploadedFiles.map((f, idx) => `    ${idx + 1}. ${f.name} (${f.size})`).join('\n');
+    } else if (orderUploadedFileMeta) {
+      attachedFileText = `\n• Attached Document: ${orderUploadedFileMeta.name} (${orderUploadedFileMeta.size})`;
+    }
+
+    const adminEmail = 'scholarverge@gmail.com';
+    const emailSubject = `Payment Inquiry: Order #${orderNumber} - ${topic}`;
+    const emailBody = `Dear ScholarVerge Administration & Billing Desk,
+
+I have submitted an academic order on ScholarVerge and am writing to formally inquire about payment options, final fee confirmation, and official invoice instructions for this assignment.
+
+--- ORDER SPECIFICATIONS ---
+• Order Reference: #${orderNumber}
+• Topic / Title: ${topic}
+• Assignment Type: ${assignmentType}
+• Academic Level: ${level}
+• Length: ${pages} Pages (~${(pages * 275).toLocaleString()} Words)
+• Citation & Referencing: ${citation} (${sourcesCount} sources)
+• Target Deadline: ${deadline}
+• Assigned Specialist Tutor: ${tutorName}${attachedFileText}
+
+--- STUDENT DETAILS ---
+• Student Name: ${studentName}
+• Student Email: ${studentEmail}
+• Contact / WhatsApp: ${studentPhone || 'Not specified'}
+
+Please provide the official invoice and payment details at your earliest convenience.
+
+Kind regards,
+${studentName}`;
+
+    const mailtoLink = `mailto:${adminEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    const waText = `Hello ScholarVerge Billing Desk! I submitted Order #${orderNumber} for "${topic}" (${pages} pages). Please share the official payment details and invoice instructions.`;
+    const waLink = `https://wa.me/16677757597?text=${encodeURIComponent(waText)}`;
+
+    // Populate Step 5 UI
+    const refDisplay = document.getElementById('order-conf-ref-display');
+    if (refDisplay) refDisplay.textContent = `#${orderNumber}`;
+
+    const mailtoBtn = document.getElementById('order-conf-mailto-btn');
+    if (mailtoBtn) mailtoBtn.href = mailtoLink;
+
+    const waBtn = document.getElementById('order-conf-whatsapp-btn');
+    if (waBtn) waBtn.href = waLink;
+
+    const trackBtn = document.getElementById('order-conf-track-btn');
+    if (trackBtn) {
+      trackBtn.onclick = () => {
+        closeOrderPaperModal();
+        scrollToOrderTracker(orderNumber);
+      };
+    }
+
+    if (authSession.user) {
+      authSession.user.total_orders = (authSession.user.total_orders || 0) + 1;
+      saveSession(authSession);
+    }
+
+    orderWizardStep = 5;
+    updateOrderWizardUI();
+    showToast(`Order #${orderNumber} successfully registered!`);
+
+    setTimeout(() => {
+      window.open(mailtoLink, '_blank');
+    }, 1200);
   })
-  .catch(() => {
-    window.location.href = mailtoLink;
+  .catch(err => {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order & Inquire Payment';
+    }
+    const orderNumber = `SV-${Math.floor(10000 + Math.random() * 90000)}`;
+    const refDisplay = document.getElementById('order-conf-ref-display');
+    if (refDisplay) refDisplay.textContent = `#${orderNumber}`;
+    orderWizardStep = 5;
+    updateOrderWizardUI();
+    showToast(`Order #${orderNumber} recorded! You can now send your payment inquiry.`);
   });
+}
 
-  if (authSession.user) {
-    authSession.user.total_orders = (authSession.user.total_orders || 0) + 1;
-    saveSession(authSession);
+function scrollToOrderTracker(orderId) {
+  const trackerSection = document.getElementById('order-tracker');
+  if (trackerSection) {
+    trackerSection.scrollIntoView({ behavior: 'smooth' });
+    const trackerInput = document.getElementById('tracker-input');
+    if (trackerInput && orderId) {
+      trackerInput.value = orderId;
+      setTimeout(() => {
+        loadOrderDetails(orderId);
+      }, 500);
+    }
   }
-
-  closeModal('order-paper-modal');
-  showToast(`Order #${randomId} Registered! Opening email to inquire about payment with Admin...`);
 }
 
 /* ==========================================================================
